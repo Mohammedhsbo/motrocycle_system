@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: motorcycle_test
+          POSTGRES_USER: motorcycle
+          POSTGRES_PASSWORD: motorcycle_test_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U motorcycle -d motorcycle_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm --filter @motorcycle-system/api typecheck
+      - run: pnpm --filter @motorcycle-system/api test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://motorcycle:motorcycle_test_password@localhost:5432/motorcycle_test?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret
+          CORS_ORIGIN: http://localhost:3001
+      - run: pnpm --filter @motorcycle-system/api build
+      - name: Dependency audit
+        run: pnpm audit --audit-level high
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+      - name: Build API image
+        run: docker build -f Dockerfile.api -t motorcycle-api:${{ github.sha }} .
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: motorcycle-api:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: table
+      - name: Publish API image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag motorcycle-api:${{ github.sha }} ghcr.io/${{ github.repository }}/api:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/api:${{ github.sha }}
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @motorcycle-system/shared-types build
+      - run: pnpm --filter web typecheck
+      - run: pnpm --filter admin lint
+      - run: pnpm --filter admin build
+        env:
+          VITE_API_URL: https://api.example.com/api/v1
+      - run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          NEXT_PUBLIC_WS_URL: https://api.example.com
+          NEXT_PUBLIC_APP_URL: https://example.com
+      - name: Build frontend images
+        run: |
+          docker build -f Dockerfile.web -t motorcycle-web:${{ github.sha }} --build-arg NEXT_PUBLIC_API_URL=https://api.example.com --build-arg NEXT_PUBLIC_WS_URL=https://api.example.com --build-arg NEXT_PUBLIC_APP_URL=https://example.com .
+          docker build -f Dockerfile.admin -t motorcycle-admin:${{ github.sha }} --build-arg VITE_API_URL=https://api.example.com/api/v1 .
+      - name: Scan frontend images
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: motorcycle-web:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: table
+      - name: Publish frontend images
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag motorcycle-web:${{ github.sha }} ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+          docker tag motorcycle-admin:${{ github.sha }} ghcr.io/${{ github.repository }}/admin:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/admin:${{ github.sha }}
+
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter desktop lint
+      - run: pnpm --filter desktop typecheck
+      - run: pnpm --filter desktop package:win
+        env:
+          VITE_API_URL: https://api.example.com/api/v1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-${{ github.sha }}
+          path: apps/desktop/release/**

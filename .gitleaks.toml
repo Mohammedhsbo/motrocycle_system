@@ -1,0 +1,12 @@
+[allowlist]
+description = "Allow documented non-production placeholders only"
+regexes = [
+  '''change-me-[a-z-]*''',
+  '''__CI_SECRET__''',
+  '''__[^_]+__''',
+  '''motorcycle_(dev|test)_password''',
+  '''redis_(dev|test)_password''',
+  '''minioadmin''',
+  '''placeholder''',
+  '''test-secret'''
+]

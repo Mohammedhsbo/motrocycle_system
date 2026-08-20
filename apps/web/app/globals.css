@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply h-full;
+  }
+  
+  body {
+    @apply h-full bg-zinc-50 text-zinc-950 antialiased;
+  }
+
+  html[dir="rtl"] {
+    direction: rtl;
+  }
+
+  html[dir="ltr"] {
+    direction: ltr;
+  }
+}
+
+@layer components {
+  .section-shell {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .moto-fallback {
+    @apply absolute inset-0 grid place-items-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,#f4f4f5,transparent_34%),linear-gradient(135deg,#18181b,#3f3f46)];
+  }
+
+  .moto-fallback::before {
+    content: "";
+    @apply absolute inset-x-8 bottom-10 h-px bg-white/25;
+  }
+
+  .moto-silhouette {
+    @apply relative h-32 w-64 opacity-95;
+  }
+
+  .wheel {
+    @apply absolute bottom-3 h-16 w-16 rounded-full border-[10px] border-white/85 shadow-[0_0_0_6px_rgba(255,255,255,0.12)];
+  }
+
+  .wheel-left {
+    @apply left-4;
+  }
+
+  .wheel-right {
+    @apply right-4;
+  }
+
+  .bike-line {
+    @apply absolute block rounded-full bg-red-600 shadow-lg;
+  }
+
+  .bike-line-main {
+    left: 58px;
+    right: 62px;
+    bottom: 66px;
+    height: 12px;
+    transform: skewX(-22deg);
+  }
+
+  .bike-line-seat {
+    left: 92px;
+    top: 24px;
+    width: 72px;
+    height: 10px;
+  }
+
+  .bike-line-front {
+    right: 48px;
+    top: 42px;
+    width: 56px;
+    height: 8px;
+    transform: rotate(34deg);
+  }
+}

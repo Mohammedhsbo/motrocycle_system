@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+  packages: read
+
+jobs:
+  staging:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy staging over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          REGISTRY_IMAGE_API: ghcr.io/${{ github.repository }}/api
+          REGISTRY_IMAGE_WEB: ghcr.io/${{ github.repository }}/web
+          REGISTRY_IMAGE_ADMIN: ghcr.io/${{ github.repository }}/admin
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: IMAGE_TAG,REGISTRY_IMAGE_API,REGISTRY_IMAGE_WEB,REGISTRY_IMAGE_ADMIN
+          script: |
+            cd ${{ secrets.STAGING_DEPLOY_PATH }}
+            export IMAGE_TAG REGISTRY_IMAGE_API REGISTRY_IMAGE_WEB REGISTRY_IMAGE_ADMIN
+            ./deploy/scripts/deploy.sh staging
+
+  production:
+    needs: staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy production over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          REGISTRY_IMAGE_API: ghcr.io/${{ github.repository }}/api
+          REGISTRY_IMAGE_WEB: ghcr.io/${{ github.repository }}/web
+          REGISTRY_IMAGE_ADMIN: ghcr.io/${{ github.repository }}/admin
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          envs: IMAGE_TAG,REGISTRY_IMAGE_API,REGISTRY_IMAGE_WEB,REGISTRY_IMAGE_ADMIN
+          script: |
+            cd ${{ secrets.PRODUCTION_DEPLOY_PATH }}
+            export IMAGE_TAG REGISTRY_IMAGE_API REGISTRY_IMAGE_WEB REGISTRY_IMAGE_ADMIN
+            ./deploy/scripts/deploy.sh production

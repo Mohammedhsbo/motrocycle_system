@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.env
+.env.*
+!.env.example
+!.env.*.example
+dist/
+.next/
+.next-smoke*/
+coverage/
+*.log
+backup-*.sql*
+restore-*.sql*
+*.p12
+*.pfx
+*.pem
+*.key

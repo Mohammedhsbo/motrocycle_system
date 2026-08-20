@@ -1,0 +1,317 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { Bookmark, Clock } from 'lucide-react';
+import { reservations, type ReservationListItem, type ReservationStatus } from '../api';
+
+type Lang = 'en' | 'ar';
+
+const T = {
+  en: {
+    title: 'Reservations',
+    all: 'All',
+    active: 'Active',
+    expired: 'Expired',
+    cancelled: 'Cancelled',
+    converted: 'Converted',
+    noReservations: 'No reservations found',
+    loading: 'Loading...',
+    customer: 'Customer',
+    motorcycle: 'Motorcycle',
+    deposit: 'Deposit',
+    remaining: 'Remaining',
+    expires: 'Expires',
+    expired_status: 'Expired',
+    expiresIn: 'Expires in',
+    days: 'days',
+    day: 'day',
+    hours: 'hours',
+    hour: 'hour',
+  },
+  ar: {
+    title: 'الحجوزات',
+    all: 'الكل',
+    active: 'نشط',
+    expired: 'منتهي',
+    cancelled: 'ملغي',
+    converted: 'محول',
+    noReservations: 'لا توجد حجوزات',
+    loading: 'جاري التحميل...',
+    customer: 'العميل',
+    motorcycle: 'الدراجة',
+    deposit: 'العربون',
+    remaining: 'المتبقي',
+    expires: 'تنتهي',
+    expired_status: 'منتهي',
+    expiresIn: 'تنتهي خلال',
+    days: 'أيام',
+    day: 'يوم',
+    hours: 'ساعات',
+    hour: 'ساعة',
+  },
+};
+
+const statusLabels: Record<ReservationStatus | 'all', { en: string; ar: string }> = {
+  all: { en: 'All', ar: 'الكل' },
+  active: { en: 'Active', ar: 'نشط' },
+  expired: { en: 'Expired', ar: 'منتهي' },
+  cancelled: { en: 'Cancelled', ar: 'ملغي' },
+  converted: { en: 'Converted', ar: 'محول' },
+};
+
+interface Props {
+  lang: Lang;
+}
+
+export default function ReservationsPOS({ lang }: Props) {
+  const t = T[lang];
+  const isRtl = lang === 'ar';
+  const navigate = useNavigate();
+
+  const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['reservations', statusFilter],
+    queryFn: () =>
+      reservations.list({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        limit: 100,
+      }),
+  });
+
+  const reservationsList = data?.items ?? [];
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'SAR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getExpirationDisplay = (expiresAt?: string) => {
+    if (!expiresAt) return null;
+    const now = new Date();
+    const expires = new Date(expiresAt);
+    const diffMs = expires.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMs < 0) {
+      return { text: t.expired_status, color: 'var(--red-light)', urgent: true };
+    }
+    if (diffHours < 48) {
+      const hours = Math.floor(diffHours);
+      return {
+        text: `${t.expiresIn} ${hours} ${hours === 1 ? t.hour : t.hours}`,
+        color: 'var(--red-light)',
+        urgent: true,
+      };
+    }
+    if (diffDays <= 7) {
+      return {
+        text: `${t.expiresIn} ${diffDays} ${diffDays === 1 ? t.day : t.days}`,
+        color: '#f59e0b',
+        urgent: true,
+      };
+    }
+    return {
+      text: formatDate(expiresAt),
+      color: 'var(--text-2)',
+      urgent: false,
+    };
+  };
+
+  const handleReservationClick = (reservationId: string) => {
+    navigate(`/reservations/${reservationId}`);
+  };
+
+  return (
+    <div className="pos-body" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+      {/* Left panel - reservation list */}
+      <div className="pos-list-panel">
+        {/* Panel header */}
+        <div className="panel-header">
+          <Bookmark size={18} style={{ color: 'var(--blue-light)' }} />
+          <span className="panel-title">{t.title}</span>
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontSize: '0.75rem',
+              color: 'var(--text-3)',
+            }}
+          >
+            {reservationsList.length}
+          </span>
+        </div>
+
+        {/* Status filters */}
+        <div
+          style={{
+            padding: '0.75rem',
+            borderBottom: '1px solid var(--pos-border)',
+            display: 'flex',
+            gap: '0.375rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          {(['all', 'active', 'expired', 'cancelled', 'converted'] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className="badge"
+              style={{
+                cursor: 'pointer',
+                opacity: statusFilter === status ? 1 : 0.5,
+                transform: statusFilter === status ? 'scale(1.05)' : 'scale(1)',
+                transition: 'var(--transition)',
+              }}
+            >
+              {statusLabels[status][lang]}
+            </button>
+          ))}
+        </div>
+
+        {/* Reservation list */}
+        <div className="pos-list">
+          {isLoading && (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-3)' }}>
+              {t.loading}
+            </div>
+          )}
+          {!isLoading && reservationsList.length === 0 && (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '3rem 1rem',
+                color: 'var(--text-3)',
+              }}
+            >
+              <Bookmark size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+              <div>{t.noReservations}</div>
+            </div>
+          )}
+          {reservationsList.map((reservation) => {
+            const expirationDisplay = getExpirationDisplay(reservation.expiresAt);
+            return (
+              <div
+                key={reservation.id}
+                className="pos-list-item"
+                onClick={() => handleReservationClick(reservation.id)}
+              >
+                {/* Reservation number & status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <div
+                    style={{
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      color: 'var(--blue-light)',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {reservation.reservationNumber}
+                  </div>
+                  <span className={`badge badge-${reservation.status}`}>
+                    {statusLabels[reservation.status][lang]}
+                  </span>
+                </div>
+
+                {/* Customer */}
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{reservation.customer.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontFamily: 'monospace' }}>
+                    {reservation.customer.phone}
+                  </div>
+                </div>
+
+                {/* Motorcycle */}
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>
+                    {lang === 'ar' ? reservation.motorcycle.brand.nameAr : reservation.motorcycle.brand.nameEn}{' '}
+                    {reservation.motorcycle.model}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontFamily: 'monospace' }}>
+                    {reservation.motorcycle.vin}
+                  </div>
+                </div>
+
+                {/* Payment info */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.5rem',
+                    marginBottom: '0.75rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginBottom: '0.125rem' }}>
+                      {t.deposit}
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--green-light)' }}>
+                      {formatCurrency(reservation.depositAmount)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginBottom: '0.125rem' }}>
+                      {t.remaining}
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--blue-light)' }}>
+                      {formatCurrency(reservation.remainingAmount)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expiration */}
+                {expirationDisplay && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.75rem',
+                      color: expirationDisplay.color,
+                      fontWeight: expirationDisplay.urgent ? 600 : 400,
+                    }}
+                  >
+                    {expirationDisplay.urgent && <Clock size={12} />}
+                    {expirationDisplay.text}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Right panel - empty state */}
+      <div className="pos-detail-panel">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            color: 'var(--text-3)',
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <Bookmark size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+            <div style={{ fontSize: '0.9375rem' }}>
+              {lang === 'ar' ? 'اختر حجزاً لعرض التفاصيل' : 'Select a reservation to view details'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

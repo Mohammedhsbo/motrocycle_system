@@ -1,0 +1,18 @@
+{
+  "title": "Motorcycle API Overview",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API Uptime",
+      "targets": [{ "expr": "motorcycle_api_uptime_seconds" }],
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests",
+      "targets": [{ "expr": "sum by (status) (rate(motorcycle_api_http_requests_total[5m]))" }],
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 }
+    }
+  ]
+}

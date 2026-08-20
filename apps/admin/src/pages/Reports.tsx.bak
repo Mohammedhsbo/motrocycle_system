@@ -1,0 +1,368 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { TrendingUp, DollarSign, Package, Users, CreditCard, BarChart3 } from 'lucide-react';
+import { reports, type ExecutiveDashboard } from '../api';
+
+interface Props {
+  lang: 'en' | 'ar';
+}
+
+const t = {
+  en: {
+    title: 'Reports & Analytics',
+    subtitle: 'business intelligence',
+    sales: 'Sales',
+    revenue: 'Revenue',
+    inventory: 'Inventory',
+    customers: 'Customers',
+    financing: 'Financing',
+    totalRevenue: 'Total Revenue',
+    orders: 'Orders',
+    avgOrderValue: 'Avg Order Value',
+    growth: 'Growth',
+    grossRevenue: 'Gross Revenue',
+    collected: 'Collected',
+    outstanding: 'Outstanding',
+    netRevenue: 'Net Revenue',
+    totalUnits: 'Total Units',
+    available: 'Available',
+    reserved: 'Reserved',
+    sold: 'Sold',
+    totalActive: 'Active Customers',
+    newCustomers: 'New Customers',
+    retention: 'Retention Rate',
+    activeContracts: 'Active Contracts',
+    totalFinanced: 'Total Financed',
+    collectionRate: 'Collection Rate',
+    overdue: 'Overdue',
+    loading: 'Loading...',
+    error: 'Failed to load dashboard',
+    topMotorcycles: 'Top Motorcycles',
+    thisMonth: 'This Month',
+  },
+  ar: {
+    title: 'التقارير والتحليلات',
+    subtitle: 'ذكاء الأعمال',
+    sales: 'المبيعات',
+    revenue: 'الإيرادات',
+    inventory: 'المخزون',
+    customers: 'العملاء',
+    financing: 'التمويل',
+    totalRevenue: 'إجمالي الإيرادات',
+    orders: 'الطلبات',
+    avgOrderValue: 'متوسط قيمة الطلب',
+    growth: 'النمو',
+    grossRevenue: 'الإيرادات الإجمالية',
+    collected: 'المحصل',
+    outstanding: 'المستحق',
+    netRevenue: 'صافي الإيرادات',
+    totalUnits: 'إجمالي الوحدات',
+    available: 'متاح',
+    reserved: 'محجوز',
+    sold: 'مباع',
+    totalActive: 'العملاء النشطون',
+    newCustomers: 'عملاء جدد',
+    retention: 'معدل الاحتفاظ',
+    activeContracts: 'العقود النشطة',
+    totalFinanced: 'إجمالي التمويل',
+    collectionRate: 'معدل التحصيل',
+    overdue: 'متأخر',
+    loading: 'جاري التحميل...',
+    error: 'فشل تحميل لوحة المعلومات',
+    topMotorcycles: 'أفضل الدراجات',
+    thisMonth: 'هذا الشهر',
+  },
+};
+
+export default function Reports({ lang }: Props) {
+  const i18n = t[lang];
+  const isRtl = lang === 'ar';
+  const [preset] = useState('this_month');
+
+  const { data: dashboard, isLoading, isError } = useQuery<ExecutiveDashboard>({
+    queryKey: ['executive-dashboard', preset],
+    queryFn: () => reports.getExecutiveDashboard({ preset }),
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const formatCurrency = (amount: number) => {
+    return Number(amount).toLocaleString('en', {
+      style: 'currency',
+      currency: 'SAR',
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const formatPercent = (value: number) => {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+        <div className="center-content">
+          <div className="spinner" />
+          <span style={{ marginTop: '0.75rem' }}>{i18n.loading}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !dashboard) {
+    return (
+      <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+        <div className="center-content" style={{ color: 'var(--error)' }}>
+          <span>{i18n.error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1
+            style={{
+              background: 'linear-gradient(135deg, #f8fafc, #94a3b8)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {i18n.title}
+          </h1>
+          <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+            {i18n.thisMonth} - {i18n.subtitle}
+          </p>
+        </div>
+      </div>
+
+      {/* Sales Metrics */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <TrendingUp size={20} style={{ color: 'var(--accent-primary)' }} />
+          {i18n.sales}
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.totalRevenue}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+              {formatCurrency(dashboard.sales.totalRevenue)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: dashboard.sales.growth >= 0 ? '#10b981' : '#ef4444', marginTop: '0.25rem' }}>
+              {formatPercent(dashboard.sales.growth)} {i18n.growth}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.orders}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+              {dashboard.sales.orderCount}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.avgOrderValue}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+              {formatCurrency(dashboard.sales.averageOrderValue)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue Metrics */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <DollarSign size={20} style={{ color: '#10b981' }} />
+          {i18n.revenue}
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.grossRevenue}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+              {formatCurrency(dashboard.revenue.grossRevenue)}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.collected}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>
+              {formatCurrency(dashboard.revenue.collectedAmount)}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.outstanding}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>
+              {formatCurrency(dashboard.revenue.outstandingAmount)}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.netRevenue}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+              {formatCurrency(dashboard.revenue.netRevenue)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Inventory Metrics */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Package size={20} style={{ color: '#8b5cf6' }} />
+          {i18n.inventory}
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.totalUnits}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+              {dashboard.inventory.totalMotorcycles}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.available}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>
+              {dashboard.inventory.available}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.reserved}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>
+              {dashboard.inventory.reserved}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              {i18n.sold}
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+              {dashboard.inventory.sold}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Customer & Financing */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+        {/* Customers */}
+        <div>
+          <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users size={20} style={{ color: '#3b82f6' }} />
+            {i18n.customers}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="card">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {i18n.totalActive}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {dashboard.customers.totalActive}
+              </div>
+            </div>
+            <div className="card">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {i18n.newCustomers}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>
+                {dashboard.customers.newCustomers}
+              </div>
+            </div>
+            <div className="card">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {i18n.retention}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {dashboard.customers.retentionRate.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Financing */}
+        <div>
+          <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <CreditCard size={20} style={{ color: '#f59e0b' }} />
+            {i18n.financing}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="card">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {i18n.activeContracts}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {dashboard.financing.activeContracts}
+              </div>
+            </div>
+            <div className="card">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {i18n.totalFinanced}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {formatCurrency(dashboard.financing.totalFinanced)}
+              </div>
+            </div>
+            <div className="card">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {i18n.collectionRate}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: dashboard.financing.collectionRate >= 80 ? '#10b981' : '#ef4444' }}>
+                {dashboard.financing.collectionRate.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Motorcycles */}
+      {dashboard.sales.topMotorcycles && dashboard.sales.topMotorcycles.length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <BarChart3 size={20} style={{ color: 'var(--accent-primary)' }} />
+            {i18n.topMotorcycles}
+          </h3>
+          <div className="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Brand</th>
+                  <th>Model</th>
+                  <th style={{ textAlign: 'right' }}>Units Sold</th>
+                  <th style={{ textAlign: 'right' }}>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboard.sales.topMotorcycles.slice(0, 5).map((moto, idx) => (
+                  <tr key={idx}>
+                    <td style={{ fontWeight: 500 }}>{moto.brand}</td>
+                    <td>{moto.model}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{moto.count}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                      {formatCurrency(moto.revenue)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
