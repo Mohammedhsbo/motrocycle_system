@@ -32,8 +32,35 @@ export function useOfflineSync() {
     localStorage.setItem('pos_offline_queue', JSON.stringify(queue));
   }, [queue]);
 
+  useEffect(() => {
+    if (!isOnline || queue.length === 0) return;
+
+    let cancelled = false;
+    const drainQueue = async () => {
+      const completed: string[] = [];
+      for (const operation of queue) {
+        try {
+          await pos.queueOperation({
+            type: operation.type,
+            data: operation.data,
+            localTimestamp: new Date(operation.timestamp).toISOString(),
+          });
+          completed.push(operation.id);
+        } catch {
+          break;
+        }
+      }
+      if (!cancelled && completed.length > 0) {
+        setQueue((current) => current.filter((operation) => !completed.includes(operation.id)));
+      }
+    };
+
+    void drainQueue();
+    return () => { cancelled = true; };
+  }, [isOnline, queue]);
+
   const queueMutation = useMutation({
-    mutationFn: (operation: Omit<OfflineOperation, 'id' | 'timestamp'>) =>
+    mutationFn: (operation: Omit<OfflineOperation, 'id' | 'timestamp'> & { localTimestamp: string }) =>
       pos.queueOperation(operation),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-sync-status'] });
@@ -54,7 +81,11 @@ export function useOfflineSync() {
     if (isOnline) {
       // If online, send immediately
       try {
-        await queueMutation.mutateAsync({ type, data });
+        await queueMutation.mutateAsync({
+          type,
+          data,
+          localTimestamp: new Date(operation.timestamp).toISOString(),
+        });
         return { success: true, error: null };
       } catch (error: any) {
         return { success: false, error: error.message };

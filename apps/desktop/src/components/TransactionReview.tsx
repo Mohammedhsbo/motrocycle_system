@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { pos } from '../api';
+import { invoices, pos } from '../api';
 import { useTransaction } from '../hooks/useTransaction';
 import DiscountInput from './DiscountInput';
 import DepositInput from './DepositInput';
 import TransactionConfirmation from './TransactionConfirmation';
+import PaymentPOS from './PaymentPOS';
 
 interface TransactionReviewProps {
   lang: 'en' | 'ar';
@@ -27,6 +28,7 @@ export default function TransactionReview({
   const [depositAmount, setDepositAmount] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [completedTransaction, setCompletedTransaction] = useState<any>(null);
+  const [showPayment, setShowPayment] = useState(false);
   const isRtl = lang === 'ar';
 
   const { data: dashboard } = useQuery({
@@ -34,7 +36,7 @@ export default function TransactionReview({
     queryFn: pos.getDashboard,
   });
 
-  const { create, isCreating } = useTransaction();
+  const { validate, create, isCreating } = useTransaction();
 
   const permissions = dashboard?.currentUser?.permissions;
   const maxDiscountAmount = permissions?.maxDiscountAmount || 0;
@@ -62,11 +64,40 @@ export default function TransactionReview({
       };
     }
 
+    const validation = await validate(data);
+    if (!validation.valid) {
+      alert(validation.error || (isRtl ? 'تعذر التحقق من العملية' : 'Transaction validation failed'));
+      return;
+    }
+
     const result = await create(data);
     
     if (result.success && result.data) {
-      setCompletedTransaction(result.data);
-      setShowConfirmation(true);
+      const transaction = result.data as any;
+      setCompletedTransaction(transaction);
+      if (transactionType === 'order') {
+        try {
+          const invoice = await invoices.create({
+            customerId: customer.id,
+            orderId: transaction.id,
+            totalAmount: transaction.netAmount,
+            items: [{
+              motorcycleId: motorcycle.id,
+              description: `${motorcycle.model} - ${motorcycle.vin}`,
+              quantity: 1,
+              unitPrice: totalAmount,
+              discount,
+            }],
+          });
+          await invoices.issue(invoice.id);
+          setShowPayment(true);
+        } catch (error: any) {
+          alert(error.message || (isRtl ? 'تم البيع ولكن تعذر إنشاء الفاتورة' : 'Sale created, but invoice creation failed'));
+          setShowConfirmation(true);
+        }
+      } else {
+        setShowConfirmation(true);
+      }
     } else {
       alert(result.error || 'Transaction failed');
     }
@@ -74,9 +105,28 @@ export default function TransactionReview({
 
   const handleNewTransaction = () => {
     setShowConfirmation(false);
+    setShowPayment(false);
     setCompletedTransaction(null);
     onComplete();
   };
+
+  if (showPayment && completedTransaction) {
+    return (
+      <PaymentPOS
+        orderId={completedTransaction.id}
+        orderAmount={netAmount}
+        lang={lang}
+        onSuccess={() => {
+          setShowPayment(false);
+          setShowConfirmation(true);
+        }}
+        onCancel={() => {
+          setShowPayment(false);
+          setShowConfirmation(true);
+        }}
+      />
+    );
+  }
 
   if (showConfirmation && completedTransaction) {
     return (

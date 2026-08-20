@@ -24,6 +24,17 @@ export default function ReceiptView({ lang, data, onClose }: ReceiptViewProps) {
     alert(isRtl ? 'تم النسخ!' : 'Copied!');
   };
 
+  const handleNativePrint = async () => {
+    if (!window.desktopPrinter) {
+      handlePrintPreview();
+      return;
+    }
+    const result = await window.desktopPrinter.print({ html: htmlReceipt });
+    if (!result.success) {
+      alert(result.reason || (isRtl ? 'فشلت الطباعة' : 'Printing failed'));
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -51,10 +62,10 @@ export default function ReceiptView({ lang, data, onClose }: ReceiptViewProps) {
       {/* Actions */}
       <div className="flex gap-3">
         <button
-          onClick={handlePrintPreview}
+          onClick={handleNativePrint}
           className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
         >
-          {isRtl ? '🖨️ معاينة الطباعة' : '🖨️ Print Preview'}
+          {isRtl ? '🖨️ طباعة الإيصال' : '🖨️ Print receipt'}
         </button>
         <button
           onClick={handleCopyText}

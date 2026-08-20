@@ -4,7 +4,7 @@ import { pos } from '../api';
 export function useReservation() {
   const queryClient = useQueryClient();
 
-  const activeReservationsQuery = (branchId?: string, customerId?: string) =>
+  const useActiveReservations = (branchId?: string, customerId?: string) =>
     useQuery({
       queryKey: ['active-reservations', branchId, customerId],
       queryFn: () => pos.getActiveReservations(branchId, customerId),
@@ -20,7 +20,7 @@ export function useReservation() {
   });
 
   return {
-    activeReservationsQuery,
+    useActiveReservations,
     convertMutation,
   };
 }

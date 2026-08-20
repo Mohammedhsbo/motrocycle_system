@@ -10,21 +10,42 @@ export function setToken(token: string) {
 export function getToken() { return authToken; }
 export function clearToken() { authToken = null; localStorage.removeItem('pos_token'); }
 
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function refreshAccessToken() {
+  const response = await fetch(`${API_BASE}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Session refresh failed');
+  const json = await response.json();
+  const token = json.data?.accessToken;
+  if (!token) throw new Error('Session refresh returned no access token');
+  setToken(token);
+}
+
+async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh = true): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(options.headers as Record<string, string> ?? {}),
   };
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   const json = await res.json();
+  if (res.status === 401 && canRefresh && path !== '/auth/login' && path !== '/auth/refresh') {
+    try {
+      await refreshAccessToken();
+      return apiFetch<T>(path, options, false);
+    } catch {
+      clearToken();
+      window.dispatchEvent(new Event('pos-auth-expired'));
+    }
+  }
   if (!res.ok) {
     const err = new Error(json.message ?? 'Request failed') as Error & { code?: string; status?: number };
     err.code = json.code;
     err.status = res.status;
     throw err;
   }
-  return json.data;
+  return json.success === true ? json.data : (json.data ?? json);
 }
 
 // ─── Auth ────────────────────────────────────────────────
@@ -34,6 +55,7 @@ export const auth = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  logout: () => apiFetch<null>('/auth/logout', { method: 'POST' }),
 };
 
 // ─── Types ───────────────────────────────────────────────
@@ -95,6 +117,9 @@ export interface CustomerSearchResult {
     addressLine: string;
     city?: string;
   } | null;
+  recentOrderCount?: number;
+  activeReservationCount?: number;
+  lastTransactionDate?: string;
 }
 
 export interface CustomerDetail {
@@ -151,6 +176,8 @@ export interface MotorcycleSearchResult {
   status: string;
   brand: { id: string; nameEn: string; nameAr: string };
   branch: { id: string; nameEn: string; nameAr: string };
+  images?: string[];
+  category?: { nameEn: string; nameAr: string };
 }
 
 export const motorcycles = {
@@ -392,7 +419,25 @@ export interface Invoice {
   createdAt: string;
 }
 
+export interface CreateInvoiceInput {
+  customerId: string;
+  orderId?: string;
+  reservationId?: string;
+  branchId?: string;
+  totalAmount: number;
+  items: Array<{
+    motorcycleId: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+  }>;
+  notes?: string;
+}
+
 export const invoices = {
+  create: (data: CreateInvoiceInput) => apiFetch<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
+  issue: (id: string) => apiFetch<Invoice>(`/invoices/${id}/issue`, { method: 'POST' }),
   getByOrder: (orderId: string) => apiFetch<Invoice>(`/invoices?orderId=${orderId}`).then((res: any) => res.items?.[0]),
   get: (id: string) => apiFetch<Invoice>(`/invoices/${id}`),
 };
@@ -517,6 +562,144 @@ export const pos = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+};
+
+// ─── Financing & Installments ────────────────────────────
+export type FinancingStatus = 'active' | 'completed' | 'defaulted' | 'cancelled';
+export type InstallmentStatus = 'upcoming' | 'due' | 'paid' | 'overdue';
+export type InstallmentFrequency = 'monthly' | 'quarterly';
+
+export interface FinancingContractRecord {
+  id: string;
+  contractNumber: string;
+  customerId: string;
+  orderId: string;
+  totalAmount: number;
+  downPayment: number;
+  financingAmount: number;
+  numberOfInstallments: number;
+  installmentFrequency: InstallmentFrequency;
+  interestRate: number;
+  startDate: string;
+  status: FinancingStatus;
+  customer?: { id: string; name: string; phone: string };
+  order?: { id: string; orderNumber: string };
+  installments?: InstallmentRecord[];
+}
+
+export interface InstallmentRecord {
+  id: string;
+  contractId: string;
+  installmentNumber: number;
+  dueDate: string;
+  amount: number;
+  paidAmount: number;
+  remainingAmount?: number;
+  status: InstallmentStatus;
+  paidAt?: string | null;
+  contract?: FinancingContractRecord;
+  customer?: { id: string; name: string; phone: string };
+  invoice?: { id: string; invoiceNumber: string };
+}
+
+export const financing = {
+  list: (params?: { page?: number; limit?: number; status?: FinancingStatus; customerId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.status) q.set('status', params.status);
+    if (params?.customerId) q.set('customerId', params.customerId);
+    return apiFetch<{ data: FinancingContractRecord[]; total: number; page: number; limit: number }>(`/financing-contracts?${q}`);
+  },
+  get: (id: string) => apiFetch<FinancingContractRecord>(`/financing-contracts/${id}`),
+  approve: (id: string, notes?: string) => apiFetch<FinancingContractRecord>(`/financing-contracts/${id}/approve`, { method: 'PATCH', body: JSON.stringify({ notes }) }),
+  updateStatus: (id: string, status: FinancingStatus, notes?: string) => apiFetch<FinancingContractRecord>(`/financing-contracts/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, notes }) }),
+};
+
+export const installments = {
+  get: (id: string) => apiFetch<InstallmentRecord>(`/installments/${id}`),
+  byContract: (contractId: string) => apiFetch<InstallmentRecord[]>(`/installments/contract/${contractId}`),
+  pay: (id: string, data: { amount: number; method: PaymentMethod; reference?: string; idempotencyKey: string; notes?: string }) => apiFetch<PaymentResult>(`/installments/${id}/payments`, { method: 'POST', body: JSON.stringify(data) }),
+  updateStatuses: () => apiFetch<{ updated: number }>('/installments/status-update', { method: 'POST' }),
+};
+
+// ─── Reports ─────────────────────────────────────────────
+export type ReportPreset = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'this_year' | 'last_year' | 'custom';
+export interface ReportFilters { preset?: ReportPreset; startDate?: string; endDate?: string; branches?: string; }
+const reportQuery = (filters?: ReportFilters) => {
+  const q = new URLSearchParams();
+  if (filters?.preset) q.set('preset', filters.preset);
+  if (filters?.startDate) q.set('startDate', filters.startDate);
+  if (filters?.endDate) q.set('endDate', filters.endDate);
+  if (filters?.branches) q.set('branches', filters.branches);
+  return q;
+};
+
+export const reports = {
+  executive: (filters?: ReportFilters) => apiFetch<any>(`/reports/dashboard/executive?${reportQuery(filters)}`),
+  operational: (filters?: ReportFilters) => apiFetch<any>(`/reports/dashboard/operational?${reportQuery(filters)}`),
+  sales: (filters?: ReportFilters) => apiFetch<any>(`/reports/sales/summary?${reportQuery(filters)}`),
+  inventory: (filters?: ReportFilters) => apiFetch<any>(`/reports/inventory/current-status?${reportQuery(filters)}`),
+  installments: (filters?: ReportFilters) => apiFetch<any>(`/reports/installments/portfolio?${reportQuery(filters)}`),
+  overdue: (filters?: ReportFilters) => apiFetch<any>(`/reports/installments/overdue?${reportQuery(filters)}`),
+  suppliers: (filters?: ReportFilters) => apiFetch<any>(`/reports/suppliers/performance?${reportQuery(filters)}`),
+};
+
+// ─── Notifications ───────────────────────────────────────
+export interface NotificationRecord {
+  id: string;
+  type: string;
+  title: string;
+  titleAr?: string;
+  message: string;
+  messageAr?: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  data?: Record<string, unknown>;
+}
+
+export const notifications = {
+  list: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.unreadOnly) q.set('unreadOnly', 'true');
+    return apiFetch<{ data: NotificationRecord[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(`/notifications?${q}`);
+  },
+  unreadCount: () => apiFetch<{ count: number }>('/notifications/unread-count'),
+  markRead: (id: string) => apiFetch<NotificationRecord>(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllRead: () => apiFetch<unknown>('/notifications/mark-all-read', { method: 'POST' }),
+};
+
+// ─── Suppliers ───────────────────────────────────────────
+export interface SupplierRecord {
+  id: string;
+  name: string;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierInput { name: string; contactPerson?: string; phone?: string; email?: string; address?: string; notes?: string; isActive?: boolean; }
+export const suppliers = {
+  list: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.search) q.set('search', params.search);
+    if (params?.isActive !== undefined) q.set('isActive', String(params.isActive));
+    return apiFetch<{ items: SupplierRecord[]; meta: { total: number; page: number; limit: number; totalPages: number } }>(`/suppliers?${q}`);
+  },
+  get: (id: string) => apiFetch<SupplierRecord>(`/suppliers/${id}`),
+  create: (data: SupplierInput) => apiFetch<SupplierRecord>('/suppliers', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<SupplierInput>) => apiFetch<SupplierRecord>(`/suppliers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  remove: (id: string) => apiFetch<void>(`/suppliers/${id}`, { method: 'DELETE' }),
 };
 
 
