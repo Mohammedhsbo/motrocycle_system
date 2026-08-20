@@ -1,6 +1,6 @@
 // TASK-003 & TASK-004: Dashboard KPI Service
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { User, Branch, OrderStatus, InvoiceStatus, PaymentStatus, ReservationStatus, FinancingContractStatus, InstallmentStatus } from '@prisma/client';
 import { ExecutiveDashboard, OperationalDashboard, DateRange } from './reports.types.js';
@@ -8,7 +8,7 @@ import { ReportUtils } from './reports.utils.js';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getExecutiveDashboard(
     user: User & { branch?: Branch; role?: { name: string } },

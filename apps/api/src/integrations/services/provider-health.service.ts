@@ -1,6 +1,6 @@
 // SPEC-014 TASK-008: Provider Health & Monitoring Service
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ProviderRegistry } from '../providers/provider.registry.js';
 import { HealthStatus } from '@prisma/client';
@@ -12,9 +12,9 @@ export class ProviderHealthService {
   private readonly HEALTH_CACHE_TTL = 60; // 60 seconds
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly providerRegistry: ProviderRegistry,
-    private readonly tokenStore: TokenStoreService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ProviderRegistry) private readonly providerRegistry: ProviderRegistry,
+    @Inject(TokenStoreService) private readonly tokenStore: TokenStoreService,
   ) {}
 
   async checkIntegrationHealth(integrationId: string): Promise<HealthStatus> {

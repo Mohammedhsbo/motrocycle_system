@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -39,8 +40,8 @@ import type { AuthenticatedRequest } from '../common/types/authenticated-request
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class POSController {
   constructor(
-    private readonly posService: POSService,
-    private readonly offlineService: OfflineService,
+    @Inject(POSService) private readonly posService: POSService,
+    @Inject(OfflineService) private readonly offlineService: OfflineService,
   ) {}
 
   @Get('dashboard')

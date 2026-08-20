@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  Inject,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import {
   Action,
@@ -22,7 +35,7 @@ import { UsersService } from "./users.service.js";
 @Controller("users")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(@Inject(UsersService) private readonly usersService: UsersService) {}
 
   @Post()
   @UseGuards(ThrottlerGuard, JwtAuthGuard, PermissionsGuard)

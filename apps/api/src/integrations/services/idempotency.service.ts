@@ -1,6 +1,6 @@
 // SPEC-014 TASK-007: Idempotency Service
 
-import { Injectable, ConflictException, Logger } from '@nestjs/common';
+import { Inject, Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { createHash } from 'crypto';
 
@@ -14,7 +14,7 @@ export interface IdempotencyResponse {
 export class IdempotencyService {
   private readonly logger = new Logger(IdempotencyService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async checkIdempotency(
     idempotencyKey: string,

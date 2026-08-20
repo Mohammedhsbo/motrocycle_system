@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Activity, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { apiFetch } from '../api';
 
 interface Integration {
   id: string;
@@ -31,13 +32,7 @@ export default function Integrations() {
   const loadIntegrations = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/integrations', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const result = await response.json();
-      setIntegrations(result.data || []);
+      setIntegrations(await apiFetch<Integration[]>('/admin/integrations'));
     } catch (error) {
       console.error('Failed to load integrations:', error);
     } finally {
@@ -47,12 +42,8 @@ export default function Integrations() {
 
   const toggleIntegration = async (id: string, currentStatus: boolean) => {
     try {
-      await fetch(`/api/admin/integrations/${id}`, {
+      await apiFetch(`/admin/integrations/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
         body: JSON.stringify({ isEnabled: !currentStatus }),
       });
       await loadIntegrations();
@@ -63,14 +54,10 @@ export default function Integrations() {
 
   const testIntegration = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/integrations/${id}/test`, {
+      const result = await apiFetch<{ status: string }>(`/admin/integrations/${id}/test`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
       });
-      const result = await response.json();
-      alert(`Test completed. Status: ${result.data.status}`);
+      alert(`Test completed. Status: ${result.status}`);
       await loadIntegrations();
     } catch (error) {
       console.error('Failed to test integration:', error);

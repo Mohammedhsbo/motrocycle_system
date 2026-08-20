@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type {
   RegisterCustomerDto,
@@ -34,8 +34,8 @@ type CustomerDetailRecord = Prisma.CustomerGetPayload<typeof customerDetailInclu
 @Injectable()
 export class CustomersService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async register(input: RegisterCustomerDto) {
@@ -82,14 +82,6 @@ export class CustomersService {
           });
         }
 
-        await this.audit.log({
-          userId: updated.id,
-          action: "customer.register.link",
-          entityType: "customer",
-          entityId: updated.id,
-          after: { email: normalizedEmail, linked: true },
-        });
-
         return {
           id: updated.id,
           name: updated.name,
@@ -130,14 +122,6 @@ export class CustomersService {
         },
       });
     }
-
-    await this.audit.log({
-      userId: customer.id,
-      action: "customer.register",
-      entityType: "customer",
-      entityId: customer.id,
-      after: this.auditCustomer(customer),
-    });
 
     return {
       id: customer.id,

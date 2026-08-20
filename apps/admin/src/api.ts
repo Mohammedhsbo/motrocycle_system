@@ -35,7 +35,7 @@ async function refreshAccessToken() {
   setToken(token);
 }
 
-async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh = true): Promise<T> {
+export async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh = true): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
@@ -1526,10 +1526,10 @@ export const configuration = {
     const q = new URLSearchParams();
     if (params?.scope) q.set('scope', params.scope);
     if (params?.enabled_only) q.set('enabled_only', 'true');
-    return apiFetch<FeatureFlag[]>(`/admin/feature-flags?${q}`);
+    return apiFetch<FeatureFlag[]>(`/admin/config/feature-flags?${q}`);
   },
   updateFeatureFlag: (flagKey: string, data: FeatureFlagUpdate) =>
-    apiFetch<void>(`/admin/feature-flags/${flagKey}`, {
+    apiFetch<void>(`/admin/config/feature-flags/${flagKey}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
@@ -1542,7 +1542,7 @@ export const configuration = {
     rolloutPercentage?: number;
     targetBranches?: string[];
   }) =>
-    apiFetch<FeatureFlag>('/admin/feature-flags', {
+    apiFetch<FeatureFlag>('/admin/config/feature-flags', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

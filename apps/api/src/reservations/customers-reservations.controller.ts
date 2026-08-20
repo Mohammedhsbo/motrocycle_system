@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Param,
@@ -15,7 +16,7 @@ import { Resource, Action } from '@motorcycle-system/shared-types';
 @Controller('customers/:customerId/reservations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CustomersController {
-  constructor(private readonly reservationsService: ReservationsService) {}
+  constructor(@Inject(ReservationsService) private readonly reservationsService: ReservationsService) {}
 
   /**
    * TASK-005: Get customer reservations
@@ -28,7 +29,7 @@ export class CustomersController {
     @Query() query: any,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
     const isCustomer = req.user.isCustomer ?? false;
 

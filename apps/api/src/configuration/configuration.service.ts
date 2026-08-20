@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ConfigValue, ConfigScope, ConfigMap, ConfigurationMetadata } from './configuration.types.js';
 import { ConfigurationCacheService } from './configuration-cache.service.js';
@@ -8,8 +8,8 @@ export class ConfigurationService {
   private readonly logger = new Logger(ConfigurationService.name);
 
   constructor(
-    private prisma: PrismaService,
-    private cacheService: ConfigurationCacheService,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(ConfigurationCacheService) private cacheService: ConfigurationCacheService,
   ) {}
 
   /**

@@ -1,6 +1,6 @@
 // TASK-007: Customer & Installment Reports Service
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InstallmentPortfolio, DateRange } from './reports.types.js';
 import { ReportUtils } from './reports.utils.js';
@@ -8,7 +8,7 @@ import { FinancingContractStatus, InstallmentStatus } from '@prisma/client';
 
 @Injectable()
 export class InstallmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getInstallmentPortfolio(branchFilter: any): Promise<InstallmentPortfolio> {
     const contracts = await this.prisma.financingContract.findMany({

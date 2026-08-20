@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { Inject, CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Action, Resource } from "@motorcycle-system/shared-types";
 import { AppError } from "../../common/errors/app-error.js";
@@ -12,7 +12,7 @@ interface RequiredPermission {
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) { }
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext) {
     const required = this.reflector.getAllAndOverride<RequiredPermission[]>(PERMISSIONS_KEY, [

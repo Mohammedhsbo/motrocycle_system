@@ -1,6 +1,7 @@
 // SPEC-014: Inbound Webhook Controller
 
 import {
+  Inject,
   Controller,
   Post,
   Param,
@@ -17,8 +18,8 @@ import { APIResponseInterceptor } from '../interceptors/api-response.interceptor
 @UseInterceptors(APIResponseInterceptor)
 export class WebhookInboundController {
   constructor(
-    private readonly webhookService: WebhookService,
-    private readonly rateLimitService: RateLimitService,
+    @Inject(WebhookService) private readonly webhookService: WebhookService,
+    @Inject(RateLimitService) private readonly rateLimitService: RateLimitService,
   ) {}
 
   @Post(':providerKey/:integrationId')

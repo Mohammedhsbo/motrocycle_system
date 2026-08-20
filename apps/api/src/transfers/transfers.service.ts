@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { Prisma } from '@prisma/client';
@@ -9,9 +16,9 @@ import { SocketGateway } from '../socket/index.js';
 @Injectable()
 export class TransfersService {
   constructor(
-    private prisma: PrismaService,
-    private audit: AuditService,
-    private socketGateway: SocketGateway,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(AuditService) private audit: AuditService,
+    @Inject(SocketGateway) private socketGateway: SocketGateway,
   ) {}
 
   async create(

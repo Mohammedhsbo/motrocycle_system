@@ -106,7 +106,7 @@ export default function OrderDetailPage() {
   }, [user, isAuthenticated, authLoading, orderId, router]);
 
   const setupWebSocket = () => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:4000";
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3000";
     const newSocket = io(wsUrl, {
       transports: ["websocket"],
       autoConnect: true,

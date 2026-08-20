@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -27,7 +28,7 @@ import {
 @Controller('letters')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class LettersController {
-  constructor(private readonly lettersService: LettersService) {}
+  constructor(@Inject(LettersService) private readonly lettersService: LettersService) {}
 
   /**
    * TASK-005: Create letter

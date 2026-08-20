@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Post,
   Param,
@@ -21,7 +22,7 @@ import { WebhookProcessorService } from "./providers/webhook-processor.service.j
 @Controller("webhooks/payments")
 export class WebhookController {
   constructor(
-    private readonly webhookProcessor: WebhookProcessorService
+    @Inject(WebhookProcessorService) private readonly webhookProcessor: WebhookProcessorService
   ) {}
 
   /**

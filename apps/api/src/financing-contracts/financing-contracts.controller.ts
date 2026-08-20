@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Post,
   Get,
@@ -25,7 +26,7 @@ import {
 @UseGuards(JwtAuthGuard)
 export class FinancingContractsController {
   constructor(
-    private readonly financingContractsService: FinancingContractsService
+    @Inject(FinancingContractsService) private readonly financingContractsService: FinancingContractsService
   ) {}
 
   /**

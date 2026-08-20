@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -28,7 +29,7 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 @Controller('suppliers')
 @UseGuards(JwtAuthGuard)
 export class SuppliersController {
-  constructor(private readonly suppliersService: SuppliersService) {}
+  constructor(@Inject(SuppliersService) private readonly suppliersService: SuppliersService) {}
 
   @Post()
   @RequirePermission(Resource.SUPPLIER, Action.CREATE)

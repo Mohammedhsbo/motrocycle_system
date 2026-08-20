@@ -1,6 +1,7 @@
 // SPEC-014: API Keys Controller
 
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -23,11 +24,11 @@ interface AuthRequest extends Request {
   user: { id: string; branchId?: string };
 }
 
-@Controller('api/admin/api-keys')
+@Controller('admin/api-keys')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(APIResponseInterceptor)
 export class APIKeysController {
-  constructor(private readonly apiKeyService: APIKeyService) {}
+  constructor(@Inject(APIKeyService) private readonly apiKeyService: APIKeyService) {}
 
   @Post()
   @RequirePermission(Resource.SETTING, Action.CREATE)

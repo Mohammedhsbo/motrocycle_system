@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateNotificationDto } from './dto/create-notification.dto.js';
 import { NotificationQueryDto } from './dto/notification-query.dto.js';
@@ -15,9 +15,9 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
-    private prisma: PrismaService,
-    private deliveryTracker: DeliveryTrackerService,
-    private preferenceService: NotificationPreferenceService,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(DeliveryTrackerService) private deliveryTracker: DeliveryTrackerService,
+    @Inject(NotificationPreferenceService) private preferenceService: NotificationPreferenceService,
   ) {}
 
   /**

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -35,8 +36,8 @@ import {
 @Injectable()
 export class RefundsService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService
   ) {}
 
   /**

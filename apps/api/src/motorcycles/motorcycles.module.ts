@@ -9,5 +9,6 @@ import { SocketModule } from '../socket/index.js';
   imports: [PrismaModule, AuditModule, SocketModule],
   controllers: [MotorcyclesController],
   providers: [MotorcyclesService],
+  exports: [MotorcyclesService],
 })
 export class MotorcyclesModule {}

@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  Inject,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import {
   Action,
   createBrandRequestSchema,
@@ -17,7 +30,7 @@ import { BrandsService } from "./brands.service.js";
 
 @Controller("brands")
 export class BrandsController {
-  constructor(private readonly brandsService: BrandsService) {}
+  constructor(@Inject(BrandsService) private readonly brandsService: BrandsService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)

@@ -1,4 +1,12 @@
-import { Controller, Get, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Request,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
@@ -14,10 +22,10 @@ import { DateRangePreset, GroupBy, SalesDimension } from './reports.types.js';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ReportsController {
   constructor(
-    private readonly dashboardService: DashboardService,
-    private readonly salesService: SalesService,
-    private readonly inventoryService: InventoryService,
-    private readonly installmentsService: InstallmentsService,
+    @Inject(DashboardService) private readonly dashboardService: DashboardService,
+    @Inject(SalesService) private readonly salesService: SalesService,
+    @Inject(InventoryService) private readonly inventoryService: InventoryService,
+    @Inject(InstallmentsService) private readonly installmentsService: InstallmentsService,
   ) {}
 
   // Dashboard APIs

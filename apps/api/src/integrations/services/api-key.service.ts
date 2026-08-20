@@ -1,6 +1,6 @@
 // SPEC-014 TASK-004: API Key Management Service
 
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { createHash, randomBytes } from 'crypto';
 import { APIKeyScope } from '../types/integration.types.js';
@@ -9,7 +9,7 @@ import { APIKeyScope } from '../types/integration.types.js';
 export class APIKeyService {
   private readonly logger = new Logger(APIKeyService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async createAPIKey(data: {
     description?: string;

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CustomersService } from '../customers/customers.service.js';
 import {
@@ -39,8 +39,8 @@ export class OfflineService {
   }> = [];
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly customersService: CustomersService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CustomersService) private readonly customersService: CustomersService,
   ) {
     // Clean up expired operations every hour
     setInterval(() => this.cleanupExpiredOperations(), 60 * 60 * 1000);

@@ -1,6 +1,6 @@
 // TASK-005: Sales & Revenue Reports Service
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { User, OrderStatus, PaymentStatus, InvoiceStatus } from '@prisma/client';
 import { SalesSummary, AgingReport, DateRange, GroupBy, SalesDimension } from './reports.types.js';
@@ -8,7 +8,7 @@ import { ReportUtils } from './reports.utils.js';
 
 @Injectable()
 export class SalesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getSalesSummary(
     branchFilter: any,

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -31,7 +32,7 @@ import type { AuthenticatedRequest } from "../common/types/authenticated-request
 @Controller("payments")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(@Inject(PaymentsService) private readonly paymentsService: PaymentsService) {}
 
   @Post()
   @RequirePermission(Resource.PAYMENTS, Action.CREATE)

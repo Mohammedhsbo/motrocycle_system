@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type {
   Category,
@@ -45,8 +45,8 @@ type CategoryListRecord = Prisma.CategoryGetPayload<typeof categoryListInclude>;
 @Injectable()
 export class CategoriesService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async create(input: CreateCategoryRequest, actor: AuthenticatedUser): Promise<Category> {

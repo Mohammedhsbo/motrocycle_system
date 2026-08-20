@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationChannelProvider } from './providers/notification-channel.provider.js';
 import { NotificationChannel, NotificationStatus } from './notifications.types.js';
+import { NOTIFICATION_CHANNEL_PROVIDERS } from './notification-provider.tokens.js';
 
 @Injectable()
 export class DeliveryTrackerService {
@@ -11,7 +12,7 @@ export class DeliveryTrackerService {
 
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
-    providers: NotificationChannelProvider[] = [],
+    @Inject(NOTIFICATION_CHANNEL_PROVIDERS) providers: NotificationChannelProvider[],
   ) {
     this.providers = new Map();
     providers.forEach((provider) => {

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type {
   Brand,
@@ -27,8 +27,8 @@ type BrandListRecord = Prisma.BrandGetPayload<typeof brandListInclude>;
 @Injectable()
 export class BrandsService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async create(input: CreateBrandRequest, actor: AuthenticatedUser): Promise<Brand> {

@@ -1,4 +1,10 @@
-import { Controller, Get, Header, ServiceUnavailableException } from "@nestjs/common";
+import {
+  Inject,
+  Controller,
+  Get,
+  Header,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { createClient } from "redis";
 import { S3Client, HeadBucketCommand } from "@aws-sdk/client-s3";
@@ -10,7 +16,7 @@ type DependencyState = { status: "ok" | "degraded"; latencyMs?: number; error?: 
 
 @Controller()
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   @Get("health/live")
   live() {

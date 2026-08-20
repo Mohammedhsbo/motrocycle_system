@@ -1,6 +1,6 @@
 // SPEC-014 TASK-005: Webhook Security & Processing Service
 
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { createHmac } from 'crypto';
 import { WebhookEventStatus } from '@prisma/client';
@@ -10,7 +10,7 @@ export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
   private readonly TIMESTAMP_TOLERANCE_MS = 300000; // 5 minutes
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async processWebhook(
     providerKey: string,

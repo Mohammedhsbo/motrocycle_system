@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { DocumentGeneratorService } from './document-generator.service.js';
@@ -27,9 +33,9 @@ function toUndefined<T>(value: T | null | undefined): T | undefined {
 @Injectable()
 export class LettersService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
-    private readonly documentGenerator: DocumentGeneratorService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(DocumentGeneratorService) private readonly documentGenerator: DocumentGeneratorService,
   ) {}
 
   /**

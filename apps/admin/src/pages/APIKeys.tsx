@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, Copy, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { apiFetch } from '../api';
 
 interface APIKey {
   id: string;
@@ -34,13 +35,7 @@ export default function APIKeys() {
   const loadAPIKeys = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/api-keys', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const result = await response.json();
-      setAPIKeys(result.data || []);
+      setAPIKeys(await apiFetch<APIKey[]>('/admin/api-keys'));
     } catch (error) {
       console.error('Failed to load API keys:', error);
     } finally {
@@ -50,12 +45,8 @@ export default function APIKeys() {
 
   const createAPIKey = async () => {
     try {
-      const response = await fetch('/api/admin/api-keys', {
+      const result = await apiFetch<{ apiKey: string }>('/admin/api-keys', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
         body: JSON.stringify({
           description: formData.description,
           environment: formData.environment,
@@ -66,8 +57,7 @@ export default function APIKeys() {
         }),
       });
 
-      const result = await response.json();
-      setNewKey(result.data.apiKey);
+      setNewKey(result.apiKey);
       await loadAPIKeys();
     } catch (error) {
       console.error('Failed to create API key:', error);
@@ -81,11 +71,8 @@ export default function APIKeys() {
     }
 
     try {
-      await fetch(`/api/admin/api-keys/${id}`, {
+      await apiFetch(`/admin/api-keys/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
       });
       await loadAPIKeys();
     } catch (error) {

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -32,7 +33,7 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ReservationsController {
-  constructor(private readonly reservationsService: ReservationsService) {}
+  constructor(@Inject(ReservationsService) private readonly reservationsService: ReservationsService) {}
 
   /**
    * TASK-004: Create new reservation
@@ -44,7 +45,7 @@ export class ReservationsController {
     @Body(new ZodValidationPipe(createReservationSchema)) data: CreateReservationRequest,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
     const isCustomer = req.user.isCustomer ?? false;
@@ -70,7 +71,7 @@ export class ReservationsController {
   @Get()
   @RequirePermission(Resource.RESERVATION, Action.READ)
   async findAll(@Query() query: any, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
     const isCustomer = req.user.isCustomer ?? false;
@@ -107,7 +108,7 @@ export class ReservationsController {
   @Get(':id')
   @RequirePermission(Resource.RESERVATION, Action.READ)
   async findOne(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
     const isCustomer = req.user.isCustomer ?? false;
@@ -137,7 +138,7 @@ export class ReservationsController {
     @Body(new ZodValidationPipe(updateReservationSchema)) data: UpdateReservationRequest,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
 
@@ -166,7 +167,7 @@ export class ReservationsController {
     @Body(new ZodValidationPipe(extendReservationSchema)) data: ExtendReservationRequest,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
 
@@ -195,7 +196,7 @@ export class ReservationsController {
     @Body(new ZodValidationPipe(cancelReservationSchema)) data: CancelReservationRequest,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
     const isCustomer = req.user.isCustomer ?? false;
@@ -242,7 +243,7 @@ export class ReservationsController {
     @Body(new ZodValidationPipe(convertReservationSchema)) data: ConvertReservationRequest,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
 
@@ -267,7 +268,7 @@ export class ReservationsController {
   @Get(':id/history')
   @RequirePermission(Resource.RESERVATION, Action.READ)
   async getHistory(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const userBranchId = req.user.branchId ?? null;
     const isSuperAdmin = req.user.isSuperAdmin ?? false;
     const isCustomer = req.user.isCustomer ?? false;

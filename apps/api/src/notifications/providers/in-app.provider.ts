@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   NotificationChannelProvider,
   NotificationMessage,
@@ -12,7 +12,7 @@ export class InAppProvider extends NotificationChannelProvider {
   readonly channel = NotificationChannel.IN_APP;
   private readonly logger = new Logger(InAppProvider.name);
 
-  constructor(private socketGateway: SocketGateway) {
+  constructor(@Inject(SocketGateway) private socketGateway: SocketGateway) {
     super();
   }
 

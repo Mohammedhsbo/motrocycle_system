@@ -1,6 +1,7 @@
 // SPEC-014: Providers Controller
 
 import {
+  Inject,
   Controller,
   Get,
   Patch,
@@ -16,14 +17,14 @@ import { ProviderRegistry } from '../providers/provider.registry.js';
 import { ProviderHealthService } from '../services/provider-health.service.js';
 import { APIResponseInterceptor } from '../interceptors/api-response.interceptor.js';
 
-@Controller('api/admin/providers')
+@Controller('admin/providers')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(APIResponseInterceptor)
 export class ProvidersController {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly providerRegistry: ProviderRegistry,
-    private readonly healthService: ProviderHealthService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ProviderRegistry) private readonly providerRegistry: ProviderRegistry,
+    @Inject(ProviderHealthService) private readonly healthService: ProviderHealthService,
   ) {}
 
   @Get()

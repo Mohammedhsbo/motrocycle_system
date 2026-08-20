@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Post,
   Get,
@@ -13,6 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
 import { PaymentMethod, Resource, Action } from '@motorcycle-system/shared-types';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 
 class CreateInstallmentPaymentDto {
   amount: number;
@@ -26,8 +28,8 @@ class CreateInstallmentPaymentDto {
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class InstallmentsController {
   constructor(
-    private readonly installmentsService: InstallmentsService,
-    private readonly schedulerService: InstallmentsSchedulerService
+    @Inject(InstallmentsService) private readonly installmentsService: InstallmentsService,
+    @Inject(InstallmentsSchedulerService) private readonly schedulerService: InstallmentsSchedulerService
   ) {}
 
   /**
@@ -39,14 +41,14 @@ export class InstallmentsController {
   async createPayment(
     @Param('id') id: string,
     @Body() data: CreateInstallmentPaymentDto,
-    @Request() req: any
+    @Request() req: AuthenticatedRequest
   ) {
     return this.installmentsService.createPayment(
       id,
       data,
-      req.user.userId,
+      req.user.id,
       req.user.branchId,
-      req.user.role?.name === 'super_admin'
+      req.user.isSuperAdmin
     );
   }
 
@@ -56,12 +58,12 @@ export class InstallmentsController {
    */
   @Get(':id')
   @RequirePermission(Resource.FINANCING_CONTRACT, Action.READ)
-  async getInstallment(@Param('id') id: string, @Request() req: any) {
+  async getInstallment(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.installmentsService.findById(
       id,
-      req.user.userId,
+      req.user.id,
       req.user.branchId,
-      req.user.role?.name === 'super_admin'
+      req.user.isSuperAdmin
     );
   }
 
@@ -71,12 +73,12 @@ export class InstallmentsController {
    */
   @Get('contract/:contractId')
   @RequirePermission(Resource.FINANCING_CONTRACT, Action.READ)
-  async listByContract(@Param('contractId') contractId: string, @Request() req: any) {
+  async listByContract(@Param('contractId') contractId: string, @Request() req: AuthenticatedRequest) {
     return this.installmentsService.listByContract(
       contractId,
-      req.user.userId,
+      req.user.id,
       req.user.branchId,
-      req.user.role?.name === 'super_admin'
+      req.user.isSuperAdmin
     );
   }
 
@@ -91,4 +93,3 @@ export class InstallmentsController {
     return this.schedulerService.handleInstallmentStatusUpdate();
   }
 }
-

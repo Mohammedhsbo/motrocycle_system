@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -21,20 +22,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-import type { Request } from 'express';
-
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    branchId: string | null;
-    role: { name: string };
-  };
-}
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 
 @Controller('transfers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TransfersController {
-  constructor(private readonly transfersService: TransfersService) {}
+  constructor(@Inject(TransfersService) private readonly transfersService: TransfersService) {}
 
   @Post()
   @RequirePermission(Resource.TRANSFER, Action.CREATE)
@@ -42,7 +35,7 @@ export class TransfersController {
     @Body(new ZodValidationPipe(createTransferSchema)) data: CreateTransferRequest,
     @Req() req: AuthenticatedRequest,
   ) {
-    const isSuperAdmin = req.user.role.name === 'super_admin';
+    const isSuperAdmin = req.user.isSuperAdmin;
     const transfer = await this.transfersService.create(data, req.user.id, req.user.branchId, isSuperAdmin);
     return { success: true, data: transfer };
   }
@@ -60,7 +53,7 @@ export class TransfersController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const isSuperAdmin = req.user.role.name === 'super_admin';
+    const isSuperAdmin = req.user.isSuperAdmin;
     const result = await this.transfersService.findAll({
       page, limit, search, fromBranchId, toBranchId, status, startDate, endDate,
       userBranchId: req.user.branchId,
@@ -72,7 +65,7 @@ export class TransfersController {
   @Get(':id')
   @RequirePermission(Resource.TRANSFER, Action.READ)
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const isSuperAdmin = req.user.role.name === 'super_admin';
+    const isSuperAdmin = req.user.isSuperAdmin;
     const transfer = await this.transfersService.findOne(id, req.user.branchId, isSuperAdmin);
     return { success: true, data: transfer };
   }
@@ -80,7 +73,7 @@ export class TransfersController {
   @Post(':id/ship')
   @RequirePermission(Resource.TRANSFER, Action.UPDATE)
   async ship(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const isSuperAdmin = req.user.role.name === 'super_admin';
+    const isSuperAdmin = req.user.isSuperAdmin;
     const result = await this.transfersService.ship(id, req.user.id, req.user.branchId, isSuperAdmin);
     return { success: true, data: result };
   }
@@ -88,7 +81,7 @@ export class TransfersController {
   @Post(':id/receive')
   @RequirePermission(Resource.TRANSFER, Action.UPDATE)
   async receive(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const isSuperAdmin = req.user.role.name === 'super_admin';
+    const isSuperAdmin = req.user.isSuperAdmin;
     const result = await this.transfersService.receive(id, req.user.id, req.user.branchId, isSuperAdmin);
     return { success: true, data: result };
   }
@@ -96,7 +89,7 @@ export class TransfersController {
   @Post(':id/cancel')
   @RequirePermission(Resource.TRANSFER, Action.DELETE)
   async cancel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const isSuperAdmin = req.user.role.name === 'super_admin';
+    const isSuperAdmin = req.user.isSuperAdmin;
     const result = await this.transfersService.cancel(id, req.user.id, req.user.branchId, isSuperAdmin);
     return { success: true, data: result };
   }

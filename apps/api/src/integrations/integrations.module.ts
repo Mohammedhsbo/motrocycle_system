@@ -1,6 +1,6 @@
 // SPEC-014: Integration & API Management Module
 
-import { Module } from '@nestjs/common';
+import { Inject, Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { TokenStoreModule } from '../token-store/token-store.module.js';
 import { AuditModule } from '../audit/audit.module.js';
@@ -54,7 +54,7 @@ import { WebhookInboundController } from './controllers/webhook-inbound.controll
   ],
 })
 export class IntegrationsModule {
-  constructor(private readonly providerRegistry: ProviderRegistry) {
+  constructor(@Inject(ProviderRegistry) private readonly providerRegistry: ProviderRegistry) {
     // Register mock providers
     this.providerRegistry?.registerProvider(new MockPaymentProvider());
   }

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -39,7 +40,7 @@ interface ListContractsResult {
 
 @Injectable()
 export class FinancingContractsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /**
    * Create a new financing contract with installment schedule

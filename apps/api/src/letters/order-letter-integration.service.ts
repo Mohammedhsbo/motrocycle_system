@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LettersService } from './letters.service.js';
 import { LetterType, OrderStatus } from '@motorcycle-system/shared-types';
@@ -12,8 +12,8 @@ export class OrderLetterIntegrationService {
   private readonly logger = new Logger(OrderLetterIntegrationService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly lettersService: LettersService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(LettersService) private readonly lettersService: LettersService,
   ) {}
 
   /**

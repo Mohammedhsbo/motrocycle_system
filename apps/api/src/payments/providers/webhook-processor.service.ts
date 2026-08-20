@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   BadRequestException,
   ConflictException,
@@ -28,9 +29,9 @@ import { allocatePaymentToInvoice } from "../../utils/financial.js";
 @Injectable()
 export class WebhookProcessorService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
-    private readonly providerRegistry: PaymentProviderRegistry
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(PaymentProviderRegistry) private readonly providerRegistry: PaymentProviderRegistry
   ) {}
 
   /**

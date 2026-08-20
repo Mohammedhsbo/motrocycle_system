@@ -1,4 +1,10 @@
-import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CustomersService } from '../customers/customers.service.js';
 import { MotorcyclesService } from '../motorcycles/motorcycles.service.js';
@@ -32,12 +38,12 @@ export class POSService {
   private readonly IDEMPOTENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly customersService: CustomersService,
-    private readonly motorcyclesService: MotorcyclesService,
-    private readonly ordersService: OrdersService,
-    private readonly reservationsService: ReservationsService,
-    private readonly auditService: AuditService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CustomersService) private readonly customersService: CustomersService,
+    @Inject(MotorcyclesService) private readonly motorcyclesService: MotorcyclesService,
+    @Inject(OrdersService) private readonly ordersService: OrdersService,
+    @Inject(ReservationsService) private readonly reservationsService: ReservationsService,
+    @Inject(AuditService) private readonly auditService: AuditService,
   ) {
     // Clean up idempotency cache every minute
     setInterval(() => this.cleanupIdempotencyCache(), 60 * 1000);

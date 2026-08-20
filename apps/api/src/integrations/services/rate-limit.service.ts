@@ -1,6 +1,12 @@
 // SPEC-014 TASK-006: Distributed Rate Limiting Service
 
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { TokenStoreService } from '../../token-store/token-store.service.js';
 
 export interface RateLimitResult {
@@ -16,7 +22,7 @@ export class RateLimitService {
   private readonly logger = new Logger(RateLimitService.name);
   private readonly memoryLimits = new Map<string, { count: number; resetAt: number }>();
 
-  constructor(private readonly tokenStore: TokenStoreService) {}
+  constructor(@Inject(TokenStoreService) private readonly tokenStore: TokenStoreService) {}
 
   async checkRateLimit(
     key: string,

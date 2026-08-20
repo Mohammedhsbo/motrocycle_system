@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   ConflictException,
@@ -28,8 +29,8 @@ import {
 @Injectable()
 export class InvoiceIntegrationService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService
   ) {}
 
   /**

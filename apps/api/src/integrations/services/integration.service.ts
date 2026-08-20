@@ -1,6 +1,6 @@
 // SPEC-014: Integration Service
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { HealthStatus } from '@prisma/client';
 
@@ -8,7 +8,7 @@ import { HealthStatus } from '@prisma/client';
 export class IntegrationService {
   private readonly logger = new Logger(IntegrationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getIntegration(id: string) {
     const integration = await this.prisma.integration.findUnique({

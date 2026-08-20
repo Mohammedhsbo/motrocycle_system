@@ -5,11 +5,14 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  isOpen?: boolean;
   footer?: ReactNode;
   wide?: boolean;
 }
 
-export default function Modal({ title, onClose, children, footer, wide }: ModalProps) {
+export default function Modal({ title, onClose, children, isOpen = true, footer, wide }: ModalProps) {
+  if (!isOpen) return null;
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" style={{ maxWidth: wide ? 720 : 500 }}>

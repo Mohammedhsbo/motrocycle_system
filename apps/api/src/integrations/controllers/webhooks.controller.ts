@@ -1,6 +1,7 @@
 // SPEC-014: Webhooks Management Controller
 
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -20,11 +21,11 @@ interface AuthRequest extends Request {
   user: { id: string };
 }
 
-@Controller('api/admin/webhooks')
+@Controller('admin/webhooks')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(APIResponseInterceptor)
 export class WebhooksController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   @Get()
   @RequirePermission(Resource.SETTING, Action.READ)

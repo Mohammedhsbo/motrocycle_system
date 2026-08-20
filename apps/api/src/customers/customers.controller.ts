@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  Inject,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import {
   Action,
   Resource,
@@ -32,8 +45,8 @@ import { OrdersService } from "../orders/orders.service.js";
 @Controller("customers")
 export class CustomersController {
   constructor(
-    private readonly customersService: CustomersService,
-    private readonly ordersService: OrdersService,
+    @Inject(CustomersService) private readonly customersService: CustomersService,
+    @Inject(OrdersService) private readonly ordersService: OrdersService,
   ) {}
 
   @Post("register")
@@ -198,6 +211,19 @@ export class CustomersController {
     return {
       success: true,
       data: await this.customersService.updateAddress(customerId, id, body, request.user),
+    };
+  }
+
+  @Post(":customerId/addresses/:id/set-default")
+  @UseGuards(JwtAuthGuard)
+  async setDefaultAddress(
+    @Param("customerId", ParseUUIDPipe) customerId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return {
+      success: true,
+      data: await this.customersService.updateAddress(customerId, id, { isDefault: true }, request.user),
     };
   }
 

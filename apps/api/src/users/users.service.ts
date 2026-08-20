@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type {
   CreateUserRequest,
@@ -39,9 +39,9 @@ type UserListRecord = Prisma.UserGetPayload<typeof userListInclude>;
 @Injectable()
 export class UsersService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
-    private readonly tokenStore: TokenStoreService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(TokenStoreService) private readonly tokenStore: TokenStoreService,
   ) {}
 
   async create(input: CreateUserRequest, actor: AuthenticatedUser): Promise<UserResponse> {

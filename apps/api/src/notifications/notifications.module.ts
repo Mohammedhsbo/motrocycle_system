@@ -14,6 +14,7 @@ import { EmailProvider } from './providers/email.provider.js';
 import { SmsProvider } from './providers/sms.provider.js';
 import { WhatsAppProvider } from './providers/whatsapp.provider.js';
 import { PushProvider } from './providers/push.provider.js';
+import { NOTIFICATION_CHANNEL_PROVIDERS } from './notification-provider.tokens.js';
 
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { SocketModule } from '../socket/socket.module.js';
@@ -38,6 +39,29 @@ import { SocketModule } from '../socket/socket.module.js';
     SmsProvider,
     WhatsAppProvider,
     PushProvider,
+    {
+      provide: NOTIFICATION_CHANNEL_PROVIDERS,
+      useFactory: (
+        inAppProvider: InAppProvider,
+        emailProvider: EmailProvider,
+        smsProvider: SmsProvider,
+        whatsAppProvider: WhatsAppProvider,
+        pushProvider: PushProvider,
+      ) => [
+        inAppProvider,
+        emailProvider,
+        smsProvider,
+        whatsAppProvider,
+        pushProvider,
+      ],
+      inject: [
+        InAppProvider,
+        EmailProvider,
+        SmsProvider,
+        WhatsAppProvider,
+        PushProvider,
+      ],
+    },
   ],
   exports: [
     NotificationsService,

@@ -1,6 +1,7 @@
 // SPEC-014: Integrations API Controller
 
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -23,13 +24,13 @@ interface AuthRequest extends Request {
   user: { id: string; branchId?: string };
 }
 
-@Controller('api/admin/integrations')
+@Controller('admin/integrations')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(APIResponseInterceptor)
 export class IntegrationsController {
   constructor(
-    private readonly integrationService: IntegrationService,
-    private readonly healthService: ProviderHealthService,
+    @Inject(IntegrationService) private readonly integrationService: IntegrationService,
+    @Inject(ProviderHealthService) private readonly healthService: ProviderHealthService,
   ) {}
 
   @Get()

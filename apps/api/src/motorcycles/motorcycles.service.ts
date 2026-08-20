@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { SocketGateway } from '../socket/index.js';
@@ -11,9 +18,9 @@ import {
 @Injectable()
 export class MotorcyclesService {
   constructor(
-    private prisma: PrismaService,
-    private audit: AuditService,
-    private socketGateway: SocketGateway,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(AuditService) private audit: AuditService,
+    @Inject(SocketGateway) private socketGateway: SocketGateway,
   ) {}
 
   async create(data: CreateMotorcycleRequest, userId: string, userBranchId: string | null, userIsSuperAdmin: boolean) {

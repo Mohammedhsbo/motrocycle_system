@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InstallmentsService } from './installments.service.js';
 
 /**
@@ -14,7 +14,7 @@ import { InstallmentsService } from './installments.service.js';
 export class InstallmentsSchedulerService {
   private readonly logger = new Logger(InstallmentsSchedulerService.name);
 
-  constructor(private readonly installmentsService: InstallmentsService) {}
+  constructor(@Inject(InstallmentsService) private readonly installmentsService: InstallmentsService) {}
 
   /**
    * Update installment statuses

@@ -1,24 +1,29 @@
 import {
+  Inject,
   Controller,
   Post,
   UseInterceptors,
   UploadedFile,
   ParseFilePipeBuilder,
   HttpStatus,
+  UseGuards,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { RequirePermission } from "../auth/decorators/permissions.decorator.js";
 import { Resource, Action } from "@motorcycle-system/shared-types";
 import { StorageService } from "./storage.service.js";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
+import { PermissionsGuard } from "../auth/guards/permissions.guard.js";
 import 'multer';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-@Controller("v1/upload")
+@Controller("upload")
 export class UploadController {
-  constructor(private readonly storageService: StorageService) {}
+  constructor(@Inject(StorageService) private readonly storageService: StorageService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.CREATE)
   @UseInterceptors(FileInterceptor("file"))
   async uploadFile(

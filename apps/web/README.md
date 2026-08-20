@@ -34,7 +34,8 @@ pnpm --filter web lint
 
 Copy `.env.example` to `.env.local` and configure:
 
-- `NEXT_PUBLIC_API_URL`: Backend API URL (default: http://localhost:4000)
+- `NEXT_PUBLIC_API_URL`: Versioned backend API URL (default: http://localhost:3000/api/v1)
+- `NEXT_PUBLIC_WS_URL`: Backend realtime URL (default: http://localhost:3000)
 - `NEXT_PUBLIC_APP_URL`: Web app URL (default: http://localhost:3001)
 
 ## Project Structure

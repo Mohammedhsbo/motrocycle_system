@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../upload/storage.service.js';
 import { LetterType } from '@motorcycle-system/shared-types';
@@ -25,8 +25,8 @@ export class DocumentGeneratorService {
   private readonly logger = new Logger(DocumentGeneratorService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly storage: StorageService
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(StorageService) private readonly storage: StorageService
   ) {}
 
   /**

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Post,
@@ -10,28 +11,22 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { NotificationsService } from './notifications.service.js';
 import { NotificationPreferenceService } from './notification-preference.service.js';
 import { CreateNotificationDto } from './dto/create-notification.dto.js';
 import { NotificationQueryDto, MarkAsReadDto } from './dto/notification-query.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 
-interface AuthRequest extends Request {
-  user: {
-    userId: string;
-    roleId: string;
-    branchId?: string;
-  };
-}
+type AuthRequest = AuthenticatedRequest;
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(
-    private readonly notificationsService: NotificationsService,
-    private readonly preferenceService: NotificationPreferenceService,
+    @Inject(NotificationsService) private readonly notificationsService: NotificationsService,
+    @Inject(NotificationPreferenceService) private readonly preferenceService: NotificationPreferenceService,
   ) {}
 
   /**
@@ -39,7 +34,7 @@ export class NotificationsController {
    */
   @Get()
   async findAll(@Req() req: AuthRequest, @Query() query: NotificationQueryDto) {
-    return this.notificationsService.findAll(req.user.userId, query);
+    return this.notificationsService.findAll(req.user.id, query);
   }
 
   /**
@@ -47,7 +42,7 @@ export class NotificationsController {
    */
   @Get('unread-count')
   async getUnreadCount(@Req() req: AuthRequest) {
-    const count = await this.notificationsService.getUnreadCount(req.user.userId);
+    const count = await this.notificationsService.getUnreadCount(req.user.id);
     return { count };
   }
 
@@ -56,7 +51,7 @@ export class NotificationsController {
    */
   @Patch(':id/read')
   async markAsRead(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.notificationsService.markAsRead(id, req.user.userId);
+    return this.notificationsService.markAsRead(id, req.user.id);
   }
 
   /**
@@ -66,7 +61,7 @@ export class NotificationsController {
   async markManyAsRead(@Req() req: AuthRequest, @Body() dto: MarkAsReadDto) {
     return this.notificationsService.markManyAsRead(
       dto.notificationIds,
-      req.user.userId,
+      req.user.id,
     );
   }
 
@@ -75,7 +70,7 @@ export class NotificationsController {
    */
   @Post('mark-all-read')
   async markAllAsRead(@Req() req: AuthRequest) {
-    return this.notificationsService.markAllAsRead(req.user.userId);
+    return this.notificationsService.markAllAsRead(req.user.id);
   }
 
   /**
@@ -83,7 +78,7 @@ export class NotificationsController {
    */
   @Delete(':id')
   async remove(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.notificationsService.remove(id, req.user.userId);
+    return this.notificationsService.remove(id, req.user.id);
   }
 
   /**
@@ -91,7 +86,7 @@ export class NotificationsController {
    */
   @Get('preferences')
   async getPreferences(@Req() req: AuthRequest) {
-    return this.preferenceService.getUserPreferences(req.user.userId);
+    return this.preferenceService.getUserPreferences(req.user.id);
   }
 
   /**
@@ -110,7 +105,7 @@ export class NotificationsController {
     },
   ) {
     return this.preferenceService.updateMultiplePreferences(
-      req.user.userId,
+      req.user.id,
       body.preferences as any,
     );
   }

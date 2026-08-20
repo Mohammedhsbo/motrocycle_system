@@ -1,4 +1,12 @@
-import { Controller, Get, Param, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Inject,
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { LettersService } from './letters.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { LetterStatus, LetterType } from '@motorcycle-system/shared-types';
@@ -10,7 +18,7 @@ import type { LetterStatus, LetterType } from '@motorcycle-system/shared-types';
 @Controller('customer/letters')
 @UseGuards(JwtAuthGuard)
 export class CustomerPortalLettersController {
-  constructor(private readonly lettersService: LettersService) {}
+  constructor(@Inject(LettersService) private readonly lettersService: LettersService) {}
 
   /**
    * Get all letters for the authenticated customer

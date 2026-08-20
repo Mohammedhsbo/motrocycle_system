@@ -1,4 +1,5 @@
 import {
+  Inject,
   Controller,
   Get,
   Patch,
@@ -12,7 +13,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
-import { Request } from 'express';
 import { Resource, Action } from '@motorcycle-system/shared-types';
 import { ConfigurationService } from './configuration.service.js';
 import { FeatureFlagService } from './feature-flag.service.js';
@@ -20,6 +20,7 @@ import { ConfigurationAdminService } from './configuration-admin.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import {
   UpdateSystemConfigurationDto,
   UpdateCompanyConfigurationDto,
@@ -38,13 +39,7 @@ import {
   ConfigurationAuditQueryDto,
 } from './dto/query-configuration.dto.js';
 
-interface AuthRequest extends Request {
-  user: {
-    userId: string;
-    roleId: string;
-    branchId?: string;
-  };
-}
+type AuthRequest = AuthenticatedRequest;
 
 @Controller('admin/config')
 @UseGuards(JwtAuthGuard)
@@ -52,10 +47,10 @@ interface AuthRequest extends Request {
 @ApiBearerAuth()
 export class ConfigurationAdminController {
   constructor(
-    private readonly configService: ConfigurationService,
-    private readonly featureFlagService: FeatureFlagService,
-    private readonly adminService: ConfigurationAdminService,
-    private readonly prisma: PrismaService,
+    @Inject(ConfigurationService) private readonly configService: ConfigurationService,
+    @Inject(FeatureFlagService) private readonly featureFlagService: FeatureFlagService,
+    @Inject(ConfigurationAdminService) private readonly adminService: ConfigurationAdminService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
   // System Configuration
@@ -76,7 +71,7 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: UpdateSystemConfigurationDto,
   ) {
-    return this.adminService.updateSystemConfiguration(dto, req.user.userId, req.ip, req.get('user-agent'));
+    return this.adminService.updateSystemConfiguration(dto, req.user.id, req.ip, req.get('user-agent'));
   }
 
   @Get('schema')
@@ -97,7 +92,7 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: UpdateCompanyConfigurationDto,
   ) {
-    return this.adminService.updateCompanyConfiguration(dto, req.user.userId, req.ip, req.get('user-agent'));
+    return this.adminService.updateCompanyConfiguration(dto, req.user.id, req.ip, req.get('user-agent'));
   }
 
   // Branch Configuration
@@ -117,7 +112,7 @@ export class ConfigurationAdminController {
     @Body() dto: UpdateBranchConfigurationDto,
   ) {
     // TODO: Add branch access control
-    return this.adminService.updateBranchConfiguration(branchId, dto, req.user.userId, req.ip, req.get('user-agent'));
+    return this.adminService.updateBranchConfiguration(branchId, dto, req.user.id, req.ip, req.get('user-agent'));
   }
 
   @Get('branches')
@@ -139,7 +134,7 @@ export class ConfigurationAdminController {
     @Param('flagKey') flagKey: string,
     @Body() dto: FeatureFlagUpdateDto,
   ) {
-    return this.featureFlagService.updateFlag(flagKey, dto, req.user.userId);
+    return this.featureFlagService.updateFlag(flagKey, dto, req.user.id);
   }
 
   @Post('feature-flags')
@@ -148,7 +143,7 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: any,
   ) {
-    return this.featureFlagService.createFlag(dto, req.user.userId);
+    return this.featureFlagService.createFlag(dto, req.user.id);
   }
 
   // Document Numbering
@@ -164,7 +159,7 @@ export class ConfigurationAdminController {
     @Param('documentType') documentType: string,
     @Body() dto: DocumentNumberingUpdateDto,
   ) {
-    return this.adminService.updateDocumentNumbering(documentType, dto, req.user.userId, req.ip, req.get('user-agent'));
+    return this.adminService.updateDocumentNumbering(documentType, dto, req.user.id, req.ip, req.get('user-agent'));
   }
 
   @Post('numbering/:documentType/reset')
@@ -174,7 +169,7 @@ export class ConfigurationAdminController {
     @Param('documentType') documentType: string,
     @Body() dto: ResetNumberingDto,
   ) {
-    return this.adminService.resetDocumentSequence(documentType, dto, req.user.userId, req.ip, req.get('user-agent'));
+    return this.adminService.resetDocumentSequence(documentType, dto, req.user.id, req.ip, req.get('user-agent'));
   }
 
   // Working Hours
@@ -189,7 +184,7 @@ export class ConfigurationAdminController {
     @Param('branchId') branchId: string,
     @Body() dto: WorkingHoursUpdateDto[],
   ) {
-    return this.adminService.updateWorkingHours(branchId, dto, req.user.userId);
+    return this.adminService.updateWorkingHours(branchId, dto, req.user.id);
   }
 
   // Holidays
@@ -204,7 +199,7 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: CreateHolidayDto,
   ) {
-    return this.adminService.createHoliday(dto, req.user.userId);
+    return this.adminService.createHoliday(dto, req.user.id);
   }
 
   @Delete('holidays/:id')
@@ -263,8 +258,8 @@ export class ConfigurationAdminController {
 @ApiBearerAuth()
 export class ConfigurationController {
   constructor(
-    private readonly configService: ConfigurationService,
-    private readonly featureFlagService: FeatureFlagService,
+    @Inject(ConfigurationService) private readonly configService: ConfigurationService,
+    @Inject(FeatureFlagService) private readonly featureFlagService: FeatureFlagService,
   ) {}
 
   /**
@@ -275,7 +270,7 @@ export class ConfigurationController {
     @Req() req: AuthRequest,
     @Query() query: ResolvedConfigurationQueryDto,
   ) {
-    const branchId = query.branch_override ? undefined : req.user.branchId;
+    const branchId = query.branch_override ? undefined : req.user.branchId ?? undefined;
 
     if (query.keys && query.keys.length > 0) {
       const result: Record<string, any> = {};
@@ -309,7 +304,7 @@ export class ConfigurationController {
     @Req() req: AuthRequest,
     @Param('key') key: string,
   ) {
-    const value = await this.configService.getValueWithMeta(key, req.user.branchId);
+    const value = await this.configService.getValueWithMeta(key, req.user.branchId ?? undefined);
     return value;
   }
 
@@ -323,8 +318,8 @@ export class ConfigurationController {
   ) {
     const isEnabled = await this.featureFlagService.isFeatureEnabled(
       flagKey,
-      req.user.branchId,
-      req.user.userId,
+      req.user.branchId ?? undefined,
+      req.user.id,
     );
 
     return { flagKey, isEnabled };

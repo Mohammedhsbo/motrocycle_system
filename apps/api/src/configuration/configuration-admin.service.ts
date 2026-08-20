@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ConfigurationService } from './configuration.service.js';
 import { ConfigurationCacheService } from './configuration-cache.service.js';
@@ -16,9 +16,9 @@ import { ConfigurationQueryDto, ConfigurationAuditQueryDto } from './dto/query-c
 @Injectable()
 export class ConfigurationAdminService {
   constructor(
-    private prisma: PrismaService,
-    private configService: ConfigurationService,
-    private cacheService: ConfigurationCacheService,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(ConfigurationService) private configService: ConfigurationService,
+    @Inject(ConfigurationCacheService) private cacheService: ConfigurationCacheService,
   ) {}
 
   // System Configuration Management

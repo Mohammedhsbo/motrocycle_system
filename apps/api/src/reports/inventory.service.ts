@@ -1,13 +1,13 @@
 // TASK-006: Inventory & Purchase Reports Service
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryStatus, DateRange } from './reports.types.js';
 import { ReportUtils } from './reports.utils.js';
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getCurrentInventoryStatus(branchFilter: any): Promise<InventoryStatus> {
     const motorcycles = await this.prisma.motorcycle.findMany({

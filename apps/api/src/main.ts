@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import "./config/load-env.js";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { RequestMethod } from "@nestjs/common";

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   ConflictException,
@@ -28,10 +29,10 @@ import { withUniqueRetry } from '../utils/number-generator.js';
 @Injectable()
 export class ReservationsService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
-    private readonly socketGateway: SocketGateway,
-    private readonly ordersService: OrdersService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(SocketGateway) private readonly socketGateway: SocketGateway,
+    @Inject(OrdersService) private readonly ordersService: OrdersService,
   ) {}
 
   /**
