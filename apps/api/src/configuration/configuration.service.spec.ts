@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigurationService } from './configuration.service';
 import { ConfigurationCacheService } from './configuration-cache.service';
@@ -12,29 +13,29 @@ describe('ConfigurationService', () => {
 
   const mockPrisma = {
     systemConfiguration: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
     companyConfiguration: {
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
     branchConfiguration: {
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
   };
 
   const mockCache = {
-    get: jest.fn(),
-    set: jest.fn(),
-    delete: jest.fn(),
-    invalidatePattern: jest.fn(),
-    invalidateAll: jest.fn(),
-    invalidateBranch: jest.fn(),
-    invalidateCompany: jest.fn(),
-    invalidateSystem: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    invalidatePattern: vi.fn(),
+    invalidateAll: vi.fn(),
+    invalidateBranch: vi.fn(),
+    invalidateCompany: vi.fn(),
+    invalidateSystem: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -50,7 +51,7 @@ describe('ConfigurationService', () => {
     prisma = module.get<PrismaService>(PrismaService);
     cache = module.get<ConfigurationCacheService>(ConfigurationCacheService);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getValue', () => {

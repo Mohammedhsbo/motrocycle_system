@@ -28,19 +28,70 @@ export async function closeTestApp(app: INestApplication | undefined) {
 }
 
 export async function resetDatabase() {
-  await prisma.auditLog.deleteMany();
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.reservation.deleteMany();
-  await prisma.motorcycle.deleteMany();
-  await prisma.address.deleteMany();
-  await prisma.customer.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.rolePermission.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.brand.deleteMany();
-  await prisma.branch.deleteMany();
+  await prisma.$transaction([
+    prisma.notificationDelivery.deleteMany(),
+    prisma.notificationPreference.deleteMany(),
+    prisma.notification.deleteMany(),
+    prisma.communicationLog.deleteMany(),
+    prisma.auditLog.deleteMany(),
+
+    prisma.paymentAllocation.deleteMany(),
+    prisma.refund.deleteMany(),
+    prisma.payment.deleteMany(),
+    prisma.invoiceItem.deleteMany(),
+    prisma.invoice.deleteMany(),
+
+    prisma.letterHistory.deleteMany(),
+    prisma.letterDocument.deleteMany(),
+    prisma.letter.deleteMany(),
+
+    prisma.installment.deleteMany(),
+    prisma.financingContract.deleteMany(),
+
+    prisma.reservation.deleteMany(),
+    prisma.orderItem.deleteMany(),
+    prisma.order.deleteMany(),
+
+    prisma.transferItem.deleteMany(),
+    prisma.purchaseItem.deleteMany(),
+    prisma.transfer.deleteMany(),
+    prisma.purchase.deleteMany(),
+    prisma.supplier.deleteMany(),
+
+    prisma.address.deleteMany(),
+    prisma.customer.deleteMany(),
+    prisma.motorcycle.deleteMany(),
+
+    prisma.integrationWebhookEvent.deleteMany(),
+    prisma.integrationAudit.deleteMany(),
+    prisma.integrationLog.deleteMany(),
+    prisma.webhookEndpoint.deleteMany(),
+    prisma.aPIKey.deleteMany(),
+    prisma.integration.deleteMany(),
+    prisma.externalProvider.deleteMany(),
+
+    prisma.featureFlag.deleteMany(),
+    prisma.configurationAudit.deleteMany(),
+    prisma.branchConfiguration.deleteMany(),
+    prisma.documentNumbering.deleteMany(),
+    prisma.workingHours.deleteMany(),
+    prisma.holiday.deleteMany(),
+    prisma.companyConfiguration.deleteMany(),
+    prisma.systemConfiguration.deleteMany(),
+
+    prisma.idempotencyKey.deleteMany(),
+    prisma.outbox.deleteMany(),
+    prisma.webhookEvent.deleteMany(),
+    prisma.notificationTemplate.deleteMany(),
+
+    prisma.user.deleteMany(),
+    prisma.rolePermission.deleteMany(),
+    prisma.role.deleteMany(),
+    prisma.category.updateMany({ data: { parentId: null } }),
+    prisma.category.deleteMany(),
+    prisma.brand.deleteMany(),
+    prisma.branch.deleteMany(),
+  ]);
 }
 
 export async function seedBaseData() {

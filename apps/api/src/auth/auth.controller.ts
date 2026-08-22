@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards, UsePipes } from "@nestjs/common";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import {
@@ -34,6 +34,7 @@ export class AuthController {
   }
 
   @Post("login")
+  @HttpCode(HttpStatus.OK)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { ttl: Number(process.env.LOGIN_RATE_LIMIT_TTL_MS ?? 60_000), limit: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 5) } })
   @UsePipes(new ZodValidationPipe(loginRequestSchema))
@@ -51,6 +52,7 @@ export class AuthController {
   }
 
   @Post("refresh")
+  @HttpCode(HttpStatus.OK)
   async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined;
     const result = await this.authService.refresh(refreshToken, this.getIp(request));
@@ -65,6 +67,7 @@ export class AuthController {
   }
 
   @Post("logout")
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async logout(@Req() request: AuthenticatedRequest, @Res({ passthrough: true }) response: Response) {
     const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined;

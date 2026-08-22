@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FeatureFlagService } from './feature-flag.service';
 import { ConfigurationCacheService } from './configuration-cache.service';
@@ -10,21 +11,21 @@ describe('FeatureFlagService', () => {
 
   const mockPrisma = {
     featureFlag: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-      create: jest.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      create: vi.fn(),
     },
     configurationAudit: {
-      create: jest.fn(),
+      create: vi.fn(),
     },
   };
 
   const mockCache = {
-    get: jest.fn(),
-    set: jest.fn(),
-    invalidateFeatureFlag: jest.fn(),
-    invalidatePattern: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    invalidateFeatureFlag: vi.fn(),
+    invalidatePattern: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -40,7 +41,7 @@ describe('FeatureFlagService', () => {
     prisma = module.get<PrismaService>(PrismaService);
     cache = module.get<ConfigurationCacheService>(ConfigurationCacheService);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('isFeatureEnabled', () => {

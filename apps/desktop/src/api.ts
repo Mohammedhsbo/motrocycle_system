@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
+function normalizeApiBase(url: string) {
+  const normalized = url.replace(/\/+$/, '');
+  return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
+}
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1');
 
 let authToken: string | null = localStorage.getItem('pos_token');
 
