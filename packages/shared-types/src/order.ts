@@ -248,7 +248,7 @@ export interface CreateOrderResponse {
   user: {
     id: string;
     name: string;
-  };
+  } | null;
   status: OrderStatus;
   items: Array<{
     id: string;

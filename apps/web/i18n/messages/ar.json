@@ -194,5 +194,29 @@
       "depositTooHigh": "لا يمكن أن يتجاوز العربون سعر الدراجة النارية",
       "mustAgreeToTerms": "يجب الموافقة على الشروط والأحكام"
     }
+  },
+  "financing": {
+    "title": "تمويلي",
+    "statusActive": "نشط",
+    "statusCompleted": "مكتمل",
+    "statusDefaulted": "متعثر",
+    "statusCancelled": "ملغى",
+    "activeContracts": "العقود النشطة",
+    "totalFinanced": "إجمالي التمويل",
+    "totalPaid": "إجمالي المدفوع",
+    "totalRemaining": "إجمالي المتبقي",
+    "nextInstallment": "القسط القادم",
+    "dueDate": "تاريخ الاستحقاق",
+    "viewDetails": "عرض التفاصيل",
+    "overdueTitle": "أقساط متأخرة",
+    "overdueMessage": "لديك {count} قسط/أقساط متأخرة.",
+    "myContracts": "عقودي",
+    "noContracts": "لم يتم العثور على عقود تمويل.",
+    "order": "الطلب",
+    "totalAmount": "المبلغ الإجمالي",
+    "downPayment": "الدفعة الأولى",
+    "financingAmount": "مبلغ التمويل",
+    "installments": "الأقساط",
+    "startDate": "تاريخ البدء"
   }
 }

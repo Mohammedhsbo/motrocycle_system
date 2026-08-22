@@ -194,5 +194,29 @@
       "depositTooHigh": "Deposit cannot exceed the motorcycle price",
       "mustAgreeToTerms": "You must agree to the terms and conditions"
     }
+  },
+  "financing": {
+    "title": "My Financing",
+    "statusActive": "Active",
+    "statusCompleted": "Completed",
+    "statusDefaulted": "Defaulted",
+    "statusCancelled": "Cancelled",
+    "activeContracts": "Active Contracts",
+    "totalFinanced": "Total Financed",
+    "totalPaid": "Total Paid",
+    "totalRemaining": "Total Remaining",
+    "nextInstallment": "Next Installment",
+    "dueDate": "Due Date",
+    "viewDetails": "View Details",
+    "overdueTitle": "Overdue Installments",
+    "overdueMessage": "You have {count} overdue installment(s).",
+    "myContracts": "My Contracts",
+    "noContracts": "No financing contracts found.",
+    "order": "Order",
+    "totalAmount": "Total Amount",
+    "downPayment": "Down Payment",
+    "financingAmount": "Financing Amount",
+    "installments": "Installments",
+    "startDate": "Start Date"
   }
 }

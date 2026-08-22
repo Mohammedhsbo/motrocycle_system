@@ -24,6 +24,13 @@ export class CustomerLettersController {
   @Get()
   @RequirePermission(Resource.LETTER, Action.READ)
   async getCustomerLetters(@Param('customerId') customerId: string, @Request() req: any) {
-    return this.lettersService.getCustomerLetters(customerId, req.user);
+    const items = await this.lettersService.getCustomerLetters(customerId, req.user);
+    return {
+      success: true,
+      data: {
+        items,
+        total: items.length,
+      },
+    };
   }
 }

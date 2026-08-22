@@ -52,6 +52,13 @@ export class OrdersService {
       priceOverrides?: Record<string, number | Prisma.Decimal>;
     }
   ): Promise<CreateOrderResponse> {
+    if (!isCustomer && !userId) {
+      throw new ForbiddenException({
+        code: 'UNAUTHORIZED',
+        message: 'User ID is required',
+      });
+    }
+
     // Determine branch ID
     let branchId = data.branchId ?? userBranchId;
 
@@ -187,14 +194,6 @@ export class OrdersService {
                 });
               }
 
-              // Validate motorcycle is in the correct branch
-              if (moto.branchId !== branchId) {
-                throw new ConflictException({
-                  code: 'MOTORCYCLE_WRONG_BRANCH',
-                  message: `Motorcycle ${moto.vin} is not in the specified branch`,
-                });
-              }
-
               // Get brand info
               const brand = await tx.brand.findUnique({
                 where: { id: moto.brandId },
@@ -231,14 +230,6 @@ export class OrdersService {
                 });
               }
 
-              // Still validate branch even for draft
-              if (moto.branchId !== branchId) {
-                throw new ConflictException({
-                  code: 'MOTORCYCLE_WRONG_BRANCH',
-                  message: `Motorcycle ${moto.vin} is not in the specified branch`,
-                });
-              }
-
               motorcycles.push(moto as any);
             }
           }
@@ -269,7 +260,7 @@ export class OrdersService {
               orderNumber,
               customerId: data.customerId,
               branchId,
-              userId,
+              userId: isCustomer ? null : userId,
               status: data.isDraft ? 'draft' : 'confirmed',
               totalAmount,
               discount,
@@ -294,7 +285,7 @@ export class OrdersService {
 
           // Audit log
           await this.audit.log({
-            userId,
+            ...(isCustomer ? { customerId: userId } : { userId: userId ?? null }),
             action: 'order:created',
             entityType: 'order',
             entityId: order.id,
@@ -333,8 +324,8 @@ export class OrdersService {
               nameAr: branch.nameAr,
               nameEn: branch.nameEn,
             },
-            user: {
-              id: userId,
+            user: isCustomer ? null : {
+              id: userId!,
               name: 'Staff', // We'd need to query user for actual name
             },
             status: order.status as any,

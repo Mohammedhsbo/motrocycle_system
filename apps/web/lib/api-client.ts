@@ -76,6 +76,10 @@ async function fetchApi<T>(
     }
   }
 
+  if (response.status === 304) {
+    return { success: true };
+  }
+
   if (parsedData === undefined) {
     if (!response.ok) {
       throw new ApiError("HTTP_ERROR", response.statusText || "An error occurred", response.status);
