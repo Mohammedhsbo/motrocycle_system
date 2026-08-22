@@ -77,13 +77,13 @@ export default function Orders({ lang }: Props) {
   const formatCurrency = (amount: number) => {
     return Number(amount).toLocaleString('en', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     });
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

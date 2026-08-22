@@ -9,7 +9,7 @@ interface Props { lang: 'en' | 'ar' }
 const t = {
   en: {
     title: 'New Purchase Order', back: 'Back', supplier: 'Supplier', items: 'Items',
-    model: 'Model / Description', quantity: 'Qty', unitCost: 'Unit Cost (SAR)', addItem: 'Add Item',
+    model: 'Model / Description', quantity: 'Qty', unitCost: 'Unit Cost (EGP)', addItem: 'Add Item',
     total: 'Total', submit: 'Create Purchase', cancel: 'Cancel',
     selectSupplier: '— Select Supplier —', required: 'Required',
     successMsg: 'Purchase created!', errorMsg: 'Failed to create purchase.',
@@ -162,7 +162,7 @@ export default function PurchaseForm({ lang }: Props) {
           }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{i18n.total}:</span>
             <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-              {total.toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 })}
+              {total.toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
             </span>
           </div>
         </div>

@@ -22,7 +22,7 @@ export default function SalesTab({ preset, startDate, endDate, branchId, lang }:
   const formatCurrency = (amount: number) => {
     return Number(amount).toLocaleString('en', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     });
   };

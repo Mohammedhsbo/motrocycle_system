@@ -119,7 +119,7 @@ export class NotificationEventProcessor {
         priority: NotificationPriority.HIGH,
         title: 'Order Confirmed',
         titleAr: 'تم تأكيد الطلب',
-        message: `Your order #${payload.orderNumber} for ${payload.motorcycleName} has been confirmed. Total: ${payload.totalAmount} SAR`,
+        message: `Your order #${payload.orderNumber} for ${payload.motorcycleName} has been confirmed. Total: ${payload.totalAmount} EGP`,
         messageAr: `تم تأكيد طلبك #${payload.orderNumber} لـ ${payload.motorcycleName}. المجموع: ${payload.totalAmount} ريال`,
         data: {
           orderId: payload.orderId,
@@ -163,7 +163,7 @@ export class NotificationEventProcessor {
         priority: NotificationPriority.NORMAL,
         title: 'Payment Received',
         titleAr: 'تم استلام الدفعة',
-        message: `Payment of ${payload.amount} SAR received via ${payload.method}`,
+        message: `Payment of ${payload.amount} EGP received via ${payload.method}`,
         messageAr: `تم استلام دفعة بقيمة ${payload.amount} ريال عبر ${payload.method}`,
         data: {
           paymentId: payload.paymentId,
@@ -192,7 +192,7 @@ export class NotificationEventProcessor {
         priority: NotificationPriority.HIGH,
         title: 'Installment Due',
         titleAr: 'قسط مستحق',
-        message: `Installment of ${payload.amount} SAR is due on ${payload.dueDate}`,
+        message: `Installment of ${payload.amount} EGP is due on ${payload.dueDate}`,
         messageAr: `قسط بقيمة ${payload.amount} ريال مستحق في ${payload.dueDate}`,
         data: {
           installmentId: payload.installmentId,
@@ -213,7 +213,7 @@ export class NotificationEventProcessor {
         content: {
           titleEn: 'Installment Reminder',
           titleAr: 'تذكير بالقسط',
-          bodyEn: `Installment of ${payload.amount} SAR due on ${payload.dueDate}`,
+          bodyEn: `Installment of ${payload.amount} EGP due on ${payload.dueDate}`,
           bodyAr: `قسط بقيمة ${payload.amount} ريال مستحق في ${payload.dueDate}`,
         },
         data: payload,

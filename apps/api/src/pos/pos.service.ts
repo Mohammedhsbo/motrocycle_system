@@ -486,7 +486,7 @@ export class POSService {
       if (depositAmount < minDeposit) {
         throw new BadRequestException({
           code: POSErrorCode.INVALID_DEPOSIT_AMOUNT,
-          message: `Deposit must be at least ${minDeposit} SAR`,
+          message: `Deposit must be at least ${minDeposit} EGP`,
         });
       }
 

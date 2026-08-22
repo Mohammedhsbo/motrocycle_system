@@ -131,7 +131,7 @@ export default function TransactionHistory({ lang, onBack }: TransactionHistoryP
                   </span>{' '}
                   <span className="font-bold">
                     {transaction.amount.toLocaleString()}{' '}
-                    {isRtl ? 'ريال' : 'SAR'}
+                    {isRtl ? 'ريال' : 'EGP'}
                   </span>
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export default function TransactionHistory({ lang, onBack }: TransactionHistoryP
                     {isRtl ? 'التاريخ:' : 'Date:'}
                   </span>{' '}
                   {new Date(transaction.createdAt).toLocaleString(
-                    isRtl ? 'ar-SA' : 'en-US'
+                    isRtl ? 'ar-EG' : 'en-EG'
                   )}
                 </div>
               </div>
@@ -178,7 +178,7 @@ export default function TransactionHistory({ lang, onBack }: TransactionHistoryP
               <div className="text-2xl font-bold text-gray-800">
                 {dashboard.todayStats.totalSales.toLocaleString()}{' '}
                 <span className="text-sm">
-                  {isRtl ? 'ريال' : 'SAR'}
+                  {isRtl ? 'ريال' : 'EGP'}
                 </span>
               </div>
             </div>

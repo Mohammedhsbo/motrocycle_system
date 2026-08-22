@@ -168,9 +168,9 @@ export default function CreateOrder({ lang }: Props) {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     }).format(amount);
   };

@@ -162,7 +162,7 @@ export function canApplyDiscount(
   if (discountAmount > limits.maxAmount) {
     return {
       authorized: false,
-      reason: `Discount amount exceeds limit for ${role} (${limits.maxAmount} SAR)`,
+      reason: `Discount amount exceeds limit for ${role} (${limits.maxAmount} EGP)`,
     };
   }
 

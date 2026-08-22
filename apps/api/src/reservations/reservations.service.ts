@@ -195,7 +195,7 @@ export class ReservationsService {
           if (paidAmount < minDeposit) {
             throw new BadRequestException({
               code: 'INVALID_DEPOSIT_AMOUNT',
-              message: `Deposit must be at least ${minDeposit.toFixed(2)} SAR`,
+              message: `Deposit must be at least ${minDeposit.toFixed(2)} EGP`,
             });
           }
 

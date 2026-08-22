@@ -23,7 +23,7 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
   const formatCurrency = (amount: number) => {
     return Number(amount).toLocaleString('en', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     });
   };

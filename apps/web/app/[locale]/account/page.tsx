@@ -72,10 +72,10 @@ export default function AccountPage() {
   }
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-SA", { style: "currency", currency: "SAR" }).format(amount);
+    new Intl.NumberFormat("en-SA", { style: "currency", currency: "EGP" }).format(amount);
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    new Date(d).toLocaleDateString("en-EG", { year: "numeric", month: "short", day: "numeric" });
 
   return (
     <div className="space-y-6">

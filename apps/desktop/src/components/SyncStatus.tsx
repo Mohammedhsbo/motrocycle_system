@@ -129,7 +129,7 @@ export default function SyncStatus({ lang }: SyncStatusProps) {
         <div className="mt-2 text-xs text-gray-600">
           {isRtl ? 'آخر مزامنة:' : 'Last sync:'}{' '}
           {new Date(syncStatus.lastSyncAt).toLocaleString(
-            isRtl ? 'ar-SA' : 'en-US'
+            isRtl ? 'ar-EG' : 'en-EG'
           )}
         </div>
       )}

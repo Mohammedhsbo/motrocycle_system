@@ -79,10 +79,10 @@ export default function CustomerSummary({ customerId, lang }: Props) {
   }
 
   const formatCurrency = (amount: number) =>
-    amount.toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 });
+    amount.toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 
   const formatDate = (date?: string) =>
-    date ? new Date(date).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US') : i18n.never;
+    date ? new Date(date).toLocaleDateString(isRtl ? 'ar-EG' : 'en-EG') : i18n.never;
 
   return (
     <div className="card" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>

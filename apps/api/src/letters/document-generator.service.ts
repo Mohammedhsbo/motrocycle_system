@@ -167,7 +167,7 @@ export class DocumentGeneratorService {
     const isDelivery = documentType === 'delivery';
     const title = isDelivery ? 'Motorcycle Delivery Document' : 'Motorcycle Receipt Document';
 
-    const currentDate = new Date().toLocaleDateString('en-US', {
+    const currentDate = new Date().toLocaleDateString('en-EG', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -310,13 +310,13 @@ export class DocumentGeneratorService {
       </div>
       <div style="text-align: right;">
         <div class="info-label">Issued At</div>
-        <div class="info-value">${new Date(letter.issuedAt).toLocaleString('en-US')}</div>
+        <div class="info-value">${new Date(letter.issuedAt).toLocaleString('en-EG')}</div>
       </div>
     </div>
     ${letter.confirmedAt ? `
     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
       <div class="info-label">Confirmed At</div>
-      <div class="info-value">${new Date(letter.confirmedAt).toLocaleString('en-US')}</div>
+      <div class="info-value">${new Date(letter.confirmedAt).toLocaleString('en-EG')}</div>
     </div>
     ` : ''}
   </div>

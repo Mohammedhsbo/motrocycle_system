@@ -152,7 +152,7 @@ const provider = this.providerRegistry.getProvider('stripe');
 // Create payment
 const response = await provider.createPayment({
   amount: 1000,
-  currency: 'SAR',
+  currency: 'EGP',
   method: PaymentMethod.CARD,
   reference: 'PAY-123',
   metadata: { invoiceId: 'INV-123' },

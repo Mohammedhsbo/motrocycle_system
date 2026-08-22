@@ -183,9 +183,9 @@ export default function PaymentForm({ lang }: Props) {
   };
 
   const formatCurrency = (amount: number) =>
-    amount.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    amount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 2,
     });
 

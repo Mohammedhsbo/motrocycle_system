@@ -107,15 +107,15 @@ export default function OrderDetailPOS({ lang }: Props) {
   const customerOrders = customerOrdersData?.items.filter((o) => o.id !== id) ?? [];
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -125,7 +125,7 @@ export default function OrderDetailPOS({ lang }: Props) {
   };
 
   const formatDateShort = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       month: 'short',
       day: 'numeric',
     });

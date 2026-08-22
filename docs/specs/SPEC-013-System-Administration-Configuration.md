@@ -231,7 +231,7 @@ Settings follow precedence order:
 - `system.number_format`: Number formatting locale
 
 **Currency & Financial:**
-- `system.default_currency`: Primary currency code (SAR, USD, etc.)
+- `system.default_currency`: Primary currency code (EGP, USD, etc.)
 - `system.currency_symbol`: Currency display symbol
 - `system.currency_decimal_places`: Decimal precision (usually 2)
 - `system.currency_display_format`: Currency formatting pattern
@@ -456,8 +456,8 @@ interface ConfigValue {
   "configurations": [
     {
       "configKey": "system.default_currency",
-      "configValue": "SAR",
-      "reason": "Changed to Saudi Riyal"
+      "configValue": "EGP",
+      "reason": "Changed to Egyptian Pound"
     }
   ]
 }

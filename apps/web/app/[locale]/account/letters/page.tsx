@@ -102,7 +102,7 @@ export default function LettersPage() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
       year: "numeric",
       month: "short",
       day: "numeric",

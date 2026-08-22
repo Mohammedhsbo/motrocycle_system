@@ -127,7 +127,7 @@ export default function Letters({ lang }: Props) {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

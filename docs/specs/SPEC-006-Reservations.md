@@ -186,7 +186,7 @@ ACTIVE ──► CONVERTED (to order)
 - Historical reservations preserve motorcycle reference
 
 ### BR-R05: Deposit Rules
-- Minimum deposit: configurable (e.g., 10% of motorcycle price or 1000 SAR)
+- Minimum deposit: configurable (e.g., 10% of motorcycle price or 1000 EGP)
 - Maximum deposit: cannot exceed `totalPrice`
 - Deposit must be > 0 for reservation creation
 - Additional payments can be made against reservation
@@ -782,7 +782,7 @@ COMMIT;
 
 ### Deposit Amount
 - Must be > 0
-- Must be >= minimum deposit (configurable, e.g., 10% of price or 1000 SAR)
+- Must be >= minimum deposit (configurable, e.g., 10% of price or 1000 EGP)
 - Cannot exceed motorcycle's current price
 - Must be whole currency units (no fractional cents)
 

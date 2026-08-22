@@ -14,7 +14,7 @@ export const MAX_RESERVATION_DAYS = 90;
 /** Minimum deposit percentage (10%) */
 export const MIN_DEPOSIT_PERCENT = 0.1;
 
-/** Hard minimum deposit amount (SAR) */
+/** Hard minimum deposit amount (EGP) */
 export const MIN_DEPOSIT_AMOUNT_SAR = 1000;
 
 // ---------------------------------------------------------------------------

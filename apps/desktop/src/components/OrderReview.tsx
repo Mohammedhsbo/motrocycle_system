@@ -84,9 +84,9 @@ export default function OrderReview({
   const total = Math.max(0, subtotal - discount);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     }).format(amount);
   };

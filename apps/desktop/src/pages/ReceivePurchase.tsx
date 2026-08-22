@@ -346,7 +346,7 @@ function ReceiveDetail({ purchaseId, lang }: { purchaseId: string; lang: Lang })
             <PurchaseBadge status={purchase.status} lang={lang} />
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-3)' }}>
-            {new Date(purchase.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { dateStyle: 'medium' })}
+            {new Date(purchase.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', { dateStyle: 'medium' })}
           </span>
         </div>
         {sessionReceived > 0 && (
@@ -376,7 +376,7 @@ function ReceiveDetail({ purchaseId, lang }: { purchaseId: string; lang: Lang })
         <div className="info-card">
           <div className="info-label">{t.total}</div>
           <div className="info-value" style={{ color: 'var(--blue-light)' }}>
-            {total.toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 })}
+            {total.toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
           </div>
         </div>
       </div>

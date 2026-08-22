@@ -124,11 +124,11 @@ export default function Purchases({ lang }: Props) {
                   <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--accent-primary)' }}>{p.purchaseNumber}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{p.supplier?.name ?? '—'}</td>
                   <td style={{ fontWeight: 600 }}>
-                    {Number(p.totalAmount).toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 })}
+                    {Number(p.totalAmount).toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
                   </td>
                   <td><Badge status={p.status} lang={lang} /></td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    {new Date(p.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                    {new Date(p.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG')}
                   </td>
                   <td>
                     <Link to={`/purchases/${p.id}`} className="btn btn-outline" style={{ padding: '0.375rem 0.625rem', fontSize: '0.8rem' }}>

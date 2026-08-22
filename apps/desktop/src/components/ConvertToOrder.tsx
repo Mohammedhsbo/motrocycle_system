@@ -53,9 +53,9 @@ export default function ConvertToOrder({
   const [notes, setNotes] = useState('');
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     }).format(amount);
   };

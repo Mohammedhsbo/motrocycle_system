@@ -192,7 +192,7 @@ export default function OrderDetailPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat("en-EG", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -202,9 +202,9 @@ export default function OrderDetailPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-EG", {
       style: "currency",
-      currency: "SAR",
+      currency: "EGP",
     }).format(amount);
   };
 

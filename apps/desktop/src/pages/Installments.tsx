@@ -19,7 +19,7 @@ export default function Installments({ lang }: { lang: Lang }) {
   const portfolio = useQuery({ queryKey: ['desktop-installment-portfolio'], queryFn: () => reports.installments({ preset: 'this_month' }) });
   const detail = useQuery({ queryKey: ['desktop-financing-detail', selected?.id], queryFn: () => financing.get(selected!.id), enabled: Boolean(selected?.id) });
   const pay = useMutation({ mutationFn: () => installments.pay(paymentInstallment!.id, { amount: Number(amount), method, idempotencyKey: `pos-installment-${paymentInstallment!.id}-${Date.now()}` }), onSuccess: () => { setPaymentInstallment(null); setAmount(''); setError(''); qc.invalidateQueries({ queryKey: ['desktop-financing'] }); qc.invalidateQueries({ queryKey: ['desktop-financing-detail', selected?.id] }); }, onError: (err: any) => setError(err.message || (isRtl ? 'فشل تسجيل الدفع' : 'Payment failed')) });
-  const money = (value: number) => `${Number(value || 0).toLocaleString(isRtl ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 })} ${isRtl ? 'ج.م' : 'EGP'}`;
+  const money = (value: number) => `${Number(value || 0).toLocaleString(isRtl ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} ${isRtl ? 'ج.م' : 'EGP'}`;
   const date = (value?: string) => value ? new Date(value).toLocaleDateString(isRtl ? 'ar-EG' : 'en-GB') : '-';
   const contractInstallments = detail.data?.installments || selected?.installments || [];
   const outstanding = Number(portfolio.data?.outstandingAmount || 0);

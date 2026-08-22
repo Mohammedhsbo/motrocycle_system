@@ -250,7 +250,7 @@ export default function LetterDetail({ lang }: Props) {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -258,7 +258,7 @@ export default function LetterDetail({ lang }: Props) {
   };
 
   const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

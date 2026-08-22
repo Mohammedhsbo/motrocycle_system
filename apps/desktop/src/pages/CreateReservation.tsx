@@ -32,7 +32,7 @@ const T = {
     noMotorcycles: 'No available motorcycles found',
     searching: 'Searching...',
     depositAmount: 'Deposit Amount',
-    enterDeposit: 'Enter deposit amount (SAR)...',
+    enterDeposit: 'Enter deposit amount (EGP)...',
     minimumDeposit: 'Minimum deposit',
     maximumDeposit: 'Maximum deposit',
     invalidDeposit: 'Invalid deposit amount',
@@ -113,7 +113,7 @@ export default function CreateReservation({ lang }: Props) {
     reservationNumber: string;
   } | null>(null);
 
-  // Minimum deposit: 10% or 1000 SAR
+  // Minimum deposit: 10% or 1000 EGP
   const getMinimumDeposit = () => {
     if (!selectedMotorcycle) return 0;
     return Math.max(selectedMotorcycle.price * 0.1, 1000);
@@ -207,9 +207,9 @@ export default function CreateReservation({ lang }: Props) {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     }).format(amount);
   };

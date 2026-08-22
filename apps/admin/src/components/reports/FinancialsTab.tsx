@@ -27,7 +27,7 @@ export default function FinancialsTab({ preset, startDate, endDate, branchId, la
   const formatCurrency = (amount: number) => {
     return Number(amount).toLocaleString('en', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     });
   };

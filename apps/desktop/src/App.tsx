@@ -50,7 +50,7 @@ function Dashboard({ lang }: { lang: Lang }) {
     refetchInterval: 30_000,
   });
   const isRtl = lang === 'ar';
-  const money = (value: number) => value.toLocaleString(isRtl ? 'ar-EG' : 'en-US', { maximumFractionDigits: 0 });
+  const money = (value: number) => value.toLocaleString(isRtl ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 0 });
   const cards = data ? [
     { icon: CircleDollarSign, label: isRtl ? 'مبيعات اليوم' : "Today's sales", value: `${money(data.todayStats.totalSales)} ${isRtl ? 'ج.م' : 'EGP'}`, tone: 'orange' },
     { icon: WalletCards, label: isRtl ? 'الطلبات اليوم' : "Today's orders", value: String(data.todayStats.ordersCreated), tone: 'blue' },

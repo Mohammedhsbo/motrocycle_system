@@ -110,7 +110,7 @@ export default function CustomerDetail({ lang }: Props) {
             <Badge status={customer.isActive ? 'active' : 'inactive'} lang={lang} />
           </div>
           <p className="text-muted" style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            {i18n.created}: {new Date(customer.createdAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            {i18n.created}: {new Date(customer.createdAt).toLocaleDateString(isRtl ? 'ar-EG' : 'en-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
         {/* Actions */}

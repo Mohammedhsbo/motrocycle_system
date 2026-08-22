@@ -125,15 +125,15 @@ export default function FinancialHistory({ locale }: Props) {
   };
 
   const formatCurrency = (amount: number) =>
-    amount.toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US', {
+    amount.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
+    new Date(date).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

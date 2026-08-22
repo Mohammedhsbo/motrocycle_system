@@ -46,7 +46,7 @@ export function formatReceiptForPrint(data: ReceiptData, lang: 'en' | 'ar'): str
     : (isRtl ? 'إيصال حجز' : 'RESERVATION RECEIPT');
   lines.push(typeLabel);
   lines.push(`${isRtl ? 'رقم' : 'No'}: ${data.number}`);
-  lines.push(`${isRtl ? 'التاريخ' : 'Date'}: ${new Date(data.date).toLocaleString(isRtl ? 'ar-SA' : 'en-US')}`);
+  lines.push(`${isRtl ? 'التاريخ' : 'Date'}: ${new Date(data.date).toLocaleString(isRtl ? 'ar-EG' : 'en-EG')}`);
   lines.push('');
 
   // Branch & User
@@ -109,7 +109,7 @@ export function formatReceiptForPrint(data: ReceiptData, lang: 'en' | 'ar'): str
 
 function formatMoney(amount: number, isRtl: boolean): string {
   const formatted = Math.abs(amount).toLocaleString();
-  const currency = isRtl ? 'ريال' : 'SAR';
+  const currency = isRtl ? 'ريال' : 'EGP';
   const sign = amount < 0 ? '-' : '';
   return `${sign}${formatted} ${currency}`;
 }
@@ -154,7 +154,7 @@ export function formatReceiptHTML(data: ReceiptData, lang: 'en' | 'ar'): string 
       <h1>${isRtl ? 'معرض الدراجات النارية' : 'MOTORCYCLE DEALERSHIP'}</h1>
       <div>${data.type === 'order' ? (isRtl ? 'فاتورة بيع' : 'SALES ORDER') : (isRtl ? 'إيصال حجز' : 'RESERVATION RECEIPT')}</div>
       <div><strong>${data.number}</strong></div>
-      <div>${new Date(data.date).toLocaleString(isRtl ? 'ar-SA' : 'en-US')}</div>
+      <div>${new Date(data.date).toLocaleString(isRtl ? 'ar-EG' : 'en-EG')}</div>
     </div>
 
     <div class="section">

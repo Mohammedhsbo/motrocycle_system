@@ -54,7 +54,7 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
     color: motorcycle.color,
     offers: {
       "@type": "Offer",
-      priceCurrency: "SAR",
+      priceCurrency: "EGP",
       price: motorcycle.price,
       availability: "https://schema.org/InStock",
     },

@@ -46,7 +46,7 @@ export default function DiscountInput({
     <div className="space-y-3">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {isRtl ? 'الخصم (ريال)' : 'Discount (SAR)'}
+          {isRtl ? 'الخصم (ريال)' : 'Discount (EGP)'}
         </label>
         <input
           type="number"
@@ -61,7 +61,7 @@ export default function DiscountInput({
         <div className="mt-1 text-xs text-gray-500">
           {isRtl
             ? `الحد الأقصى: ${effectiveMax.toLocaleString()} ريال (${maxDiscountPercent}%)`
-            : `Maximum: ${effectiveMax.toLocaleString()} SAR (${maxDiscountPercent}%)`}
+            : `Maximum: ${effectiveMax.toLocaleString()} EGP (${maxDiscountPercent}%)`}
         </div>
       </div>
 

@@ -105,7 +105,7 @@ export default function FinancingPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat("en-EG", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -113,9 +113,9 @@ export default function FinancingPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-EG", {
       style: "currency",
-      currency: "SAR",
+      currency: "EGP",
     }).format(amount);
   };
 

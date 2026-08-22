@@ -149,15 +149,15 @@ export default function PaymentDetail({ lang }: Props) {
   });
 
   const formatCurrency = (amount: number) =>
-    amount.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    amount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 2,
     });
 
   const formatDate = (date?: string) =>
     date
-      ? new Date(date).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+      ? new Date(date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
           year: 'numeric',
           month: 'short',
           day: 'numeric',

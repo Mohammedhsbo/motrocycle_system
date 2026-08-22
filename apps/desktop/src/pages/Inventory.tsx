@@ -13,7 +13,7 @@ export default function Inventory({ lang }: { lang: Lang }) {
     queryFn: () => pos.searchMotorcycles(query, undefined, 50),
     enabled: query.length === 0 || query.length >= 2,
   });
-  const money = (value: number) => `${value.toLocaleString(isRtl ? 'ar-EG' : 'en-US', { maximumFractionDigits: 0 })} ${isRtl ? 'ج.م' : 'EGP'}`;
+  const money = (value: number) => `${value.toLocaleString(isRtl ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 0 })} ${isRtl ? 'ج.م' : 'EGP'}`;
 
   return <section className="desktop-page" dir={isRtl ? 'rtl' : 'ltr'}>
     <div className="page-heading"><div><span className="eyebrow">{isRtl ? 'المخزون الحي' : 'Live inventory'}</span><h1>{isRtl ? 'المخزون' : 'Inventory'}</h1><p>{isRtl ? 'الوحدات المتاحة في نطاق الفرع الحالي.' : 'Available units within the current branch scope.'}</p></div><button className="secondary-action" onClick={() => refetch()}><RefreshCw size={16} /> {isRtl ? 'تحديث' : 'Refresh'}</button></div>

@@ -118,7 +118,7 @@ export default function LetterDetailPage() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -127,7 +127,7 @@ export default function LetterDetailPage() {
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
       year: "numeric",
       month: "short",
       day: "numeric",

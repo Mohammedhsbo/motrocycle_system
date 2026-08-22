@@ -114,9 +114,9 @@ export function displayName(item: { nameEn: string; nameAr: string }, locale: st
 }
 
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-EG", {
     style: "currency",
-    currency: "SAR",
+    currency: "EGP",
     maximumFractionDigits: 0,
   }).format(value);
 }

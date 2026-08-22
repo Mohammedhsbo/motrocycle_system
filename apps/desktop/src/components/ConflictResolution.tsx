@@ -64,7 +64,7 @@ export default function ConflictResolution({
               <div className="text-sm text-gray-600 mb-3">
                 {isRtl ? 'التاريخ:' : 'Date:'}{' '}
                 {new Date(conflict.timestamp).toLocaleString(
-                  isRtl ? 'ar-SA' : 'en-US'
+                  isRtl ? 'ar-EG' : 'en-EG'
                 )}
               </div>
 

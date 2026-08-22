@@ -203,15 +203,15 @@ export default function FinancingContractDetail({ lang }: Props) {
   });
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat(isRtl ? 'ar-SA' : 'en-US', {
+    return new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       minimumFractionDigits: 2,
     }).format(amount);
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
+    return new Date(dateStr).toLocaleDateString(isRtl ? 'ar-EG' : 'en-EG', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

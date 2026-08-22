@@ -114,9 +114,9 @@ export default function PaymentPOS({ orderId, orderAmount, lang, onSuccess, onCa
   const changeAmount = method === 'cash' ? Math.max(0, receivedAmount - amountDue) : 0;
 
   const formatCurrency = (amount: number) =>
-    amount.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    amount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     });
 

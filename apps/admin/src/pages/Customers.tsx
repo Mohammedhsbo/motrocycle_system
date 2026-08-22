@@ -206,7 +206,7 @@ export default function Customers({ lang }: Props) {
                         <div style={{ fontWeight: 600 }}>{c.orderCount ?? 0}</div>
                         {c.lastOrderDate && (
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {new Date(c.lastOrderDate).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}
+                            {new Date(c.lastOrderDate).toLocaleDateString(isRtl ? 'ar-EG' : 'en-EG', { month: 'short', day: 'numeric' })}
                           </div>
                         )}
                       </div>

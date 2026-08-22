@@ -102,7 +102,7 @@ export default function PurchaseDetail({ lang }: Props) {
             <Badge status={purchase.status} lang={lang} />
           </div>
           <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            {i18n.created}: {new Date(purchase.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+            {i18n.created}: {new Date(purchase.createdAt).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-EG')}
           </p>
         </div>
         {/* Actions */}
@@ -150,7 +150,7 @@ export default function PurchaseDetail({ lang }: Props) {
         <div className="card" style={{ padding: '1rem' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{i18n.total}</div>
           <div style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--accent-primary)' }}>
-            {total.toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 })}
+            {total.toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
           </div>
         </div>
         <div className="card" style={{ padding: '1rem' }}>
@@ -179,10 +179,10 @@ export default function PurchaseDetail({ lang }: Props) {
                   <td style={{ fontWeight: 500 }}>{item.model}</td>
                   <td>{item.quantity}</td>
                   <td style={{ fontFamily: 'monospace' }}>
-                    {Number(item.unitCost).toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 })}
+                    {Number(item.unitCost).toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
                   </td>
                   <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                    {(item.quantity * Number(item.unitCost)).toLocaleString('en', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 })}
+                    {(item.quantity * Number(item.unitCost)).toLocaleString('en', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
                   </td>
                   <td>
                     {item.receivedAt

@@ -225,9 +225,9 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {new Intl.NumberFormat("en-US", {
+                        {new Intl.NumberFormat("en-EG", {
                           style: "currency",
-                          currency: "SAR",
+                          currency: "EGP",
                         }).format(item.price)}
                       </div>
                     </div>
@@ -248,23 +248,23 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium text-gray-900">
-                      {new Intl.NumberFormat("en-US", {
+                      {new Intl.NumberFormat("en-EG", {
                         style: "currency",
-                        currency: "SAR",
+                        currency: "EGP",
                       }).format(totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Discount</span>
-                    <span className="font-medium text-gray-900">SAR 0.00</span>
+                    <span className="font-medium text-gray-900">EGP 0.00</span>
                   </div>
                   <div className="pt-4 border-t border-gray-200">
                     <div className="flex justify-between">
                       <span className="text-base font-medium text-gray-900">Total</span>
                       <span className="text-base font-bold text-gray-900">
-                        {new Intl.NumberFormat("en-US", {
+                        {new Intl.NumberFormat("en-EG", {
                           style: "currency",
-                          currency: "SAR",
+                          currency: "EGP",
                         }).format(totalAmount)}
                       </span>
                     </div>

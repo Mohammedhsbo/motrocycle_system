@@ -80,7 +80,7 @@ export default function ReservationsPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat("en-EG", {
       year: "numeric",
       month: "short",
       day: "numeric",

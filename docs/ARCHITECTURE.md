@@ -254,7 +254,7 @@ enum Action { CREATE, READ, UPDATE, DELETE, EXPORT }
 | App-specific keys | Each app extends with local `messages/` |
 | RTL | CSS logical properties (`margin-inline-start`) + `dir="rtl"` on `<html>` |
 | Date/number | `Intl.DateTimeFormat` / `Intl.NumberFormat` with locale |
-| Currency | Configurable in settings (default: SAR) |
+| Currency | Configurable in settings (default: EGP) |
 | DB content | Bilingual columns: `nameAr`, `nameEn` |
 | API responses | Always return both `nameAr` and `nameEn`; client picks |
 

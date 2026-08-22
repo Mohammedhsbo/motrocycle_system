@@ -26,7 +26,7 @@ export default function StatusBar({ lang }: StatusBarProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const timeStr = currentTime.toLocaleTimeString(isRtl ? 'ar-SA' : 'en-US', {
+  const timeStr = currentTime.toLocaleTimeString(isRtl ? 'ar-EG' : 'en-EG', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

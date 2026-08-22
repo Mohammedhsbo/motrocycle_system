@@ -156,7 +156,7 @@ export default function MotorcycleSearchPOS({
                   {moto.year} • {moto.color}
                 </div>
                 <div className="mt-2 text-lg font-bold text-blue-600">
-                  {moto.price.toLocaleString()} {isRtl ? 'ريال' : 'SAR'}
+                  {moto.price.toLocaleString()} {isRtl ? 'ريال' : 'EGP'}
                 </div>
                 <div
                   className={`inline-block px-2 py-1 text-xs rounded ${

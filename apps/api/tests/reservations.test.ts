@@ -150,7 +150,7 @@ describe("Reservations API - Integration Tests", () => {
       expect(motorcycle?.status).toBe("reserved");
     });
 
-    it("should enforce minimum deposit (10% or 1000 SAR)", async () => {
+    it("should enforce minimum deposit (10% or 1000 EGP)", async () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations")
         .set("Authorization", `Bearer ${staffToken}`)

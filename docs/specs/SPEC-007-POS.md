@@ -177,8 +177,8 @@ Steps 1-4: Same as Direct Sale
 ## Business Rules
 
 ### BR-POS01: Discount Authorization
-- **Basic Discount:** Cashier can apply up to 5% or 2000 SAR (configurable)
-- **Manager Discount:** Branch manager can apply up to 15% or 10000 SAR
+- **Basic Discount:** Cashier can apply up to 5% or 2000 EGP (configurable)
+- **Manager Discount:** Branch manager can apply up to 15% or 10000 EGP
 - **Large Discount:** Requires super_admin approval (above manager limits)
 - **Audit Requirement:** All discounts logged with reason
 
@@ -788,9 +788,9 @@ MOTORCYCLE:
   2026 Honda CBR600RR
   Red
 
-PRICE:        45,000.00 SAR
-DISCOUNT:      2,000.00 SAR
-TOTAL:        43,000.00 SAR
+PRICE:        45,000.00 EGP
+DISCOUNT:      2,000.00 EGP
+TOTAL:        43,000.00 EGP
 
 STATUS: CONFIRMED
 PAYMENT: Pending
@@ -816,9 +816,9 @@ MOTORCYCLE:
   2026 Honda CBR600RR - Red
   VIN: 1HD1BWV17PC123456
 
-TOTAL PRICE:    45,000.00 SAR
-DEPOSIT PAID:    5,000.00 SAR
-REMAINING:      40,000.00 SAR
+TOTAL PRICE:    45,000.00 EGP
+DEPOSIT PAID:    5,000.00 EGP
+REMAINING:      40,000.00 EGP
 
 STATUS: ACTIVE
 

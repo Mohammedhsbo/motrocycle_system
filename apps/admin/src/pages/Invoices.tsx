@@ -94,9 +94,9 @@ export default function Invoices({ lang }: Props) {
   const rows = data?.items ?? [];
 
   const formatCurrency = (amount: number) =>
-    amount.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    amount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-EG', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'EGP',
       maximumFractionDigits: 0,
     });
 
@@ -247,7 +247,7 @@ export default function Invoices({ lang }: Props) {
                   </td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     {new Date(inv.createdAt).toLocaleDateString(
-                      lang === 'ar' ? 'ar-SA' : 'en-US'
+                      lang === 'ar' ? 'ar-EG' : 'en-EG'
                     )}
                   </td>
                   <td>
