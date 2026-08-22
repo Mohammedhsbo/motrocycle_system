@@ -30,11 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userData = await apiClient.get<CurrentUserResponse>("/auth/me");
       
-      // Only allow customers (role name = "customer")
       if (userData.role.name === "customer") {
         setUser(userData);
       } else {
-        // Not a customer, clear auth
         setAuthToken(null);
         setUser(null);
       }
@@ -53,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (credentials: LoginRequest) => {
     const response = await apiClient.post<LoginResponse>("/auth/login", credentials);
     
-    // Only allow customers
     if (response.user.role.name !== "customer") {
       throw new Error("Invalid user type");
     }
