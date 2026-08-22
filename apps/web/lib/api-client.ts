@@ -3,6 +3,10 @@ function normalizeApiBase(url: string) {
   return normalized.endsWith("/api/v1") ? normalized : `${normalized}/api/v1`;
 }
 
+function normalizeEndpoint(endpoint: string) {
+  return endpoint.replace(/^\/+/, "");
+}
+
 const API_BASE = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1");
 
 export interface ApiResponse<T> {
@@ -39,21 +43,47 @@ async function fetchApi<T>(
 ): Promise<ApiResponse<T>> {
   const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
-  };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  const headers = new Headers(options.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  } else {
+    headers.delete("Authorization");
+  }
+
+  const response = await fetch(`${API_BASE}/${normalizeEndpoint(endpoint)}`, {
     ...options,
     headers,
   });
 
-  const data: ApiResponse<T> = await response.json();
+  const responseText = await response.text();
+  let parsedData: unknown;
+
+  if (responseText) {
+    try {
+      parsedData = JSON.parse(responseText) as unknown;
+    } catch {
+      throw new ApiError(
+        "INVALID_RESPONSE",
+        response.ok
+          ? "The server returned an invalid response"
+          : response.statusText || "The server returned an invalid response",
+        response.status,
+      );
+    }
+  }
+
+  if (parsedData === undefined) {
+    if (!response.ok) {
+      throw new ApiError("HTTP_ERROR", response.statusText || "An error occurred", response.status);
+    }
+    return { success: true };
+  }
+
+  const data = parsedData as ApiResponse<T>;
 
   if (!response.ok || !data.success) {
     throw new ApiError(
@@ -78,14 +108,14 @@ export const apiClient = {
     fetchApi<T>(endpoint, {
       ...options,
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined || typeof body === "string" ? body : JSON.stringify(body),
     }).then((response) => response.data as T),
 
   patch: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
     fetchApi<T>(endpoint, {
       ...options,
       method: "PATCH",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined || typeof body === "string" ? body : JSON.stringify(body),
     }).then((response) => response.data as T),
 
   delete: <T>(endpoint: string, options?: RequestInit) =>

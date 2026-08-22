@@ -99,7 +99,6 @@ export default function AccountPage() {
           { label: "Reservations", href: "/account/reservations", icon: Calendar, color: "text-blue-600 bg-blue-50" },
           { label: "Orders", href: "/account/orders", icon: ShoppingBag, color: "text-emerald-600 bg-emerald-50" },
           { label: "Financing", href: "/account/financing", icon: CreditCard, color: "text-purple-600 bg-purple-50" },
-          { label: `Notifications${unreadCount > 0 ? ` (${unreadCount})` : ""}`, href: "/account/reservations", icon: Bell, color: "text-amber-600 bg-amber-50" },
         ].map(({ label, href, icon: Icon, color }) => (
           <Link key={href} href={href} className="group">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
