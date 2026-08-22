@@ -5,8 +5,10 @@ node_modules/
 !.env.example
 !.env.*.example
 dist/
+*.tsbuildinfo
 .next/
 .next-smoke*/
+.next-run/
 coverage/
 *.log
 backup-*.sql*

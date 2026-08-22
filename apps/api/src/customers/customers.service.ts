@@ -426,6 +426,7 @@ export class CustomersService {
 
     await this.audit.log({
       userId: actor.id,
+      isCustomerActor: actor.isCustomer,
       action: "customer.update",
       entityType: "customer",
       entityId: updated.id,
@@ -437,7 +438,12 @@ export class CustomersService {
     return this.toCustomerDetailResponse(updated, isCustomerRole);
   }
 
-  async changePassword(id: string, input: ChangeCustomerPasswordDto, actorId: string) {
+  async changePassword(
+    id: string,
+    input: ChangeCustomerPasswordDto,
+    actorId: string,
+    isCustomerActor = false,
+  ) {
     const customer = await this.prisma.customer.findUnique({ where: { id } });
 
     if (!customer) {
@@ -464,6 +470,7 @@ export class CustomersService {
 
     await this.audit.log({
       userId: actorId,
+      isCustomerActor,
       action: "customer.change_password",
       entityType: "customer",
       entityId: id,
@@ -577,6 +584,7 @@ export class CustomersService {
 
     await this.audit.log({
       userId: actorId,
+      isCustomerActor: actor.isCustomer,
       action: "address.create",
       entityType: "address",
       entityId: address.id,
@@ -684,6 +692,7 @@ export class CustomersService {
 
     await this.audit.log({
       userId: actorId,
+      isCustomerActor: actor.isCustomer,
       action: "address.update",
       entityType: "address",
       entityId: updated.id,
@@ -761,6 +770,7 @@ export class CustomersService {
 
     await this.audit.log({
       userId: actorId,
+      isCustomerActor: actor.isCustomer,
       action: "address.delete",
       entityType: "address",
       entityId: addressId,

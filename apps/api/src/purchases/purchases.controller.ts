@@ -12,6 +12,8 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PurchasesService } from './purchases.service.js';
 import {
@@ -89,6 +91,7 @@ export class PurchasesController {
   }
 
   @Post(':id/receive')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.PURCHASE, Action.UPDATE)
   async receive(
     @Param('id') id: string,
@@ -101,6 +104,7 @@ export class PurchasesController {
   }
 
   @Post(':id/order')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.PURCHASE, Action.UPDATE)
   async order(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;
@@ -109,6 +113,7 @@ export class PurchasesController {
   }
 
   @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.PURCHASE, Action.DELETE)
   async cancel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;

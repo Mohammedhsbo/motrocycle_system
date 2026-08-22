@@ -72,6 +72,7 @@ describe('FinancingContractsService', () => {
       id: 'order-123',
       customerId: 'customer-123',
       branchId: 'branch-123',
+      status: 'confirmed',
       customer: { id: 'customer-123', firstName: 'John', lastName: 'Doe' },
       branch: { id: 'branch-123', name: 'Riyadh', code: 'RYD' },
     };
@@ -85,8 +86,8 @@ describe('FinancingContractsService', () => {
 
     const mockBranch = {
       id: 'branch-123',
-      name: 'Riyadh',
-      code: 'RYD',
+      nameAr: 'الرياض',
+      nameEn: 'Riyadh',
     };
 
     it('should create a financing contract successfully', async () => {

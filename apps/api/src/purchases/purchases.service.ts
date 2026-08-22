@@ -13,6 +13,21 @@ import { CreatePurchaseRequest, UpdatePurchaseRequest, ReceivePurchaseRequest } 
 import { generatePurchaseNumber, withUniqueRetry } from '../utils/number-generator.js';
 import { SocketGateway } from '../socket/index.js';
 
+async function createMotorcycleForVin<T>(vin: string, create: () => Promise<T>): Promise<T> {
+  try {
+    return await create();
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002' &&
+      String(error.meta?.target ?? '').includes('vin')
+    ) {
+      throw new ConflictException({ code: 'VIN_EXISTS', message: `VIN ${vin} already exists` });
+    }
+    throw error;
+  }
+}
+
 @Injectable()
 export class PurchasesService {
   constructor(
@@ -308,7 +323,7 @@ export class PurchasesService {
     userBranchId: string | null,
     isSuperAdmin: boolean,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    return withUniqueRetry(() => this.prisma.$transaction(async (tx) => {
       // 1. Lock the purchase row with SELECT FOR UPDATE to prevent concurrent receives
       const lockResult = await tx.$queryRaw<{ id: string; status: string; branchId: string }[]>`
         SELECT id, status, "branchId" FROM "Purchase" WHERE id = ${id}::uuid FOR UPDATE
@@ -387,8 +402,10 @@ export class PurchasesService {
           throw new ConflictException({ code: 'VIN_EXISTS', message: `VIN ${vin} already exists` });
         }
 
-        // Create motorcycle with in_transit status as per spec
-        const motorcycle = await tx.motorcycle.create({
+        // Create motorcycle with in_transit status as per spec.
+        // The findUnique above cannot close the window entirely, so a lost race
+        // still has to come back as VIN_EXISTS rather than a raw P2002.
+        const motorcycle = await createMotorcycleForVin(vin, async () => tx.motorcycle.create({
           data: {
             vin,
             model: purchaseItem.model,
@@ -404,7 +421,7 @@ export class PurchasesService {
             brandId: await this.getDefaultBrandId(tx),
             categoryId: await this.getDefaultCategoryId(tx),
           },
-        });
+        }));
 
         // Link motorcycle to purchase item
         await tx.purchaseItem.update({
@@ -470,7 +487,9 @@ export class PurchasesService {
       };
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    });
+      maxWait: 10000,
+      timeout: 15000,
+    }));
   }
 
   /**

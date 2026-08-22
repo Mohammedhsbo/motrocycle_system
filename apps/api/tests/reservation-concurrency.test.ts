@@ -87,7 +87,15 @@ describe("Reservations Concurrency Tests", () => {
   });
 
   beforeEach(async () => {
-    // Clean up reservations and motorcycles before each test
+    // Clean up before each test. Converting a reservation leaves an order and
+    // an invoice pointing at the motorcycle, so those have to go first or the
+    // motorcycle delete trips a foreign key.
+    await prisma.paymentAllocation.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.invoiceItem.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.reservation.deleteMany();
     await prisma.motorcycle.deleteMany();
 
@@ -98,6 +106,7 @@ describe("Reservations Concurrency Tests", () => {
         model: "YZF-R1",
         year: 2024,
         price: 50000,
+        costPrice: 50000,
         status: "available",
         brandId: brandId,
         categoryId: categoryId,
@@ -180,7 +189,7 @@ describe("Reservations Concurrency Tests", () => {
         });
 
       expect(response2.status).toBe(409);
-      expect(response2.body.code).toBe("MOTORCYCLE_NOT_AVAILABLE");
+      expect(response2.body.error.code).toBe("MOTORCYCLE_NOT_AVAILABLE");
 
       // Verify only 1 reservation exists
       const reservations = await prisma.reservation.count({
@@ -423,6 +432,7 @@ describe("Reservations Concurrency Tests", () => {
               model: `Model-${i}`,
               year: 2024,
               price: 50000,
+              costPrice: 50000,
               status: "available",
               brandId: brandId,
               categoryId: categoryId,

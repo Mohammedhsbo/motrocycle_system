@@ -45,7 +45,19 @@ describe('Number Generator Utilities', () => {
 
       const operation = vi.fn().mockRejectedValue(p2002Error);
 
-      await expect(withUniqueRetry(operation, 3)).rejects.toThrow('Failed to generate a unique sequence number after maximum retries');
+      await expect(withUniqueRetry(operation, 3)).rejects.toThrow(p2002Error);
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
+
+    it('should retry a serialization failure and rethrow it once retries run out', async () => {
+      const serializationError = new Prisma.PrismaClientKnownRequestError(
+        'Raw query failed',
+        { code: 'P2010', clientVersion: '6.0.0', meta: { code: '40001' } },
+      );
+
+      const operation = vi.fn().mockRejectedValue(serializationError);
+
+      await expect(withUniqueRetry(operation, 3)).rejects.toThrow(serializationError);
       expect(operation).toHaveBeenCalledTimes(3);
     });
 

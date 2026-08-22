@@ -18,12 +18,33 @@
  * 14. Background status processing
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 describe('TASK-016: Financing Integration Tests', () => {
+  // The RBAC checks below read roles straight out of the database. They used to
+  // rely on whatever a previous suite happened to leave behind, which any test
+  // that resets the database would wipe. Seed them here instead.
+  beforeAll(async () => {
+    for (const name of ['sales_staff', 'branch_admin']) {
+      const role = await prisma.role.upsert({
+        where: { name },
+        update: {},
+        create: { name, description: `${name} (financing integration fixture)` },
+      });
+
+      await prisma.rolePermission.createMany({
+        data: [
+          { roleId: role.id, resource: 'installment', action: 'read' },
+          { roleId: role.id, resource: 'installment', action: 'update' },
+        ],
+        skipDuplicates: true,
+      });
+    }
+  });
+
   describe('Unit Tests: Calculations', () => {
     it('should generate correct installment schedule with proper rounding', () => {
       // Test installment amount calculation

@@ -30,113 +30,130 @@ let testMotorcycleId: string;
 let testUserId: string;
 let testOrderId: string;
 
+beforeAll(async () => {
+  // Create test data. Everything this suite needs is created here rather than
+  // borrowed from whatever a previous suite happened to leave behind.
+  const branch = await prisma.branch.create({
+    data: {
+      nameAr: 'فرع اختبار الخطابات',
+      nameEn: 'Letters Test Branch',
+      phone: '+966555000000',
+    },
+  });
+  testBranchId = branch.id;
+
+  // Create test customer
+  const customer = await prisma.customer.create({
+    data: {
+      name: 'Letter Test Customer',
+      phone: '+966555000100',
+      email: 'lettertest@example.com',
+    },
+  });
+  testCustomerId = customer.id;
+
+  // Create test motorcycle
+  const brand = await prisma.brand.create({
+    data: { nameAr: 'ماركة الخطابات', nameEn: 'Letters Test Brand' },
+  });
+  const category = await prisma.category.create({
+    data: { nameAr: 'فئة الخطابات', nameEn: 'Letters Test Category' },
+  });
+  
+  const motorcycle = await prisma.motorcycle.create({
+    data: {
+      vin: 'LETTER-TEST-VIN-001',
+      model: 'Test Model',
+      year: 2026,
+      color: 'Black',
+      price: 25000,
+      costPrice: 20000,
+      branchId: testBranchId,
+      brandId: brand.id,
+      categoryId: category.id,
+    },
+  });
+  testMotorcycleId = motorcycle.id;
+
+  // Create test user
+  const role = await prisma.role.create({
+    data: { name: 'letters_test_role', description: 'Letters suite fixture' },
+  });
+  const user = await prisma.user.create({
+    data: {
+      name: 'Letter Test User',
+      email: 'letteruser@example.com',
+      passwordHash: 'test',
+      roleId: role.id,
+      branchId: testBranchId,
+    },
+  });
+  testUserId = user.id;
+
+  // Create test order
+  const order = await prisma.order.create({
+    data: {
+      orderNumber: 'ORD-LETTER-TEST-001',
+      customerId: testCustomerId,
+      branchId: testBranchId,
+      userId: testUserId,
+      totalAmount: 25000,
+      netAmount: 25000,
+    },
+  });
+  testOrderId = order.id;
+});
+
+afterAll(async () => {
+  // Cleanup in reverse order of dependencies
+  await prisma.letterHistory.deleteMany({
+    where: {
+      letter: {
+        branchId: testBranchId,
+      },
+    },
+  });
+
+  await prisma.letterDocument.deleteMany({
+    where: {
+      letter: {
+        branchId: testBranchId,
+      },
+    },
+  });
+
+  await prisma.letter.deleteMany({
+    where: {
+      branchId: testBranchId,
+    },
+  });
+
+  await prisma.order.deleteMany({
+    where: { id: testOrderId },
+  });
+
+  await prisma.motorcycle.deleteMany({
+    where: { id: testMotorcycleId },
+  });
+
+  await prisma.customer.deleteMany({
+    where: { id: testCustomerId },
+  });
+
+  await prisma.user.deleteMany({
+    where: { id: testUserId },
+  });
+
+  await prisma.motorcycle.deleteMany({ where: { branchId: testBranchId } });
+  await prisma.brand.deleteMany({ where: { nameEn: 'Letters Test Brand' } });
+  await prisma.category.deleteMany({ where: { nameEn: 'Letters Test Category' } });
+  await prisma.role.deleteMany({ where: { name: 'letters_test_role' } });
+  await prisma.branch.deleteMany({ where: { id: testBranchId } });
+
+  await prisma.$disconnect();
+});
+
 describe('TASK-001: Database Schema', () => {
-  beforeAll(async () => {
-    // Create test data
-    const branch = await prisma.branch.findFirst();
-    if (!branch) {
-      throw new Error('No branch found for testing');
-    }
-    testBranchId = branch.id;
-
-    // Create test customer
-    const customer = await prisma.customer.create({
-      data: {
-        name: 'Letter Test Customer',
-        phone: '+966555000100',
-        email: 'lettertest@example.com',
-      },
-    });
-    testCustomerId = customer.id;
-
-    // Create test motorcycle
-    const brand = await prisma.brand.findFirst();
-    const category = await prisma.category.findFirst();
-    
-    const motorcycle = await prisma.motorcycle.create({
-      data: {
-        vin: 'LETTER-TEST-VIN-001',
-        model: 'Test Model',
-        year: 2026,
-        color: 'Black',
-        price: 25000,
-        costPrice: 20000,
-        branchId: testBranchId,
-        brandId: brand!.id,
-        categoryId: category!.id,
-      },
-    });
-    testMotorcycleId = motorcycle.id;
-
-    // Create test user
-    const role = await prisma.role.findFirst();
-    const user = await prisma.user.create({
-      data: {
-        name: 'Letter Test User',
-        email: 'letteruser@example.com',
-        passwordHash: 'test',
-        roleId: role!.id,
-        branchId: testBranchId,
-      },
-    });
-    testUserId = user.id;
-
-    // Create test order
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: 'ORD-LETTER-TEST-001',
-        customerId: testCustomerId,
-        branchId: testBranchId,
-        userId: testUserId,
-        totalAmount: 25000,
-        netAmount: 25000,
-      },
-    });
-    testOrderId = order.id;
-  });
-
-  afterAll(async () => {
-    // Cleanup in reverse order of dependencies
-    await prisma.letterHistory.deleteMany({
-      where: {
-        letter: {
-          branchId: testBranchId,
-        },
-      },
-    });
-
-    await prisma.letterDocument.deleteMany({
-      where: {
-        letter: {
-          branchId: testBranchId,
-        },
-      },
-    });
-
-    await prisma.letter.deleteMany({
-      where: {
-        branchId: testBranchId,
-      },
-    });
-
-    await prisma.order.deleteMany({
-      where: { id: testOrderId },
-    });
-
-    await prisma.motorcycle.deleteMany({
-      where: { id: testMotorcycleId },
-    });
-
-    await prisma.customer.deleteMany({
-      where: { id: testCustomerId },
-    });
-
-    await prisma.user.deleteMany({
-      where: { id: testUserId },
-    });
-
-    await prisma.$disconnect();
-  });
 
   it('should have Letter table with all required fields', async () => {
     const tableExists = await prisma.$queryRaw`

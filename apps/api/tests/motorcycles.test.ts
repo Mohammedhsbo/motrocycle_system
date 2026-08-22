@@ -48,7 +48,7 @@ describe("Motorcycles API", () => {
       .post("/api/v1/motorcycles")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
-        vin: "VIN-12345",
+        vin: "VN-12345",
         model: "YZF-R1",
         year: 2024,
         price: 15000,
@@ -61,7 +61,7 @@ describe("Motorcycles API", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.vin).toBe("VIN-12345");
+    expect(res.body.data.vin).toBe("VN-12345");
     motorcycleId = res.body.data.id;
   });
 
@@ -70,7 +70,7 @@ describe("Motorcycles API", () => {
       .post("/api/v1/motorcycles")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
-        vin: "VIN-12345", // Same VIN
+        vin: "VN-12345", // Same VIN
         model: "YZF-R6",
         year: 2024,
         price: 13000,
@@ -170,16 +170,35 @@ describe("Motorcycles API", () => {
   });
 
   it("should delete a motorcycle", async () => {
+    // The shared fixture has been driven to "sold" by the transition tests
+    // above, and a sold motorcycle is deliberately not deletable.
+    const created = await request(app.getHttpServer())
+      .post("/api/v1/motorcycles")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        vin: "VN-DELETE-001",
+        model: "YZF-R3",
+        year: 2024,
+        price: 9000,
+        costPrice: 7000,
+        brandId,
+        categoryId,
+        branchId,
+        status: "available",
+      });
+    expect(created.status).toBe(201);
+    const deletableId = created.body.data.id;
+
     const res = await request(app.getHttpServer())
-      .delete(`/api/v1/motorcycles/${motorcycleId}`)
+      .delete(`/api/v1/motorcycles/${deletableId}`)
       .set("Authorization", `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    
+
     // Verify deletion
     const getRes = await request(app.getHttpServer())
-      .get(`/api/v1/motorcycles/${motorcycleId}`)
+      .get(`/api/v1/motorcycles/${deletableId}`)
       .set("Authorization", `Bearer ${adminToken}`);
     expect(getRes.status).toBe(404);
   });

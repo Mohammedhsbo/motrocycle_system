@@ -211,20 +211,25 @@ model Motorcycle {
 }
 
 model AuditLog {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String   @db.Uuid
-  action     String   @db.VarChar(50)
-  entityType String   @db.VarChar(50)
-  entityId   String   @db.Uuid
-  branchId   String?  @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // Exactly one of userId / customerId is set: staff act as User rows,
+  // e-commerce customers as Customer rows, and the two id spaces are disjoint.
+  userId     String?   @db.Uuid
+  customerId String?   @db.Uuid
+  action     String    @db.VarChar(50)
+  entityType String    @db.VarChar(50)
+  entityId   String    @db.Uuid
+  branchId   String?   @db.Uuid
   before     Json?
   after      Json?
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  branch     Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([userId])
+  @@index([customerId])
   @@index([createdAt])
   @@index([branchId])
 }
@@ -338,6 +343,7 @@ model Customer {
   financingContracts FinancingContract[]
   letters            Letter[]
   communicationLogs  CommunicationLog[]
+  auditLogs          AuditLog[]
 
   @@index([phone])
   @@index([email])
@@ -384,7 +390,7 @@ model Order {
   items            OrderItem[]
   reservation      Reservation?
   invoice          Invoice?
-  financingContract FinancingContract?
+  financingContracts FinancingContract[]
   letters          Letter[]
 
   @@index([orderNumber])
@@ -657,7 +663,7 @@ model FinancingContract {
   id                   String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contractNumber       String                   @unique @db.VarChar(50)
   customerId           String                   @db.Uuid
-  orderId              String                   @unique @db.Uuid
+  orderId              String                   @db.Uuid
   branchId             String                   @db.Uuid
   createdBy            String                   @db.Uuid
   approvedBy           String?                  @db.Uuid

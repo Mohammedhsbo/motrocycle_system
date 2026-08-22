@@ -4,10 +4,19 @@ import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS, getJwtSecret } fro
 
 export type TokenType = "access" | "refresh";
 
+/**
+ * Which table `sub` points at. Staff accounts live in `User`, e-commerce
+ * customers in `Customer`; the two id spaces are disjoint, so the token has to
+ * say which one it means. Tokens minted before this claim existed carry no
+ * `principal` and are read as "user", which is what they were.
+ */
+export type TokenPrincipal = "user" | "customer";
+
 export interface AuthTokenPayload {
   sub: string;
   jti: string;
   type: TokenType;
+  principal: TokenPrincipal;
 }
 
 export interface GeneratedToken {
@@ -16,13 +25,19 @@ export interface GeneratedToken {
   expiresInSeconds: number;
 }
 
-function signToken(userId: string, type: TokenType, expiresInSeconds: number): GeneratedToken {
+function signToken(
+  subject: string,
+  type: TokenType,
+  expiresInSeconds: number,
+  principal: TokenPrincipal,
+): GeneratedToken {
   const tokenId = randomUUID();
   const token = jwt.sign(
     {
-      sub: userId,
+      sub: subject,
       jti: tokenId,
       type,
+      principal,
     },
     getJwtSecret(),
     { expiresIn: expiresInSeconds },
@@ -31,12 +46,12 @@ function signToken(userId: string, type: TokenType, expiresInSeconds: number): G
   return { token, tokenId, expiresInSeconds };
 }
 
-export function generateAccessToken(userId: string) {
-  return signToken(userId, "access", ACCESS_TOKEN_TTL_SECONDS);
+export function generateAccessToken(subject: string, principal: TokenPrincipal = "user") {
+  return signToken(subject, "access", ACCESS_TOKEN_TTL_SECONDS, principal);
 }
 
-export function generateRefreshToken(userId: string) {
-  return signToken(userId, "refresh", REFRESH_TOKEN_TTL_SECONDS);
+export function generateRefreshToken(subject: string, principal: TokenPrincipal = "user") {
+  return signToken(subject, "refresh", REFRESH_TOKEN_TTL_SECONDS, principal);
 }
 
 export function verifyToken(token: string, expectedType: TokenType): AuthTokenPayload {
@@ -46,10 +61,15 @@ export function verifyToken(token: string, expectedType: TokenType): AuthTokenPa
     throw new Error("Invalid token payload");
   }
 
+  if (decoded.principal !== undefined && decoded.principal !== "user" && decoded.principal !== "customer") {
+    throw new Error("Invalid token payload");
+  }
+
   return {
     sub: decoded.sub,
     jti: decoded.jti,
     type: decoded.type,
+    principal: decoded.principal ?? "user",
   };
 }
 

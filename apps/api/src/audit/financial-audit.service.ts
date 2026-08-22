@@ -54,7 +54,8 @@ export enum FinancialAuditAction {
 }
 
 interface FinancialAuditEntry {
-  userId: string; // "system" for automated operations
+  /** Null for automated operations that have no human actor. */
+  userId: string | null;
   action: FinancialAuditAction | string;
   entityType: string;
   entityId: string;
@@ -290,7 +291,7 @@ export class FinancialAuditService {
     error?: string;
   }): Promise<void> {
     await this.log({
-      userId: "system",
+      userId: null,
       action:
         params.result === "processed"
           ? FinancialAuditAction.WEBHOOK_PROCESSED
@@ -348,7 +349,7 @@ export class FinancialAuditService {
     difference?: Record<string, number>;
   }): Promise<void> {
     await this.log({
-      userId: "system",
+      userId: null,
       action: params.passed
         ? FinancialAuditAction.BALANCE_INTEGRITY_CHECK
         : FinancialAuditAction.BALANCE_INTEGRITY_FAILURE,

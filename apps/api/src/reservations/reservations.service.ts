@@ -883,97 +883,99 @@ export class ReservationsService {
     isSuperAdmin: boolean,
     isCustomer: boolean = false,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
-        // Lock reservation
-        const reservationRaw = await tx.$queryRaw<Array<any>>`
-          SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId"
-          FROM "Reservation" r
-          WHERE r.id = ${id}::uuid
-          FOR UPDATE
-        `;
+    return withUniqueRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          // Lock reservation
+          const reservationRaw = await tx.$queryRaw<Array<any>>`
+            SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId"
+            FROM "Reservation" r
+            WHERE r.id = ${id}::uuid
+            FOR UPDATE
+          `;
 
-        if (!reservationRaw || reservationRaw.length === 0) {
-          throw new NotFoundException({
-            code: 'RESERVATION_NOT_FOUND',
-            message: 'Reservation not found',
+          if (!reservationRaw || reservationRaw.length === 0) {
+            throw new NotFoundException({
+              code: 'RESERVATION_NOT_FOUND',
+              message: 'Reservation not found',
+            });
+          }
+
+          const reservation = reservationRaw[0];
+
+          // Authorization check
+          if (isCustomer && reservation.customerId !== userId) {
+            throw new ForbiddenException({
+              code: 'FORBIDDEN',
+              message: 'You can only cancel your own reservations',
+            });
+          }
+
+          if (!isCustomer && !isSuperAdmin && reservation.branchId !== userBranchId) {
+            throw new ForbiddenException({
+              code: 'BRANCH_SCOPE_VIOLATION',
+              message: 'You can only cancel reservations from your own branch',
+            });
+          }
+
+          // Can only cancel active reservations
+          if (reservation.status !== 'active') {
+            throw new ConflictException({
+              code: 'RESERVATION_NOT_ACTIVE',
+              message: `Cannot cancel ${reservation.status} reservation`,
+            });
+          }
+
+          // Update reservation status
+          await tx.reservation.update({
+            where: { id },
+            data: { status: 'cancelled' },
           });
-        }
 
-        const reservation = reservationRaw[0];
-
-        // Authorization check
-        if (isCustomer && reservation.customerId !== userId) {
-          throw new ForbiddenException({
-            code: 'FORBIDDEN',
-            message: 'You can only cancel your own reservations',
+          // Update motorcycle to available
+          await tx.motorcycle.update({
+            where: { id: reservation.motorcycleId },
+            data: { status: 'available' },
           });
-        }
 
-        if (!isCustomer && !isSuperAdmin && reservation.branchId !== userBranchId) {
-          throw new ForbiddenException({
-            code: 'BRANCH_SCOPE_VIOLATION',
-            message: 'You can only cancel reservations from your own branch',
+          // Audit log
+          await this.audit.log({
+            userId,
+            action: 'reservation:cancelled',
+            entityType: 'reservation',
+            entityId: id,
+            branchId: reservation.branchId,
+            before: {
+              status: 'active',
+            },
+            after: {
+              status: 'cancelled',
+              reason: data.reason,
+            },
           });
-        }
 
-        // Can only cancel active reservations
-        if (reservation.status !== 'active') {
-          throw new ConflictException({
-            code: 'RESERVATION_NOT_ACTIVE',
-            message: `Cannot cancel ${reservation.status} reservation`,
-          });
-        }
+          // Emit WebSocket event
+          if (
+            this.socketGateway &&
+            typeof (this.socketGateway as any).server?.emit === 'function'
+          ) {
+            (this.socketGateway as any).server.emit('reservation:cancelled', {
+              reservationId: id,
+              reservationNumber: reservation.reservationNumber,
+              motorcycleId: reservation.motorcycleId,
+              customerId: reservation.customerId,
+              reason: data.reason,
+            });
+          }
 
-        // Update reservation status
-        await tx.reservation.update({
-          where: { id },
-          data: { status: 'cancelled' },
-        });
-
-        // Update motorcycle to available
-        await tx.motorcycle.update({
-          where: { id: reservation.motorcycleId },
-          data: { status: 'available' },
-        });
-
-        // Audit log
-        await this.audit.log({
-          userId,
-          action: 'reservation:cancelled',
-          entityType: 'reservation',
-          entityId: id,
-          branchId: reservation.branchId,
-          before: {
-            status: 'active',
-          },
-          after: {
-            status: 'cancelled',
-            reason: data.reason,
-          },
-        });
-
-        // Emit WebSocket event
-        if (
-          this.socketGateway &&
-          typeof (this.socketGateway as any).server?.emit === 'function'
-        ) {
-          (this.socketGateway as any).server.emit('reservation:cancelled', {
-            reservationId: id,
-            reservationNumber: reservation.reservationNumber,
-            motorcycleId: reservation.motorcycleId,
-            customerId: reservation.customerId,
-            reason: data.reason,
-          });
-        }
-
-        return { success: true };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        maxWait: 5000,
-        timeout: 10000,
-      },
+          return { success: true };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 5000,
+          timeout: 10000,
+        },
+      )
     );
   }
 
@@ -1049,7 +1051,7 @@ export class ReservationsService {
 
             // Audit log (using system user)
             await this.audit.log({
-              userId: 'system',
+              userId: null,
               action: 'reservation:expired',
               entityType: 'reservation',
               entityId: reservation.id,
@@ -1110,155 +1112,157 @@ export class ReservationsService {
     userBranchId: string | null,
     isSuperAdmin: boolean,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
-        // Lock reservation
-        const resRaw = await tx.$queryRaw<Array<any>>`
-          SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId", r."totalPrice", r."paidAmount", r."convertedOrderId", r."expiresAt"
-          FROM "Reservation" r
-          WHERE r.id = ${id}::uuid
-          FOR UPDATE
-        `;
+    return withUniqueRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          // Lock reservation
+          const resRaw = await tx.$queryRaw<Array<any>>`
+            SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId", r."totalPrice", r."paidAmount", r."convertedOrderId", r."expiresAt"
+            FROM "Reservation" r
+            WHERE r.id = ${id}::uuid
+            FOR UPDATE
+          `;
 
-        if (!resRaw || resRaw.length === 0) {
-          throw new NotFoundException({
-            code: 'RESERVATION_NOT_FOUND',
-            message: 'Reservation not found',
-          });
-        }
-
-        const reservation = resRaw[0];
-
-        // Authorization check
-        if (!isSuperAdmin && reservation.branchId !== userBranchId) {
-          throw new ForbiddenException({
-            code: 'BRANCH_SCOPE_VIOLATION',
-            message: 'You can only convert reservations from your own branch',
-          });
-        }
-
-        // Validate state
-        if (reservation.status !== 'active') {
-          throw new ConflictException({
-            code: 'RESERVATION_NOT_ACTIVE',
-            message: `Cannot convert ${reservation.status} reservation`,
-          });
-        }
-
-        if (reservation.convertedOrderId) {
-          throw new ConflictException({
-            code: 'RESERVATION_ALREADY_CONVERTED',
-            message: 'Reservation has already been converted to an order',
-          });
-        }
-
-        if (reservation.expiresAt && reservation.expiresAt < new Date()) {
-          throw new ConflictException({
-            code: 'RESERVATION_EXPIRED',
-            message: 'Reservation has expired and cannot be converted',
-          });
-        }
-
-        // Lock and validate motorcycle
-        const motorcycleRaw = await tx.$queryRaw<Array<any>>`
-          SELECT m.id, m.status 
-          FROM "Motorcycle" m 
-          WHERE m.id = ${reservation.motorcycleId}::uuid
-          FOR UPDATE
-        `;
-
-        if (!motorcycleRaw || motorcycleRaw.length === 0) {
-          throw new NotFoundException({
-            code: 'MOTORCYCLE_NOT_FOUND',
-            message: 'Reserved motorcycle not found',
-          });
-        }
-
-        const motorcycle = motorcycleRaw[0];
-
-        if (motorcycle.status !== 'reserved') {
-          throw new ConflictException({
-            code: 'MOTORCYCLE_NOT_RESERVED',
-            message: `Motorcycle status is ${motorcycle.status}, expected reserved`,
-          });
-        }
-
-        // Create order using existing SPEC-005 service (passing the transaction)
-        const order = await this.ordersService.create(
-          {
-            customerId: reservation.customerId,
-            branchId: reservation.branchId,
-            motorcycleIds: [reservation.motorcycleId],
-            discount: 0,
-            notes: data.notes ?? `Converted from reservation ${reservation.reservationNumber}`,
-            isDraft: false, // create as confirmed
-          },
-          userId,
-          userBranchId,
-          isSuperAdmin,
-          false,
-          {
-            tx,
-            skipMotorcycleStatusCheck: true, // skip because it's 'reserved', not 'available'
-            priceOverrides: { [reservation.motorcycleId]: reservation.totalPrice }, // Preserve pricing snapshot
+          if (!resRaw || resRaw.length === 0) {
+            throw new NotFoundException({
+              code: 'RESERVATION_NOT_FOUND',
+              message: 'Reservation not found',
+            });
           }
-        );
 
-        // Update reservation to converted
-        await tx.reservation.update({
-          where: { id: reservation.id },
-          data: {
-            status: 'converted',
-            convertedOrderId: order.id,
-          },
-        });
+          const reservation = resRaw[0];
 
-        // Audit log
-        await this.audit.log({
-          userId,
-          action: 'reservation:converted',
-          entityType: 'reservation',
-          entityId: id,
-          branchId: reservation.branchId,
-          before: {
-            status: 'active',
-          },
-          after: {
-            status: 'converted',
-            convertedOrderId: order.id,
-          },
-        });
+          // Authorization check
+          if (!isSuperAdmin && reservation.branchId !== userBranchId) {
+            throw new ForbiddenException({
+              code: 'BRANCH_SCOPE_VIOLATION',
+              message: 'You can only convert reservations from your own branch',
+            });
+          }
 
-        // Emit WebSocket event
-        if (
-          this.socketGateway &&
-          typeof (this.socketGateway as any).server?.emit === 'function'
-        ) {
-          (this.socketGateway as any).server.emit('reservation:converted', {
-            reservationId: id,
-            reservationNumber: reservation.reservationNumber,
-            orderId: order.id,
-            orderNumber: order.orderNumber,
+          // Validate state
+          if (reservation.status !== 'active') {
+            throw new ConflictException({
+              code: 'RESERVATION_NOT_ACTIVE',
+              message: `Cannot convert ${reservation.status} reservation`,
+            });
+          }
+
+          if (reservation.convertedOrderId) {
+            throw new ConflictException({
+              code: 'RESERVATION_ALREADY_CONVERTED',
+              message: 'Reservation has already been converted to an order',
+            });
+          }
+
+          if (reservation.expiresAt && reservation.expiresAt < new Date()) {
+            throw new ConflictException({
+              code: 'RESERVATION_EXPIRED',
+              message: 'Reservation has expired and cannot be converted',
+            });
+          }
+
+          // Lock and validate motorcycle
+          const motorcycleRaw = await tx.$queryRaw<Array<any>>`
+            SELECT m.id, m.status 
+            FROM "Motorcycle" m 
+            WHERE m.id = ${reservation.motorcycleId}::uuid
+            FOR UPDATE
+          `;
+
+          if (!motorcycleRaw || motorcycleRaw.length === 0) {
+            throw new NotFoundException({
+              code: 'MOTORCYCLE_NOT_FOUND',
+              message: 'Reserved motorcycle not found',
+            });
+          }
+
+          const motorcycle = motorcycleRaw[0];
+
+          if (motorcycle.status !== 'reserved') {
+            throw new ConflictException({
+              code: 'MOTORCYCLE_NOT_RESERVED',
+              message: `Motorcycle status is ${motorcycle.status}, expected reserved`,
+            });
+          }
+
+          // Create order using existing SPEC-005 service (passing the transaction)
+          const order = await this.ordersService.create(
+            {
+              customerId: reservation.customerId,
+              branchId: reservation.branchId,
+              motorcycleIds: [reservation.motorcycleId],
+              discount: 0,
+              notes: data.notes ?? `Converted from reservation ${reservation.reservationNumber}`,
+              isDraft: false, // create as confirmed
+            },
+            userId,
+            userBranchId,
+            isSuperAdmin,
+            false,
+            {
+              tx,
+              skipMotorcycleStatusCheck: true, // skip because it's 'reserved', not 'available'
+              priceOverrides: { [reservation.motorcycleId]: reservation.totalPrice }, // Preserve pricing snapshot
+            }
+          );
+
+          // Update reservation to converted
+          await tx.reservation.update({
+            where: { id: reservation.id },
+            data: {
+              status: 'converted',
+              convertedOrderId: order.id,
+            },
           });
-        }
 
-        return {
-          id: reservation.id,
-          reservationNumber: reservation.reservationNumber,
-          status: 'converted',
-          order: {
-            id: order.id,
-            orderNumber: order.orderNumber,
-            status: order.status,
-            netAmount: order.netAmount,
-          },
-        };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        maxWait: 5000,
-        timeout: 10000,
-      }
+          // Audit log
+          await this.audit.log({
+            userId,
+            action: 'reservation:converted',
+            entityType: 'reservation',
+            entityId: id,
+            branchId: reservation.branchId,
+            before: {
+              status: 'active',
+            },
+            after: {
+              status: 'converted',
+              convertedOrderId: order.id,
+            },
+          });
+
+          // Emit WebSocket event
+          if (
+            this.socketGateway &&
+            typeof (this.socketGateway as any).server?.emit === 'function'
+          ) {
+            (this.socketGateway as any).server.emit('reservation:converted', {
+              reservationId: id,
+              reservationNumber: reservation.reservationNumber,
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+            });
+          }
+
+          return {
+            id: reservation.id,
+            reservationNumber: reservation.reservationNumber,
+            status: 'converted',
+            order: {
+              id: order.id,
+              orderNumber: order.orderNumber,
+              status: order.status,
+              netAmount: order.netAmount,
+            },
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 5000,
+          timeout: 10000,
+        }
+      )
     );
   }
 

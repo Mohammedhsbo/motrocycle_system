@@ -22,6 +22,32 @@ let testOrder2Id: string;
 let testContract1Id: string;
 let testContract2Id: string;
 
+let orderFixtureCounter = 0;
+let paymentFixtureCounter = 0;
+
+/** Payment.paymentReference and Payment.idempotencyKey are both unique columns. */
+function paymentFixtureRef() {
+  paymentFixtureCounter += 1;
+  return `PAY-FIN-FIXTURE-${paymentFixtureCounter.toString().padStart(4, '0')}`;
+}
+
+/** Creates a throwaway confirmed order so a fixture can hold its own active contract. */
+async function createOrderForFinancing(amount: number) {
+  orderFixtureCounter += 1;
+  const order = await prisma.order.create({
+    data: {
+      orderNumber: `ORD-FIN-FIXTURE-${orderFixtureCounter.toString().padStart(3, '0')}`,
+      customerId: testCustomer1Id,
+      branchId: testBranchId,
+      userId: testStaffUserId,
+      status: 'confirmed',
+      totalAmount: amount,
+      netAmount: amount,
+    },
+  });
+  return order.id;
+}
+
 describe('TASK-008 through TASK-011: Financing Features', () => {
   beforeAll(async () => {
     // Create test branch
@@ -56,21 +82,28 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
     });
     testCustomer2Id = customer2.id;
 
-    // Create test users
-    const staffRole = await prisma.role.findUnique({
+    // Create test users. These roles come from the production seed, which a
+    // test run does not necessarily have; create them if they are missing
+    // rather than dereferencing null.
+    const staffRole = await prisma.role.upsert({
       where: { name: 'sales_staff' },
+      update: {},
+      create: { name: 'sales_staff', description: 'sales_staff (financing fixture)' },
     });
 
-    const adminRole = await prisma.role.findUnique({
+    const adminRole = await prisma.role.upsert({
       where: { name: 'branch_admin' },
+      update: {},
+      create: { name: 'branch_admin', description: 'branch_admin (financing fixture)' },
     });
 
     const staffUser = await prisma.user.create({
       data: {
         name: 'Test Staff',
         email: 'staff@test.com',
+        passwordHash: 'test-fixture-not-used',
         phone: '0533333333',
-        roleId: staffRole!.id,
+        roleId: staffRole.id,
         branchId: testBranchId,
         isActive: true,
       },
@@ -81,8 +114,9 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
       data: {
         name: 'Test Admin',
         email: 'admin@test.com',
+        passwordHash: 'test-fixture-not-used',
         phone: '0544444444',
-        roleId: adminRole!.id,
+        roleId: adminRole.id,
         branchId: testBranchId,
         isActive: true,
       },
@@ -95,8 +129,10 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         orderNumber: 'ORD-TEST-001',
         customerId: testCustomer1Id,
         branchId: testBranchId,
+        userId: testStaffUserId,
         status: 'confirmed',
         totalAmount: 50000,
+        netAmount: 50000,
         notes: 'Test order for financing',
       },
     });
@@ -107,8 +143,10 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         orderNumber: 'ORD-TEST-002',
         customerId: testCustomer1Id,
         branchId: testBranchId,
+        userId: testStaffUserId,
         status: 'confirmed',
         totalAmount: 30000,
+        netAmount: 30000,
         notes: 'Test order 2 for financing',
       },
     });
@@ -276,7 +314,7 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
           data: {
             contractId: contract.id,
             installmentNumber: i,
-            dueDate: new Date(`2026-${8 + i}-01`),
+            dueDate: new Date(Date.UTC(2026, 7 + i, 1)),
             amount: 2500,
             paidAmount: 0,
             status: 'upcoming',
@@ -414,7 +452,7 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         data: {
           contractNumber: 'FIN-SETTLE-001',
           customerId: testCustomer1Id,
-          orderId: testOrder1Id, // Reuse order 1
+          orderId: await createOrderForFinancing(24000),
           branchId: testBranchId,
           createdBy: testStaffUserId,
           totalAmount: 24000,
@@ -475,15 +513,16 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         // Create settlement payment
         const payment = await tx.payment.create({
           data: {
+            paymentReference: `PAY-SETTLE-${settlementTestContractId.slice(0, 8)}`,
+            idempotencyKey: `settle-${settlementTestContractId}`,
             customerId: testCustomer1Id,
             branchId: testBranchId,
+            userId: testStaffUserId,
             amount: remainingBalance,
             method: 'cash',
             notes: 'Early settlement test',
             status: 'completed',
-            receivedBy: testStaffUserId,
-            receivedAt: new Date(),
-            invoiceId: settlementTestContractId, // Link to contract
+            confirmedAt: new Date(),
           },
         });
 
@@ -564,7 +603,7 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         data: {
           contractNumber: 'FIN-CONC-001',
           customerId: testCustomer1Id,
-          orderId: testOrder1Id,
+          orderId: await createOrderForFinancing(12000),
           branchId: testBranchId,
           createdBy: testStaffUserId,
           totalAmount: 12000,
@@ -588,6 +627,17 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
           amount: 5000,
           paidAmount: 0,
           status: 'due',
+        },
+      });
+
+      await prisma.installment.create({
+        data: {
+          contractId: contract.id,
+          installmentNumber: 2,
+          dueDate: new Date('2026-10-15'),
+          amount: 5000,
+          paidAmount: 0,
+          status: 'upcoming',
         },
       });
 
@@ -639,14 +689,16 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
       await prisma.$transaction(async (tx) => {
         const payment = await tx.payment.create({
           data: {
+            paymentReference: paymentFixtureRef(),
+            idempotencyKey: paymentFixtureRef(),
             customerId: testCustomer1Id,
             branchId: testBranchId,
             amount: 2500,
             method: 'cash',
             notes: 'Partial payment',
             status: 'completed',
-            receivedBy: testStaffUserId,
-            receivedAt: new Date(),
+            userId: testStaffUserId,
+            confirmedAt: new Date(),
           },
         });
 
@@ -701,14 +753,16 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
 
         const payment = await tx.payment.create({
           data: {
+            paymentReference: paymentFixtureRef(),
+            idempotencyKey: paymentFixtureRef(),
             customerId: testCustomer1Id,
             branchId: testBranchId,
             amount: remaining,
             method: 'cash',
             notes: 'Complete first installment',
             status: 'completed',
-            receivedBy: testStaffUserId,
-            receivedAt: new Date(),
+            userId: testStaffUserId,
+            confirmedAt: new Date(),
           },
         });
 
@@ -756,7 +810,7 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         data: {
           contractNumber: 'FIN-EDGE-001',
           customerId: testCustomer1Id,
-          orderId: testOrder1Id,
+          orderId: await createOrderForFinancing(6000),
           branchId: testBranchId,
           createdBy: testStaffUserId,
           totalAmount: 6000,
@@ -795,7 +849,7 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         data: {
           contractNumber: 'FIN-PARTIAL-001',
           customerId: testCustomer1Id,
-          orderId: testOrder1Id,
+          orderId: await createOrderForFinancing(11000),
           branchId: testBranchId,
           createdBy: testStaffUserId,
           totalAmount: 11000,
@@ -828,14 +882,16 @@ describe('TASK-008 through TASK-011: Financing Features', () => {
         await prisma.$transaction(async (tx) => {
           const payment = await tx.payment.create({
             data: {
+              paymentReference: paymentFixtureRef(),
+              idempotencyKey: paymentFixtureRef(),
               customerId: testCustomer1Id,
               branchId: testBranchId,
+              userId: testStaffUserId,
               amount,
               method: 'cash',
               notes: `Partial payment ${amount}`,
               status: 'completed',
-              receivedBy: testStaffUserId,
-              receivedAt: new Date(),
+              confirmedAt: new Date(),
             },
           });
 

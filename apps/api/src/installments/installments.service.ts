@@ -413,7 +413,7 @@ export class InstallmentsService {
     // Audit batch update
     if (updatedCount > 0) {
       await this.audit.log({
-        userId: 'system',
+        userId: null,
         action: 'batch_status_update',
         entityType: 'installment',
         entityId: 'batch',

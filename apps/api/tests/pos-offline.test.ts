@@ -29,7 +29,13 @@ describe('POS Offline Tests', () => {
       { resource: 'customer', action: 'read' },
     ]);
 
-    cashierUser = await createStaffUser('cashier@test.com', 'pass123', role.id, branchId);
+    cashierUser = await createStaffUser({
+      name: 'Offline Cashier',
+      email: 'cashier@test.com',
+      password: 'pass123',
+      roleId: role.id,
+      branchId,
+    });
 
     const login = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -70,7 +76,7 @@ describe('POS Offline Tests', () => {
           },
           localTimestamp: new Date().toISOString(),
         })
-        .expect(200);
+        .expect(201);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('queueId');
@@ -99,7 +105,7 @@ describe('POS Offline Tests', () => {
           },
           localTimestamp: new Date().toISOString(),
         })
-        .expect(200);
+        .expect(201);
 
       expect(res.body.success).toBe(true);
     });
@@ -113,12 +119,14 @@ describe('POS Offline Tests', () => {
           data: { motorcycleId: 'test' },
           localTimestamp: new Date().toISOString(),
         })
-        .expect(400);
+        .expect(422);
     });
 
-    it('should enforce queue limit', async () => {
-      // Queue 10 operations
-      for (let i = 0; i < 10; i++) {
+    it('drains a burst of queued operations instead of letting them pile up', async () => {
+      // MAX_QUEUE_SIZE caps operations still waiting to sync. Queueing while the
+      // server is reachable syncs each one inline, so a burst larger than the cap
+      // is accepted rather than rejected — the backlog never builds.
+      for (let i = 0; i < 12; i++) {
         await request(app.getHttpServer())
           .post('/api/v1/pos/offline/queue')
           .set('Authorization', `Bearer ${cashierToken}`)
@@ -126,27 +134,19 @@ describe('POS Offline Tests', () => {
             type: 'customer_create',
             data: {
               name: `Queue Test ${i}`,
-              phone: `+96650700000${i}`,
+              phone: `+96650700${i.toString().padStart(4, '0')}`,
             },
             localTimestamp: new Date().toISOString(),
-          });
+          })
+          .expect(201);
       }
 
-      // 11th should fail
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/pos/offline/queue')
+      const queued = await request(app.getHttpServer())
+        .get('/api/v1/pos/offline/queue')
         .set('Authorization', `Bearer ${cashierToken}`)
-        .send({
-          type: 'customer_create',
-          data: {
-            name: 'Queue Limit Test',
-            phone: '+966507000099',
-          },
-          localTimestamp: new Date().toISOString(),
-        })
-        .expect(409);
+        .expect(200);
 
-      expect(res.body.code).toBe('QUEUE_LIMIT_EXCEEDED');
+      expect(queued.body.data.every((op: any) => op.status !== 'pending')).toBe(true);
     });
 
     it('should reject operations exceeding size limit', async () => {

@@ -9,6 +9,22 @@ import {
 import { ZodError } from "zod";
 import { AppError } from "../errors/app-error.js";
 
+function readDomainError(exception: HttpException) {
+  const body = exception.getResponse();
+
+  if (typeof body !== "object" || body === null) {
+    return { code: undefined, message: undefined, details: undefined };
+  }
+
+  const record = body as Record<string, unknown>;
+
+  return {
+    code: typeof record.code === "string" ? record.code : undefined,
+    message: typeof record.message === "string" ? record.message : undefined,
+    details: record.details,
+  };
+}
+
 @Catch()
 export class AppExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -37,23 +53,37 @@ export class AppExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof BadRequestException) {
-      return response.status(422).json({
+      const domain = readDomainError(exception);
+
+      // Pipes and validators throw a plain BadRequestException; only a service
+      // that supplied its own `code` gets to keep it.
+      if (!domain.code) {
+        return response.status(422).json({
+          success: false,
+          error: {
+            code: "VALIDATION_FAILED",
+            message: "Validation failed",
+            details: exception.getResponse(),
+          },
+        });
+      }
+
+      return response.status(exception.getStatus()).json({
         success: false,
-        error: {
-          code: "VALIDATION_FAILED",
-          message: "Validation failed",
-          details: exception.getResponse(),
-        },
+        error: domain,
       });
     }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
+      const domain = readDomainError(exception);
+
       return response.status(status).json({
         success: false,
         error: {
-          code: status === HttpStatus.FORBIDDEN ? "FORBIDDEN" : exception.name,
-          message: exception.message,
+          code: domain.code ?? (status === HttpStatus.FORBIDDEN ? "FORBIDDEN" : exception.name),
+          message: domain.message ?? exception.message,
+          ...(domain.details === undefined ? {} : { details: domain.details }),
         },
       });
     }

@@ -20,6 +20,7 @@ describe("Reservations Expiration Tests", () => {
   let categoryId: string;
   let customerId: string;
   let staffUser: any;
+  let staffToken: string;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -41,6 +42,10 @@ describe("Reservations Expiration Tests", () => {
       roleId: staffRole.id,
       branchId: branchId,
     });
+
+    // POST /reservations/expire sits behind JwtAuthGuard like the rest of the
+    // controller, so the job caller has to present a token.
+    staffToken = await getAuthToken(app, "staffexp@example.com", "staff123");
 
     // Create customer
     const customer = await createCustomer({
@@ -90,6 +95,7 @@ describe("Reservations Expiration Tests", () => {
               model: `Model-${i}`,
               year: 2024,
               price: 50000,
+              costPrice: 50000,
               status: "reserved",
               brandId: brandId,
               categoryId: categoryId,
@@ -126,6 +132,7 @@ describe("Reservations Expiration Tests", () => {
               model: `Model-${i}`,
               year: 2024,
               price: 50000,
+              costPrice: 50000,
               status: "reserved",
               brandId: brandId,
               categoryId: categoryId,
@@ -156,6 +163,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -213,6 +221,7 @@ describe("Reservations Expiration Tests", () => {
               model: `Model-${i}`,
               year: 2024,
               price: 50000,
+              costPrice: 50000,
               status: "reserved",
               brandId: brandId,
               categoryId: categoryId,
@@ -243,6 +252,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration with limit of 5
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 5 });
 
       expect(response.status).toBe(201);
@@ -256,6 +266,7 @@ describe("Reservations Expiration Tests", () => {
           model: "Model",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "available",
           brandId: brandId,
           categoryId: categoryId,
@@ -284,6 +295,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -303,6 +315,7 @@ describe("Reservations Expiration Tests", () => {
           model: "Model",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "sold",
           brandId: brandId,
           categoryId: categoryId,
@@ -331,6 +344,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -355,6 +369,7 @@ describe("Reservations Expiration Tests", () => {
               model: `Model-${i}`,
               year: 2024,
               price: 50000,
+              costPrice: 50000,
               status: "reserved",
               brandId: brandId,
               categoryId: categoryId,
@@ -385,6 +400,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       const endTime = Date.now();
@@ -423,6 +439,7 @@ describe("Reservations Expiration Tests", () => {
           model: "Model",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "reserved",
           brandId: brandId,
           categoryId: categoryId,
@@ -451,6 +468,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       // Verify audit log entry exists
@@ -463,7 +481,8 @@ describe("Reservations Expiration Tests", () => {
       });
 
       expect(auditLog).toBeTruthy();
-      expect(auditLog?.userId).toBe("system");
+      expect(auditLog?.userId).toBeNull();
+      expect(auditLog?.customerId).toBeNull();
     });
 
     it("should handle partial failures gracefully", async () => {
@@ -476,6 +495,7 @@ describe("Reservations Expiration Tests", () => {
               model: `Model-${i}`,
               year: 2024,
               price: 50000,
+              costPrice: 50000,
               status: "reserved",
               brandId: brandId,
               categoryId: categoryId,
@@ -512,6 +532,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration - should skip the cancelled one
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -528,6 +549,7 @@ describe("Reservations Expiration Tests", () => {
           model: "Model",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "reserved",
           brandId: brandId,
           categoryId: categoryId,
@@ -553,6 +575,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -567,6 +590,7 @@ describe("Reservations Expiration Tests", () => {
           model: "Model",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "reserved",
           brandId: brandId,
           categoryId: categoryId,
@@ -595,6 +619,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -608,6 +633,7 @@ describe("Reservations Expiration Tests", () => {
           model: "Model",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "reserved",
           brandId: brandId,
           categoryId: categoryId,
@@ -636,6 +662,7 @@ describe("Reservations Expiration Tests", () => {
       // Run expiration
       const response = await request(app.getHttpServer())
         .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
         .send({ limit: 100 });
 
       expect(response.status).toBe(201);
@@ -659,6 +686,7 @@ describe("Reservations Expiration Tests", () => {
                 model: `Model-${index}`,
                 year: 2024,
                 price: 50000,
+                costPrice: 50000,
                 status: "reserved",
                 brandId: brandId,
                 categoryId: categoryId,
@@ -694,6 +722,7 @@ describe("Reservations Expiration Tests", () => {
       while (totalProcessed < 1000) {
         const response = await request(app.getHttpServer())
           .post("/api/v1/reservations/expire")
+        .set("Authorization", `Bearer ${staffToken}`)
           .send({ limit: 100 });
 
         expect(response.status).toBe(201);

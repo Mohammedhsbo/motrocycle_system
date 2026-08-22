@@ -19,10 +19,12 @@ import {
   Resource,
   Action,
   ListOrdersQuery,
+  listOrdersQuerySchema,
   ChangeOrderStatusDto,
   UpdateOrderDto,
   CancelOrderDto,
 } from '@motorcycle-system/shared-types';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -75,7 +77,10 @@ export class OrdersController {
   @Get()
   @UseGuards(PermissionsGuard)
   @RequirePermission(Resource.ORDER, Action.READ)
-  async findAll(@Query() query: ListOrdersQuery, @Req() req: any) {
+  async findAll(
+    @Query(new ZodValidationPipe(listOrdersQuerySchema)) query: ListOrdersQuery,
+    @Req() req: any,
+  ) {
     const user = req.user;
     const isCustomer = user.roleName === 'customer';
     const isSuperAdmin = user.roleName === 'super_admin';

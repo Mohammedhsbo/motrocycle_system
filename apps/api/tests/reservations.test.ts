@@ -162,7 +162,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.code).toBe("INVALID_DEPOSIT_AMOUNT");
+      expect(response.body.error.code).toBe("INVALID_DEPOSIT_AMOUNT");
     });
 
     it("should reject deposit greater than totalPrice", async () => {
@@ -177,7 +177,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.code).toBe("INVALID_DEPOSIT_AMOUNT");
+      expect(response.body.error.code).toBe("INVALID_DEPOSIT_AMOUNT");
     });
 
     it("should reject deposit <= 0", async () => {
@@ -191,8 +191,8 @@ describe("Reservations API - Integration Tests", () => {
           paidAmount: 0,
         });
 
-      expect(response.status).toBe(400);
-      expect(response.body.code).toBe("INVALID_DEPOSIT_AMOUNT");
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe("VALIDATION_FAILED");
     });
 
     it("should reject unavailable motorcycle", async () => {
@@ -213,7 +213,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(409);
-      expect(response.body.code).toBe("MOTORCYCLE_NOT_AVAILABLE");
+      expect(response.body.error.code).toBe("MOTORCYCLE_NOT_AVAILABLE");
     });
 
     it("should reject non-existent customer", async () => {
@@ -228,7 +228,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(404);
-      expect(response.body.code).toBe("CUSTOMER_NOT_FOUND");
+      expect(response.body.error.code).toBe("CUSTOMER_NOT_FOUND");
     });
 
     it("should reject inactive customer", async () => {
@@ -248,7 +248,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(409);
-      expect(response.body.code).toBe("CUSTOMER_INACTIVE");
+      expect(response.body.error.code).toBe("CUSTOMER_INACTIVE");
 
       // Restore customer
       await prisma.customer.update({
@@ -322,6 +322,7 @@ describe("Reservations API - Integration Tests", () => {
           model: "YZF-R1",
           year: 2024,
           price: 50000,
+          costPrice: 50000,
           status: "available",
           brandId: brandId,
           categoryId: categoryId,
@@ -356,6 +357,7 @@ describe("Reservations API - Integration Tests", () => {
             model: `Model-${i}`,
             year: 2024,
             price: 50000 + i * 1000,
+            costPrice: 50000 + i * 1000,
             status: "available",
             brandId: brandId,
             categoryId: categoryId,
@@ -606,7 +608,7 @@ describe("Reservations API - Integration Tests", () => {
         .set("Authorization", `Bearer ${staffToken}`);
 
       expect(response.status).toBe(404);
-      expect(response.body.code).toBe("RESERVATION_NOT_FOUND");
+      expect(response.body.error.code).toBe("RESERVATION_NOT_FOUND");
     });
 
     it("should enforce branch scope", async () => {
@@ -637,7 +639,7 @@ describe("Reservations API - Integration Tests", () => {
         .set("Authorization", `Bearer ${staff2Token}`);
 
       expect(response.status).toBe(403);
-      expect(response.body.code).toBe("BRANCH_SCOPE_VIOLATION");
+      expect(response.body.error.code).toBe("BRANCH_SCOPE_VIOLATION");
     });
   });
 
@@ -712,7 +714,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.code).toBe("INVALID_EXPIRATION_DATE");
+      expect(response.body.error.code).toBe("INVALID_EXPIRATION_DATE");
     });
 
     it("should reject update of non-active reservation", async () => {
@@ -729,7 +731,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(409);
-      expect(response.body.code).toBe("RESERVATION_NOT_ACTIVE");
+      expect(response.body.error.code).toBe("RESERVATION_NOT_ACTIVE");
     });
   });
 
@@ -791,7 +793,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.code).toBe("INVALID_EXPIRATION_DATE");
+      expect(response.body.error.code).toBe("INVALID_EXPIRATION_DATE");
     });
 
     it("should reject extension of non-active reservation", async () => {
@@ -811,7 +813,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(409);
-      expect(response.body.code).toBe("RESERVATION_NOT_ACTIVE");
+      expect(response.body.error.code).toBe("RESERVATION_NOT_ACTIVE");
     });
   });
 
@@ -882,7 +884,7 @@ describe("Reservations API - Integration Tests", () => {
         });
 
       expect(response.status).toBe(409);
-      expect(response.body.code).toBe("RESERVATION_NOT_ACTIVE");
+      expect(response.body.error.code).toBe("RESERVATION_NOT_ACTIVE");
     });
   });
 
@@ -896,6 +898,7 @@ describe("Reservations API - Integration Tests", () => {
             model: `Model-${i}`,
             year: 2024,
             price: 50000,
+            costPrice: 50000,
             status: "reserved",
             brandId: brandId,
             categoryId: categoryId,

@@ -37,8 +37,20 @@ describe('POS Concurrency Tests', () => {
       { resource: 'motorcycle', action: 'read' },
     ]);
 
-    cashier1 = await createStaffUser('cashier1@test.com', 'pass123', role.id, branchId);
-    cashier2 = await createStaffUser('cashier2@test.com', 'pass123', role.id, branchId);
+    cashier1 = await createStaffUser({
+      name: 'Cashier One',
+      email: 'cashier1@test.com',
+      password: 'pass123',
+      roleId: role.id,
+      branchId,
+    });
+    cashier2 = await createStaffUser({
+      name: 'Cashier Two',
+      email: 'cashier2@test.com',
+      password: 'pass123',
+      roleId: role.id,
+      branchId,
+    });
 
     const login1 = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -50,8 +62,8 @@ describe('POS Concurrency Tests', () => {
       .send({ email: 'cashier2@test.com', password: 'pass123' });
     cashierToken2 = login2.body.data.accessToken;
 
-    const customer1 = await createCustomer('Customer 1', '+966501111111');
-    const customer2 = await createCustomer('Customer 2', '+966502222222');
+    const customer1 = await createCustomer({ name: 'Customer 1', phone: '+966501111111' });
+    const customer2 = await createCustomer({ name: 'Customer 2', phone: '+966502222222' });
     customerId1 = customer1.id;
     customerId2 = customer2.id;
 
@@ -72,11 +84,10 @@ describe('POS Concurrency Tests', () => {
         year: 2024,
         color: 'Blue',
         price: 40000,
-        cost: 35000,
+        costPrice: 40000,
         status: 'available',
         branchId,
         images: [],
-        createdBy: cashier1.id,
       },
     });
     motorcycleId = motorcycle.id;
@@ -128,7 +139,7 @@ describe('POS Concurrency Tests', () => {
         result2.status === 'fulfilled' ? result2.value.status : 0,
       ];
 
-      const successCount = statuses.filter((s) => s === 200).length;
+      const successCount = statuses.filter((s) => s === 201).length;
       const failCount = statuses.filter((s) => s === 400 || s === 409).length;
 
       expect(successCount).toBe(1);
@@ -153,11 +164,10 @@ describe('POS Concurrency Tests', () => {
           year: 2024,
           color: 'Black',
           price: 45000,
-          cost: 40000,
+          costPrice: 45000,
           status: 'available',
           branchId,
           images: [],
-          createdBy: cashier1.id,
         },
       });
 
@@ -176,7 +186,7 @@ describe('POS Concurrency Tests', () => {
           motorcycleId: motorcycle2.id,
           idempotencyKey: key,
         })
-        .expect(200);
+        .expect(201);
 
       // Duplicate request with same key
       const res2 = await request(app.getHttpServer())
@@ -188,7 +198,7 @@ describe('POS Concurrency Tests', () => {
           motorcycleId: motorcycle2.id,
           idempotencyKey: key,
         })
-        .expect(200);
+        .expect(201);
 
       // Should return same result
       expect(res1.body.data.id).toBe(res2.body.data.id);

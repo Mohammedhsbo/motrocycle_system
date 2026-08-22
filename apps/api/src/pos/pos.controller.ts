@@ -9,6 +9,8 @@ import {
   UseGuards,
   Req,
   ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { POSService } from './pos.service.js';
 import { OfflineService } from './offline.service.js';
@@ -80,6 +82,7 @@ export class POSController {
   }
 
   @Post('validate-transaction')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.ORDER, Action.CREATE)
   async validateTransaction(
     @Body(new ZodValidationPipe(validatePOSTransactionSchema)) dto: ValidatePOSTransactionDto,

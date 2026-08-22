@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -137,7 +139,7 @@ export class CustomersController {
       throw new Error("FORBIDDEN");
     }
 
-    await this.customersService.changePassword(id, body, request.user.id);
+    await this.customersService.changePassword(id, body, request.user.id, request.user.isCustomer);
     return {
       success: true,
       data: null,
@@ -145,6 +147,7 @@ export class CustomersController {
   }
 
   @Post(":id/deactivate")
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.CUSTOMER, Action.DELETE)
   async deactivate(
@@ -160,6 +163,7 @@ export class CustomersController {
   }
 
   @Post(":id/reactivate")
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.CUSTOMER, Action.UPDATE)
   async reactivate(

@@ -4,6 +4,7 @@ import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { PrismaClient } from "@prisma/client";
 import { AppModule } from "../src/app.module.js";
+import { RedisIoAdapter } from "../src/socket/index.js";
 import { AppExceptionFilter } from "../src/common/filters/app-exception.filter.js";
 import { hashPassword } from "../src/utils/password.js";
 
@@ -18,6 +19,13 @@ export async function createTestApp() {
   app.setGlobalPrefix("api/v1");
   app.use(cookieParser());
   app.useGlobalFilters(new AppExceptionFilter());
+
+  // Socket.IO auth lives in this adapter, so without it the tests would talk to
+  // an unauthenticated gateway that production never exposes.
+  const socketAdapter = new RedisIoAdapter(app);
+  await socketAdapter.connectToRedis();
+  app.useWebSocketAdapter(socketAdapter);
+
   await app.init();
 
   return app;

@@ -10,7 +10,12 @@ import {
 } from '@motorcycle-system/shared-types';
 import type { AuthenticatedUser } from '../common/types/authenticated-request.js';
 
+/** Cap on operations still waiting to sync, per user. */
 const MAX_QUEUE_SIZE = 10;
+/** Cap on retained history (synced/failed) per user, so the map stays bounded. */
+const MAX_RETAINED_OPERATIONS = 100;
+/** Cap on the reported conflict list, newest kept. */
+const MAX_RETAINED_CONFLICTS = 200;
 const MAX_OPERATION_SIZE_BYTES = 10 * 1024; // 10KB
 const OPERATION_EXPIRATION_HOURS = 24;
 
@@ -82,7 +87,7 @@ export class OfflineService {
     }
 
     // Check queue size limit
-    const userQueue = this.operationQueue.get(user.id) || [];
+    const userQueue = this.pruneQueue(user.id);
     const pendingOps = userQueue.filter((op) => op.status === 'pending');
 
     if (pendingOps.length >= MAX_QUEUE_SIZE) {
@@ -121,11 +126,42 @@ export class OfflineService {
 
     // Immediately attempt to sync
     await this.processPendingOperations(user);
+    this.pruneQueue(user.id);
 
     return {
       queueId: operation.id,
       position: pendingOps.length + 1,
     };
+  }
+
+  /**
+   * Drops operations that have reached a terminal state and aged past their
+   * expiry, then trims retained history. Returns the surviving queue.
+   */
+  private pruneQueue(userId: string) {
+    const now = Date.now();
+    const queue = (this.operationQueue.get(userId) || []).filter(
+      (op) => op.status === 'pending' || op.expiresAt.getTime() > now,
+    );
+
+    const trimmed = queue.length > MAX_RETAINED_OPERATIONS
+      ? queue.slice(queue.length - MAX_RETAINED_OPERATIONS)
+      : queue;
+
+    this.operationQueue.set(userId, trimmed);
+    return trimmed;
+  }
+
+  private pushConflict(conflict: {
+    operationId: string;
+    type: string;
+    reason: string;
+    resolution: string;
+  }) {
+    this.conflicts.push(conflict);
+    if (this.conflicts.length > MAX_RETAINED_CONFLICTS) {
+      this.conflicts.splice(0, this.conflicts.length - MAX_RETAINED_CONFLICTS);
+    }
   }
 
   async getQueuedOperations(userId: string): Promise<QueuedOperation[]> {
@@ -150,7 +186,7 @@ export class OfflineService {
         // Check if expired
         if (new Date() > op.expiresAt) {
           op.status = 'failed';
-          this.conflicts.push({
+          this.pushConflict({
             operationId: op.id,
             type: op.type,
             reason: 'Operation expired',
@@ -169,7 +205,7 @@ export class OfflineService {
         op.status = 'synced';
       } catch (error: any) {
         op.status = 'failed';
-        this.conflicts.push({
+        this.pushConflict({
           operationId: op.id,
           type: op.type,
           reason: error.message || 'Unknown error',
@@ -196,7 +232,7 @@ export class OfflineService {
 
     if (existing) {
       // Duplicate detected - server state wins
-      this.conflicts.push({
+      this.pushConflict({
         operationId: operation.id,
         type: operation.type,
         reason: 'Customer with this phone already exists',
@@ -231,7 +267,7 @@ export class OfflineService {
 
     if (serverModifiedAt > offlineTimestamp) {
       // Conflict: server state is newer - server wins
-      this.conflicts.push({
+      this.pushConflict({
         operationId: operation.id,
         type: operation.type,
         reason: 'Server data was modified after offline operation',
@@ -251,7 +287,7 @@ export class OfflineService {
       const validOps = queue.filter((op) => {
         if (now > op.expiresAt) {
           if (op.status === 'pending') {
-            this.conflicts.push({
+            this.pushConflict({
               operationId: op.id,
               type: op.type,
               reason: 'Operation expired',

@@ -5,7 +5,7 @@ import type { CategorySummary } from "./category.js";
 import type { BranchSummary } from "./user.js";
 
 const vinSchema = z.string().trim().min(1).max(50).regex(/^[A-HJ-NPR-Z0-9-]+$/, {
-  message: "VIN must contain only alphanumeric characters and hyphens",
+  message: "VIN must contain only uppercase letters (excluding I, O and Q), digits and hyphens",
 });
 const modelSchema = z.string().trim().min(1).max(200);
 const yearSchema = z.number().int().min(1900).max(2100);

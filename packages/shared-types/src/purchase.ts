@@ -42,7 +42,7 @@ export type CreatePurchaseItemRequest = z.infer<typeof createPurchaseItemRequest
 
 export const createPurchaseSchema = z.object({
   supplierId: z.string().uuid("Invalid supplier ID"),
-  branchId: z.string().uuid("Invalid branch ID"),
+  branchId: z.string().uuid("Invalid branch ID").optional(),
   notes: z.string().optional(),
   items: z.array(createPurchaseItemRequestSchema).min(1, "At least one item is required"),
 });

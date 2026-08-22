@@ -14,6 +14,7 @@ import { TokenStoreService } from "../token-store/token-store.service.js";
 import { AppError } from "../common/errors/app-error.js";
 import { REFRESH_TOKEN_TTL_SECONDS } from "../config/auth.config.js";
 import { decodeToken, generateAccessToken, generateRefreshToken, verifyToken } from "../utils/jwt.js";
+import type { TokenPrincipal } from "../utils/jwt.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 
 const authUserInclude = {
@@ -34,6 +35,8 @@ const authUserInclude = {
 } satisfies Prisma.UserDefaultArgs;
 
 type AuthUserRecord = Prisma.UserGetPayload<typeof authUserInclude>;
+
+type CustomerRecord = Prisma.CustomerGetPayload<{}>;
 
 @Injectable()
 export class AuthService {
@@ -100,9 +103,11 @@ export class AuthService {
       ...authUserInclude,
     });
 
+    // Staff accounts live in the User table, e-commerce customers in Customer.
+    // Both sign in here, so fall through to the customer table when no staff
+    // account owns the address.
     if (!user) {
-      this.logAuthEvent(null, "auth.login.failure", ip).catch(console.error);
-      throw new AppError("INVALID_CREDENTIALS", 401, "Invalid credentials");
+      return this.loginCustomer(email, input.password, ip);
     }
 
     const passwordMatches = await verifyPassword(input.password, user.passwordHash);
@@ -133,6 +138,39 @@ export class AuthService {
     };
   }
 
+  private async loginCustomer(email: string, password: string, ip: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+    });
+
+    // A customer without a password hash was created at the counter and has
+    // never registered online; it must not be distinguishable from a miss.
+    if (!customer?.passwordHash) {
+      this.logAuthEvent(null, "auth.login.failure", ip).catch(console.error);
+      throw new AppError("INVALID_CREDENTIALS", 401, "Invalid credentials");
+    }
+
+    const passwordMatches = await verifyPassword(password, customer.passwordHash);
+    if (!passwordMatches) {
+      this.logAuthEvent(null, "auth.login.failure", ip).catch(console.error);
+      throw new AppError("INVALID_CREDENTIALS", 401, "Invalid credentials");
+    }
+
+    if (!customer.isActive) {
+      throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
+    }
+
+    const access = generateAccessToken(customer.id, "customer");
+    const refresh = generateRefreshToken(customer.id, "customer");
+    await this.tokenStore.saveRefreshToken(customer.id, refresh.tokenId, refresh.token, refresh.expiresInSeconds);
+
+    return {
+      accessToken: access.token,
+      refreshToken: refresh.token,
+      user: await this.toCustomerAuthUser(customer),
+    };
+  }
+
   async refresh(refreshToken: string | undefined, ip: string) {
     if (!refreshToken) {
       throw new AppError("TOKEN_INVALID", 401, "Invalid or expired refresh token");
@@ -154,6 +192,19 @@ export class AuthService {
       throw new AppError("TOKEN_INVALID", 401, "Invalid or expired refresh token");
     }
 
+    if (payload.principal === "customer") {
+      const customer = await this.prisma.customer.findUnique({ where: { id: payload.sub } });
+
+      if (!customer) {
+        throw new AppError("TOKEN_INVALID", 401, "Invalid or expired refresh token");
+      }
+      if (!customer.isActive) {
+        throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
+      }
+
+      return this.rotateRefreshToken(refreshToken, payload.jti, customer.id, "customer");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       ...authUserInclude,
@@ -166,13 +217,24 @@ export class AuthService {
       throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
     }
 
-    await this.blacklistRefreshToken(refreshToken, payload.jti);
-    await this.tokenStore.deleteRefreshToken(user.id, payload.jti);
-
-    const access = generateAccessToken(user.id);
-    const refresh = generateRefreshToken(user.id);
-    await this.tokenStore.saveRefreshToken(user.id, refresh.tokenId, refresh.token, refresh.expiresInSeconds);
+    const rotated = await this.rotateRefreshToken(refreshToken, payload.jti, user.id, "user");
     this.logAuthEvent(user, "auth.token.refresh", ip).catch(console.error);
+
+    return rotated;
+  }
+
+  private async rotateRefreshToken(
+    currentToken: string,
+    currentTokenId: string,
+    subject: string,
+    principal: TokenPrincipal,
+  ) {
+    await this.blacklistRefreshToken(currentToken, currentTokenId);
+    await this.tokenStore.deleteRefreshToken(subject, currentTokenId);
+
+    const access = generateAccessToken(subject, principal);
+    const refresh = generateRefreshToken(subject, principal);
+    await this.tokenStore.saveRefreshToken(subject, refresh.tokenId, refresh.token, refresh.expiresInSeconds);
 
     return {
       accessToken: access.token,
@@ -195,13 +257,33 @@ export class AuthService {
       return;
     }
 
+    // AuditLog.userId is a foreign key into User, so customer sessions have
+    // nothing to record here.
     const user = await this.prisma.user.findUnique({ where: { id: userId }, ...authUserInclude });
     if (user) {
       this.logAuthEvent(user, "auth.logout", "unknown").catch(console.error);
     }
   }
 
-  async getCurrentUser(userId: string): Promise<CurrentUserResponse> {
+  async getCurrentUser(userId: string, principal: TokenPrincipal = "user"): Promise<CurrentUserResponse> {
+    if (principal === "customer") {
+      const customer = await this.prisma.customer.findUnique({ where: { id: userId } });
+
+      if (!customer) {
+        throw new AppError("TOKEN_INVALID", 401, "Invalid or expired token");
+      }
+      if (!customer.isActive) {
+        throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
+      }
+
+      return {
+        ...(await this.toCustomerAuthUser(customer)),
+        phone: customer.phone,
+        branch: null,
+        lastLoginAt: null,
+      };
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       ...authUserInclude,
@@ -274,6 +356,31 @@ export class AuthService {
       },
       branchId: user.branchId,
       lang: user.lang as Language,
+    };
+  }
+
+  private async toCustomerAuthUser(customer: CustomerRecord): Promise<AuthUser> {
+    // Customers carry the permissions of the shared "customer" role; the row is
+    // seeded, but a database that predates it should still be able to sign in.
+    const customerRole = await this.prisma.role.findUnique({
+      where: { name: "customer" },
+      include: { permissions: true },
+    });
+
+    return {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email ?? "",
+      role: {
+        id: customerRole?.id ?? customer.id,
+        name: "customer",
+        permissions: (customerRole?.permissions ?? []).map((permission) => ({
+          resource: permission.resource as AuthUser["role"]["permissions"][number]["resource"],
+          action: permission.action as AuthUser["role"]["permissions"][number]["action"],
+        })),
+      },
+      branchId: null,
+      lang: "ar" as Language,
     };
   }
 

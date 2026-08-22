@@ -316,7 +316,7 @@ export class TransfersService {
       }
 
       const lockedMotorcycles = await tx.$queryRaw<{ id: string; status: string; branchId: string; vin: string }[]>`
-        SELECT id, status, "branchId", vin FROM "Motorcycle" WHERE id IN (${Prisma.join(motorcycleIds)}) FOR UPDATE
+        SELECT id, status, "branchId", vin FROM "Motorcycle" WHERE id = ANY(ARRAY[${Prisma.join(motorcycleIds)}]::uuid[]) FOR UPDATE
       `;
 
       // 3. Verify they are all still available
@@ -386,7 +386,7 @@ export class TransfersService {
       const motorcycleIds = items.map(i => i.motorcycleId);
 
       const lockedMotorcycles = await tx.$queryRaw<{ id: string; status: string; vin: string }[]>`
-        SELECT id, status, vin FROM "Motorcycle" WHERE id IN (${Prisma.join(motorcycleIds)}) FOR UPDATE
+        SELECT id, status, vin FROM "Motorcycle" WHERE id = ANY(ARRAY[${Prisma.join(motorcycleIds)}]::uuid[]) FOR UPDATE
       `;
 
       // 3. Optional guard: Verify they are in_transfer

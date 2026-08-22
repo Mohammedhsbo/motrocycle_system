@@ -85,7 +85,10 @@ export class AuthController {
   async me(@Req() request: AuthenticatedRequest) {
     return {
       success: true,
-      data: await this.authService.getCurrentUser(request.user.id),
+      data: await this.authService.getCurrentUser(
+        request.user.id,
+        request.user.isCustomer ? "customer" : "user",
+      ),
     };
   }
 

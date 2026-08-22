@@ -26,13 +26,10 @@ export const transferSchema = z.object({
 export type Transfer = z.infer<typeof transferSchema>;
 
 export const createTransferSchema = z.object({
-  fromBranchId: z.string().uuid("Invalid source branch ID"),
+  fromBranchId: z.string().uuid("Invalid source branch ID").optional(),
   toBranchId: z.string().uuid("Invalid destination branch ID"),
   motorcycleIds: z.array(z.string().uuid()).min(1, "At least one motorcycle must be selected"),
   notes: z.string().optional(),
-}).refine(data => data.fromBranchId !== data.toBranchId, {
-  message: "Source and destination branches cannot be the same",
-  path: ["toBranchId"],
 });
 
 export type CreateTransferRequest = z.infer<typeof createTransferSchema>;

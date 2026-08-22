@@ -15,6 +15,22 @@ import {
   ListMotorcyclesQuery
 } from '@motorcycle-system/shared-types';
 
+type MonetaryRow = { price?: unknown; costPrice?: unknown };
+
+/**
+ * Prisma hands back `Decimal` for money columns and `JSON.stringify` turns those
+ * into strings, but the published `Motorcycle` contract declares them numbers.
+ */
+function serializeMoney<T extends MonetaryRow>(row: T): T {
+  if (row.price !== undefined && row.price !== null) {
+    (row as MonetaryRow).price = Number(row.price);
+  }
+  if (row.costPrice !== undefined && row.costPrice !== null) {
+    (row as MonetaryRow).costPrice = Number(row.costPrice);
+  }
+  return row;
+}
+
 @Injectable()
 export class MotorcyclesService {
   constructor(
@@ -79,7 +95,7 @@ export class MotorcyclesService {
       status: motorcycle.status,
     });
 
-    return motorcycle;
+    return serializeMoney(motorcycle);
   }
 
   async findAll(query: ListMotorcyclesQuery, userBranchId: string | null, userIsSuperAdmin: boolean, isCustomer: boolean = false) {
@@ -142,6 +158,8 @@ export class MotorcyclesService {
       this.prisma.motorcycle.count({ where })
     ]);
 
+    items.forEach((item) => serializeMoney(item));
+
     // Omit costPrice for customers (handled in controller or here)
     if (isCustomer) {
       items.forEach(item => {
@@ -186,7 +204,7 @@ export class MotorcyclesService {
       delete (motorcycle as any).costPrice;
     }
 
-    return motorcycle;
+    return serializeMoney(motorcycle);
   }
 
   async update(id: string, data: UpdateMotorcycleRequest, userId: string, userBranchId: string | null, userIsSuperAdmin: boolean) {
@@ -227,7 +245,7 @@ export class MotorcyclesService {
       after: updated as any,
       branchId: updated.branchId
     });
-    return updated;
+    return serializeMoney(updated);
   }
 
   async updateStatus(

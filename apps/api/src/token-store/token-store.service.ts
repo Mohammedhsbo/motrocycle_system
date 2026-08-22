@@ -54,18 +54,23 @@ export class TokenStoreService implements OnModuleInit, OnModuleDestroy {
     const prefix = `refresh_token:${userId}:`;
 
     if (this.client) {
-      for await (const key of this.client.scanIterator({ MATCH: `${prefix}*` })) {
-        const tokenId = String(key).slice(prefix.length);
-        if (tokenId !== exceptTokenId) {
-          await this.client.del(key);
+      // scanIterator yields a BATCH of keys per step, not one key. Passing the
+      // batch straight to del() stringified the array, so the wrong key was
+      // deleted, and an empty batch made Redis reject the call outright —
+      // leaving the user's other sessions alive.
+      for await (const batch of this.client.scanIterator({ MATCH: `${prefix}*`, COUNT: 100 })) {
+        const keys = (Array.isArray(batch) ? batch : [batch]).map(String);
+        const doomed = keys.filter((key) => key.slice(prefix.length) !== exceptTokenId);
+
+        if (doomed.length > 0) {
+          await this.client.del(doomed);
         }
       }
       return;
     }
 
     for (const key of this.memory.keys()) {
-      const tokenId = key.slice(prefix.length);
-      if (key.startsWith(prefix) && tokenId !== exceptTokenId) {
+      if (key.startsWith(prefix) && key.slice(prefix.length) !== exceptTokenId) {
         this.memory.delete(key);
       }
     }

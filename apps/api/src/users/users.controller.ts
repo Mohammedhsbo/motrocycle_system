@@ -11,6 +11,8 @@ import {
   Query,
   Req,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from "@nestjs/common";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import {
@@ -100,6 +102,7 @@ export class UsersController {
   }
 
   @Post(":id/reset-password")
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.USER, Action.UPDATE)
   async resetPassword(
     @Param("id", ParseUUIDPipe) id: string,

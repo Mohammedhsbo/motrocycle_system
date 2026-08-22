@@ -63,11 +63,19 @@ describe("Upload API", () => {
     await closeTestApp(app);
   });
 
+  // The upload pipe checks magic numbers, not just the declared mime type, so
+  // the fixture has to be a real JPEG rather than arbitrary bytes.
+  const JPEG_FIXTURE = Buffer.from([
+    0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+    0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43,
+    0x00, 0xff, 0xd9,
+  ]);
+
   it("should upload a valid image", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/upload")
       .set("Authorization", `Bearer ${token}`)
-      .attach("file", Buffer.from("fake image content"), "test.jpg");
+      .attach("file", JPEG_FIXTURE, "test.jpg");
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);

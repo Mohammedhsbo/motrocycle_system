@@ -261,13 +261,30 @@ describe("Orders API - Integration Tests", () => {
         },
       });
 
+      // The motorcycle lives in the other branch; the order is placed in the
+      // cashier's own branch, so branch scoping passes and the per-motorcycle
+      // check is what has to reject it.
+      const otherBranchMotorcycle = await prisma.motorcycle.create({
+        data: {
+          vin: "VN-OTHER-BRANCH-001",
+          model: "Other Branch Bike",
+          year: 2024,
+          price: 40000,
+          costPrice: 32000,
+          status: "available",
+          brandId,
+          categoryId,
+          branchId: otherBranch.id,
+        },
+      });
+
       const res = await request(app.getHttpServer())
         .post("/api/v1/orders")
         .set("Authorization", `Bearer ${cashierToken}`)
         .send({
           customerId,
-          branchId: otherBranch.id,
-          motorcycleIds: [motorcycle1Id], // Motorcycle is in main branch
+          branchId,
+          motorcycleIds: [otherBranchMotorcycle.id],
           isDraft: false,
         });
 

@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { TransfersService } from './transfers.service.js';
 import {
@@ -71,6 +73,7 @@ export class TransfersController {
   }
 
   @Post(':id/ship')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.TRANSFER, Action.UPDATE)
   async ship(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;
@@ -79,6 +82,7 @@ export class TransfersController {
   }
 
   @Post(':id/receive')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.TRANSFER, Action.UPDATE)
   async receive(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;
@@ -87,6 +91,7 @@ export class TransfersController {
   }
 
   @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
   @RequirePermission(Resource.TRANSFER, Action.DELETE)
   async cancel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;

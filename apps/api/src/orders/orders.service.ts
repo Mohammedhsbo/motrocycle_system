@@ -13,6 +13,17 @@ import { CreateOrderDto, CreateOrderResponse } from '@motorcycle-system/shared-t
 import { generateOrderNumber, withUniqueRetry } from '../utils/number-generator.js';
 import { SocketGateway } from '../socket/index.js';
 
+type AuditActorRow = {
+  user: { id: string; name: string } | null;
+  customer: { id: string; name: string } | null;
+};
+
+/** Audit rows are authored by a staff user or by a customer; surface whichever it was. */
+function auditActor(log: AuditActorRow) {
+  const actor = log.user ?? log.customer;
+  return { id: actor?.id ?? '', name: actor?.name ?? 'System' };
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -746,16 +757,19 @@ export class OrdersService {
             name: true,
           },
         },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
     const statusHistory = auditLogs.map((log) => ({
       status: (log.after as any)?.status ?? order.status,
       changedAt: log.createdAt.toISOString(),
-      changedBy: {
-        id: log.user.id,
-        name: log.user.name,
-      },
+      changedBy: auditActor(log),
       reason: (log.after as any)?.reason,
     }));
 
@@ -853,76 +867,78 @@ export class OrdersService {
     const motorcycleStatus = getMotorcycleStatusForOrderStatus(newStatus as any);
 
     // Execute status change in transaction
-    return this.prisma.$transaction(
-      async (tx) => {
-        // If motorcycle status needs to change, update all motorcycles
-        if (motorcycleStatus) {
-          for (const item of order.items) {
-            await tx.motorcycle.update({
-              where: { id: item.motorcycleId },
-              data: { status: motorcycleStatus },
+    return withUniqueRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          // If motorcycle status needs to change, update all motorcycles
+          if (motorcycleStatus) {
+            for (const item of order.items) {
+              await tx.motorcycle.update({
+                where: { id: item.motorcycleId },
+                data: { status: motorcycleStatus },
+              });
+            }
+          }
+
+          // Update order status
+          const updated = await tx.order.update({
+            where: { id: orderId },
+            data: {
+              status: newStatus as any,
+              updatedAt: new Date(),
+            },
+          });
+
+          // Audit log
+          await this.audit.log({
+            userId,
+            action: 'order:status_changed',
+            entityType: 'order',
+            entityId: orderId,
+            branchId: order.branchId,
+            before: { status: order.status },
+            after: { status: newStatus, reason },
+          });
+
+          // Emit WebSocket event
+          if (this.socketGateway && typeof (this.socketGateway as any).server?.emit === 'function') {
+            (this.socketGateway as any).server.emit('order:status_changed', {
+              orderId: updated.id,
+              orderNumber: updated.orderNumber,
+              previousStatus: order.status,
+              newStatus: updated.status,
+              branchId: updated.branchId,
             });
           }
-        }
 
-        // Update order status
-        const updated = await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status: newStatus as any,
-            updatedAt: new Date(),
-          },
-        });
+          // TASK-011: Create letters when status becomes AWAITING_DELIVERY
+          if (newStatus === OrderStatus.AWAITING_DELIVERY) {
+            // Trigger letter creation asynchronously (don't block status change)
+            setImmediate(async () => {
+              try {
+                const { OrderLetterIntegrationService } = await import('../letters/order-letter-integration.service.js');
+                const integrationService = new OrderLetterIntegrationService(this.prisma, null as any);
+                await integrationService.createLetterForOrder(orderId, userId);
+              } catch (error) {
+                console.error(`Failed to create letters for order ${orderId}:`, error);
+              }
+            });
+          }
 
-        // Audit log
-        await this.audit.log({
-          userId,
-          action: 'order:status_changed',
-          entityType: 'order',
-          entityId: orderId,
-          branchId: order.branchId,
-          before: { status: order.status },
-          after: { status: newStatus, reason },
-        });
-
-        // Emit WebSocket event
-        if (this.socketGateway && typeof (this.socketGateway as any).server?.emit === 'function') {
-          (this.socketGateway as any).server.emit('order:status_changed', {
-            orderId: updated.id,
+          return {
+            id: updated.id,
             orderNumber: updated.orderNumber,
+            status: updated.status,
             previousStatus: order.status,
-            newStatus: updated.status,
-            branchId: updated.branchId,
-          });
+            updatedAt: updated.updatedAt.toISOString(),
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 5000,
+          timeout: 10000,
         }
-
-        // TASK-011: Create letters when status becomes AWAITING_DELIVERY
-        if (newStatus === OrderStatus.AWAITING_DELIVERY) {
-          // Trigger letter creation asynchronously (don't block status change)
-          setImmediate(async () => {
-            try {
-              const { OrderLetterIntegrationService } = await import('../letters/order-letter-integration.service.js');
-              const integrationService = new OrderLetterIntegrationService(this.prisma, null as any);
-              await integrationService.createLetterForOrder(orderId, userId);
-            } catch (error) {
-              console.error(`Failed to create letters for order ${orderId}:`, error);
-            }
-          });
-        }
-
-        return {
-          id: updated.id,
-          orderNumber: updated.orderNumber,
-          status: updated.status,
-          previousStatus: order.status,
-          updatedAt: updated.updatedAt.toISOString(),
-        };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        maxWait: 5000,
-        timeout: 10000,
-      }
+      )
     );
   }
 
@@ -1167,98 +1183,100 @@ export class OrdersService {
     // }
 
     // Cancel with transaction
-    return this.prisma.$transaction(
-      async (tx) => {
-        // Update order status to cancelled
-        await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status: 'cancelled',
-            updatedAt: new Date(),
-          },
-        });
-
-        // Revert motorcycles to available (if they were allocated)
-        if (order.status !== 'draft') {
-          for (const item of order.items) {
-            await tx.motorcycle.update({
-              where: { id: item.motorcycleId },
-              data: { status: 'available' },
-            });
-          }
-        }
-
-        // Audit log
-        await this.audit.log({
-          userId,
-          action: 'order:cancelled',
-          entityType: 'order',
-          entityId: orderId,
-          branchId: order.branchId,
-          before: { status: order.status },
-          after: { status: 'cancelled', reason },
-        });
-
-        // TASK-009: Cancel any active financing contracts for this order
-        const activeFinancingContracts = await tx.financingContract.findMany({
-          where: {
-            orderId,
-            status: 'active',
-          },
-        });
-
-        for (const contract of activeFinancingContracts) {
-          // Check if any payments have been made on installments
-          const installmentsWithPayments = await tx.installment.count({
-            where: {
-              contractId: contract.id,
-              paidAmount: { gt: 0 },
-            },
-          });
-
-          if (installmentsWithPayments > 0) {
-            throw new ConflictException({
-              code: 'FINANCING_HAS_PAYMENTS',
-              message: 'Cannot cancel order with financing contract that has received payments. Contact branch admin.',
-            });
-          }
-
-          // Cancel the financing contract
-          await tx.financingContract.update({
-            where: { id: contract.id },
+    return withUniqueRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          // Update order status to cancelled
+          await tx.order.update({
+            where: { id: orderId },
             data: {
               status: 'cancelled',
+              updatedAt: new Date(),
             },
           });
 
-          // Update all unpaid installments to cancelled status (if such status exists)
-          // For now, we'll leave them as-is since the contract is cancelled
+          // Revert motorcycles to available (if they were allocated)
+          if (order.status !== 'draft') {
+            for (const item of order.items) {
+              await tx.motorcycle.update({
+                where: { id: item.motorcycleId },
+                data: { status: 'available' },
+              });
+            }
+          }
+
+          // Audit log
           await this.audit.log({
             userId,
-            action: 'financing_contract:auto_cancelled',
-            entityType: 'financing_contract',
-            entityId: contract.id,
+            action: 'order:cancelled',
+            entityType: 'order',
+            entityId: orderId,
             branchId: order.branchId,
-            before: { status: 'active' },
-            after: { status: 'cancelled', reason: 'Order cancelled' },
+            before: { status: order.status },
+            after: { status: 'cancelled', reason },
           });
-        }
 
-        // Emit WebSocket event
-        if (this.socketGateway && typeof (this.socketGateway as any).server?.emit === 'function') {
-          (this.socketGateway as any).server.emit('order:cancelled', {
-            orderId: order.id,
-            orderNumber: order.orderNumber,
-            branchId: order.branchId,
-            motorcycleIds: order.items.map((i) => i.motorcycleId),
+          // TASK-009: Cancel any active financing contracts for this order
+          const activeFinancingContracts = await tx.financingContract.findMany({
+            where: {
+              orderId,
+              status: 'active',
+            },
           });
+
+          for (const contract of activeFinancingContracts) {
+            // Check if any payments have been made on installments
+            const installmentsWithPayments = await tx.installment.count({
+              where: {
+                contractId: contract.id,
+                paidAmount: { gt: 0 },
+              },
+            });
+
+            if (installmentsWithPayments > 0) {
+              throw new ConflictException({
+                code: 'FINANCING_HAS_PAYMENTS',
+                message: 'Cannot cancel order with financing contract that has received payments. Contact branch admin.',
+              });
+            }
+
+            // Cancel the financing contract
+            await tx.financingContract.update({
+              where: { id: contract.id },
+              data: {
+                status: 'cancelled',
+              },
+            });
+
+            // Update all unpaid installments to cancelled status (if such status exists)
+            // For now, we'll leave them as-is since the contract is cancelled
+            await this.audit.log({
+              userId,
+              action: 'financing_contract:auto_cancelled',
+              entityType: 'financing_contract',
+              entityId: contract.id,
+              branchId: order.branchId,
+              before: { status: 'active' },
+              after: { status: 'cancelled', reason: 'Order cancelled' },
+            });
+          }
+
+          // Emit WebSocket event
+          if (this.socketGateway && typeof (this.socketGateway as any).server?.emit === 'function') {
+            (this.socketGateway as any).server.emit('order:cancelled', {
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              branchId: order.branchId,
+              motorcycleIds: order.items.map((i) => i.motorcycleId),
+            });
+          }
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 5000,
+          timeout: 10000,
         }
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        maxWait: 5000,
-        timeout: 10000,
-      }
+      )
     );
   }
 
@@ -1320,6 +1338,12 @@ export class OrdersService {
             name: true,
           },
         },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -1328,10 +1352,7 @@ export class OrdersService {
       action: log.action,
       before: log.before as any,
       after: log.after as any,
-      user: {
-        id: log.user.id,
-        name: log.user.name,
-      },
+      user: auditActor(log),
       reason: (log.after as any)?.reason,
       createdAt: log.createdAt.toISOString(),
     }));

@@ -112,7 +112,7 @@ describe("Socket.IO Infrastructure", () => {
       .post("/api/v1/motorcycles")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
-        vin: "VIN-WS-TEST",
+        vin: "VN-WS-TEST",
         model: "WebSocket Test",
         year: 2024,
         price: 15000,

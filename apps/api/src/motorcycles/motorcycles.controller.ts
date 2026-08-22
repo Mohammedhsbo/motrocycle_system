@@ -6,6 +6,7 @@ import {
   Body,
   Patch,
   Param,
+  ParseUUIDPipe,
   Delete,
   Query,
   UseGuards,
@@ -63,7 +64,7 @@ export class MotorcyclesController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: any) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
     const isCustomer = !req.user || req.user.roleName === 'customer';
     const userBranchId = req.user?.branchId ?? null;
     const isSuperAdmin = req.user?.isSuperAdmin ?? false;
@@ -76,7 +77,7 @@ export class MotorcyclesController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.UPDATE)
   async update(
-    @Param('id') id: string, 
+    @Param('id', ParseUUIDPipe) id: string, 
     @Body(new ZodValidationPipe(updateMotorcycleRequestSchema)) data: UpdateMotorcycleRequest,
     @Req() req: AuthenticatedRequest
   ) {
@@ -89,7 +90,7 @@ export class MotorcyclesController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.UPDATE)
   async updateStatus(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(statusTransitionRequestSchema)) data: StatusTransitionRequest,
     @Req() req: AuthenticatedRequest
   ) {
@@ -101,7 +102,7 @@ export class MotorcyclesController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.DELETE)
-  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;
     await this.motorcyclesService.remove(id, req.user.id, req.user.branchId, isSuperAdmin);
     return { success: true, data: null };

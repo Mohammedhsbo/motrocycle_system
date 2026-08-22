@@ -236,7 +236,7 @@ describe("users integration", () => {
   });
 
   it("protects self role/status and last active super_admin cases", async () => {
-    const { branch } = await seedLookup();
+    const { branch, superAdmin } = await seedLookup();
     const staffRole = await createRole("inventory_clerk", [{ resource: "user", action: "read" }]);
     const admin = await login(app, "admin@example.com", "admin123");
 

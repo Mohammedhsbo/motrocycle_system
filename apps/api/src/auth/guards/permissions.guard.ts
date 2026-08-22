@@ -31,6 +31,13 @@ export class PermissionsGuard implements CanActivate {
       throw new AppError("TOKEN_INVALID", 401, "Authentication token is required");
     }
 
+    // super_admin is an all-access identity everywhere else in the app (it is
+    // what `isSuperAdmin` gates branch scoping on), so it must not be lockable
+    // out here by a role row that predates a newly added resource.
+    if (user.isSuperAdmin) {
+      return true;
+    }
+
     const allowed = required.every((permission) =>
       user.permissions.some(
         (userPermission) =>

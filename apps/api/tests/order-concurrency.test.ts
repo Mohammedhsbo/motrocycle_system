@@ -31,6 +31,8 @@ describe("Orders API - Concurrency Tests", () => {
     const cashierRole = await createRole("cashier", [
       { resource: "order", action: "create" },
       { resource: "order", action: "read" },
+      { resource: "order", action: "update" },
+      { resource: "order", action: "delete" },
     ]);
 
     // Create cashier user

@@ -1,7 +1,42 @@
 import { Prisma } from '@prisma/client';
 
 /**
- * Retries an operation if a unique constraint violation (P2002) occurs.
+ * True for the transient failures a concurrent writer is expected to hit and
+ * should simply try again: a lost race on a unique sequence number, and the
+ * serialization / deadlock aborts that `Serializable` transactions raise when
+ * two of them touch the same rows.
+ */
+function isRetryableConcurrencyError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  // Unique constraint lost race, and Prisma's own write-conflict/deadlock code.
+  if (error.code === 'P2002' || error.code === 'P2034') {
+    return true;
+  }
+
+  // Raw queries fail as P2010 and carry the Postgres SQLSTATE in `meta.code`
+  // (40001 serialization_failure, 40P01 deadlock_detected) rather than in the
+  // error code itself; older client versions only put it in the message.
+  const metaCode = (error.meta as { code?: unknown } | undefined)?.code;
+  if (metaCode === '40001' || metaCode === '40P01') {
+    return true;
+  }
+
+  const message = typeof error.message === 'string' ? error.message : '';
+  return (
+    message.includes('40001') ||
+    message.includes('40P01') ||
+    message.includes('could not serialize access') ||
+    message.includes('deadlock detected')
+  );
+}
+
+/**
+ * Retries an operation that failed on a recoverable write conflict: a unique
+ * constraint violation (P2002) from sequence-number generation, or a
+ * serialization / deadlock abort from a concurrent transaction.
  * This is used to ensure concurrency-safe number generation.
  */
 export async function withUniqueRetry<T>(
@@ -9,20 +44,20 @@ export async function withUniqueRetry<T>(
   maxRetries = 5
 ): Promise<T> {
   let attempt = 0;
+  let lastError: unknown;
   while (attempt < maxRetries) {
     try {
       return await operation(attempt);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (isRetryableConcurrencyError(error)) {
+        lastError = error;
         attempt++;
         if (attempt >= maxRetries) {
-          throw new Error('Failed to generate a unique sequence number after maximum retries.');
+          throw lastError;
         }
-        // Small random delay before retry to avoid thundering herd
-        await new Promise((resolve) => setTimeout(resolve, Math.random() * 50));
+        // Exponential backoff with jitter so retried writers do not collide again.
+        const backoffMs = Math.min(200, 10 * 2 ** attempt) * (0.5 + Math.random());
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
       } else {
         throw error;
       }

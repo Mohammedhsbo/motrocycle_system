@@ -170,7 +170,7 @@ export class WebhookProcessorService {
 
       // Audit log
       await this.audit.log({
-        userId: "system",
+        userId: null,
         action: "webhook_update",
         entityType: "payment",
         entityId: payment.id,

@@ -56,19 +56,21 @@ describe('POS API - Integration Tests', () => {
     ]);
 
     // Create users
-    cashierUser = await createStaffUser(
-      'cashier@pos.test',
-      'password123',
-      cashierRole.id,
+    cashierUser = await createStaffUser({
+      name: 'POS Cashier',
+      email: 'cashier@pos.test',
+      password: 'password123',
+      roleId: cashierRole.id,
       branchId,
-    );
+    });
 
-    managerUser = await createStaffUser(
-      'manager@pos.test',
-      'password123',
-      managerRole.id,
+    managerUser = await createStaffUser({
+      name: 'POS Manager',
+      email: 'manager@pos.test',
+      password: 'password123',
+      roleId: managerRole.id,
       branchId,
-    );
+    });
 
     // Login
     const cashierLogin = await request(app.getHttpServer())
@@ -82,7 +84,7 @@ describe('POS API - Integration Tests', () => {
     managerToken = managerLogin.body.data.accessToken;
 
     // Create test data
-    const customer = await createCustomer('POS Test Customer', '+966501234567');
+    const customer = await createCustomer({ name: 'POS Test Customer', phone: '+966501234567' });
     customerId = customer.id;
 
     const brand = await prisma.brand.create({
@@ -104,11 +106,10 @@ describe('POS API - Integration Tests', () => {
         year: 2024,
         color: 'Red',
         price: 50000,
-        cost: 40000,
+        costPrice: 50000,
         status: 'available',
         branchId,
         images: [],
-        createdBy: cashierUser.id,
       },
     });
     motorcycleId = motorcycle.id;
@@ -167,7 +168,7 @@ describe('POS API - Integration Tests', () => {
         .get('/api/v1/pos/customers/search')
         .query({ q: 'P' })
         .set('Authorization', `Bearer ${cashierToken}`)
-        .expect(400);
+        .expect(422);
     });
   });
 
@@ -203,11 +204,10 @@ describe('POS API - Integration Tests', () => {
           year: 2024,
           color: 'Black',
           price: 70000,
-          cost: 60000,
+          costPrice: 70000,
           status: 'sold',
           branchId,
           images: [],
-          createdBy: cashierUser.id,
         },
       });
 
@@ -244,7 +244,7 @@ describe('POS API - Integration Tests', () => {
           idempotencyKey,
           notes: 'Test order',
         })
-        .expect(200);
+        .expect(201);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.type).toBe('order');
@@ -264,11 +264,10 @@ describe('POS API - Integration Tests', () => {
           year: 2024,
           color: 'Blue',
           price: 35000,
-          cost: 30000,
+          costPrice: 35000,
           status: 'available',
           branchId,
           images: [],
-          createdBy: cashierUser.id,
         },
       });
 
@@ -291,7 +290,7 @@ describe('POS API - Integration Tests', () => {
           idempotencyKey,
           notes: 'Test reservation',
         })
-        .expect(200);
+        .expect(201);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.type).toBe('reservation');
@@ -311,11 +310,10 @@ describe('POS API - Integration Tests', () => {
           year: 2024,
           color: 'White',
           price: 20000,
-          cost: 18000,
+          costPrice: 20000,
           status: 'available',
           branchId,
           images: [],
-          createdBy: cashierUser.id,
         },
       });
 
@@ -335,7 +333,7 @@ describe('POS API - Integration Tests', () => {
           discount: { amount: 800, reason: 'Loyal customer' },
           idempotencyKey,
         })
-        .expect(200);
+        .expect(201);
 
       expect(res.body.success).toBe(true);
     });
@@ -350,11 +348,10 @@ describe('POS API - Integration Tests', () => {
           year: 2024,
           color: 'Gray',
           price: 45000,
-          cost: 40000,
+          costPrice: 45000,
           status: 'available',
           branchId,
           images: [],
-          createdBy: cashierUser.id,
         },
       });
 

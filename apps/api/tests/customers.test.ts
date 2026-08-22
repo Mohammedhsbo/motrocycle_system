@@ -251,7 +251,7 @@ describe("customers integration", () => {
       for (let i = 1; i <= 25; i++) {
         await createCustomer({
           name: `Customer ${i}`,
-          phone: `+96650${i.toString().padStart(7, "0")}`,
+          phone: `+96655${i.toString().padStart(7, "0")}`,
           email: i % 2 === 0 ? `customer${i}@example.com` : undefined,
           nationalId: i % 3 === 0 ? `ID${i.toString().padStart(10, "0")}` : undefined,
         });
