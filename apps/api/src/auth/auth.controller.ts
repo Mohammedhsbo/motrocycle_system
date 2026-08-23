@@ -14,6 +14,8 @@ import type { AuthenticatedRequest } from "../common/types/authenticated-request
 import { getCookieOptions, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_SECONDS } from "../config/auth.config.js";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
 import { AuthService } from "./auth.service.js";
+import { AppError } from "../common/errors/app-error.js";
+
 
 import { Inject } from "@nestjs/common";
 
@@ -30,6 +32,28 @@ export class AuthController {
     return {
       success: true,
       data: await this.authService.registerCustomer(body),
+    };
+  }
+
+  @Post("admin-login")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { ttl: Number(process.env.LOGIN_RATE_LIMIT_TTL_MS ?? 60_000), limit: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 5) } })
+  @UsePipes(new ZodValidationPipe(loginRequestSchema))
+  async adminLogin(@Body() body: LoginRequest, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
+    if (body.email.toLowerCase() !== "admin@example.com") {
+      throw new AppError("INVALID_CREDENTIALS", 401, "Invalid credentials");
+    }
+
+    const result = await this.authService.login(body, this.getIp(request));
+    response.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, getCookieOptions(REFRESH_TOKEN_TTL_SECONDS));
+
+    return {
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+        user: result.user,
+      },
     };
   }
 

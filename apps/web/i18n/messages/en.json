@@ -22,7 +22,8 @@
     "logout": "Logout",
     "profile": "Profile",
     "addresses": "Addresses",
-    "changePassword": "Change Password"
+    "changePassword": "Change Password",
+    "contact": "Contact Us"
   },
   "auth": {
     "login": "Login",
@@ -218,5 +219,25 @@
     "financingAmount": "Financing Amount",
     "installments": "Installments",
     "startDate": "Start Date"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "sendUsMessage": "Send Us a Message",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "submit": "Send Message",
+    "successMessage": "Thank you! Your message has been sent.",
+    "contactInfo": "Contact Information",
+    "addressLabel": "Address",
+    "addressValue": "123 Motorcycle Street, Riyadh, Saudi Arabia",
+    "phoneLabel": "Phone",
+    "phoneValue": "+966 11 000 0000",
+    "emailLabel": "Email",
+    "emailValue": "info@motorcycle.com"
   }
 }

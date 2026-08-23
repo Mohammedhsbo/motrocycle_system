@@ -78,7 +78,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, canRe
 // ─────────────────────────────────────────────────────────
 export const auth = {
   login: (email: string, password: string) =>
-    apiFetch<{ accessToken: string }>('/auth/login', {
+    apiFetch<{ accessToken: string }>('/auth/admin-login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
@@ -89,6 +89,7 @@ export const auth = {
 // ─────────────────────────────────────────────────────────
 // Suppliers
 // ─────────────────────────────────────────────────────────
+
 export interface Supplier {
   id: string;
   name: string;

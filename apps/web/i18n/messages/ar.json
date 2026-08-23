@@ -22,7 +22,8 @@
     "logout": "تسجيل الخروج",
     "profile": "الملف الشخصي",
     "addresses": "العناوين",
-    "changePassword": "تغيير كلمة المرور"
+    "changePassword": "تغيير كلمة المرور",
+    "contact": "اتصل بنا"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -218,5 +219,25 @@
     "financingAmount": "مبلغ التمويل",
     "installments": "الأقساط",
     "startDate": "تاريخ البدء"
+  },
+  "cart": {
+    "title": "سلة التسوق",
+    "empty": "سلة التسوق فارغة."
+  },
+  "contact": {
+    "title": "اتصل بنا",
+    "sendUsMessage": "أرسل لنا رسالة",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "message": "الرسالة",
+    "submit": "إرسال الرسالة",
+    "successMessage": "شكراً! تم إرسال رسالتك بنجاح.",
+    "contactInfo": "معلومات التواصل",
+    "addressLabel": "العنوان",
+    "addressValue": "شارع الدراجات النارية 123، الرياض، المملكة العربية السعودية",
+    "phoneLabel": "هاتف",
+    "phoneValue": "+966 11 000 0000",
+    "emailLabel": "بريد إلكتروني",
+    "emailValue": "info@motorcycle.com"
   }
 }
