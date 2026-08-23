@@ -324,6 +324,9 @@ export class FinancingContractsService {
               installments: true,
             },
           },
+          installments: {
+            orderBy: { installmentNumber: 'asc' },
+          },
         },
         skip,
         take: limit,
@@ -698,6 +701,12 @@ export class FinancingContractsService {
       downPayment: parseFloat(contract.downPayment.toString()),
       financingAmount: parseFloat(contract.financingAmount.toString()),
       interestRate: parseFloat(contract.interestRate.toString()),
+      installments: contract.installments?.map((installment: any) => ({
+        ...installment,
+        amount: parseFloat(installment.amount.toString()),
+        paidAmount: parseFloat(installment.paidAmount.toString()),
+        remainingAmount: Math.max(0, parseFloat(installment.amount.toString()) - parseFloat(installment.paidAmount.toString())),
+      })),
     };
   }
 

@@ -67,7 +67,7 @@ export class PurchasesController {
       userBranchId: req.user.branchId,
       isSuperAdmin,
     });
-    return { success: true, ...result };
+    return { success: true, data: result.items, meta: result.meta };
   }
 
   @Get(':id')

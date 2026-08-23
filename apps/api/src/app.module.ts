@@ -12,6 +12,7 @@ import { UsersModule } from "./users/users.module.js";
 import { UploadModule } from "./upload/upload.module.js";
 import { MotorcyclesModule } from "./motorcycles/motorcycles.module.js";
 import { SocketModule } from "./socket/index.js";
+import { BranchesModule } from "./branches/branches.module.js";
 import { SuppliersModule } from "./suppliers/suppliers.module.js";
 import { PurchasesModule } from "./purchases/purchases.module.js";
 import { TransfersModule } from "./transfers/transfers.module.js";
@@ -49,6 +50,7 @@ import { HealthModule } from "./health/health.module.js";
     UploadModule,
     MotorcyclesModule,
     SocketModule,
+    BranchesModule,
     SuppliersModule,
     PurchasesModule,
     TransfersModule,

@@ -7,6 +7,35 @@ const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL ?? 'http://localh
 
 let authToken: string | null = localStorage.getItem('admin_token');
 
+export interface Integration {
+  id: string;
+  integrationName: string;
+  isEnabled: boolean;
+  healthStatus: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+  lastHealthCheck: string;
+  provider: {
+    providerKey: string;
+    providerName: string;
+    category: string;
+  };
+  branch?: {
+    nameEn: string;
+  };
+}
+
+export interface APIKey {
+  id: string;
+  keyPrefix: string;
+  description: string;
+  environment: string;
+  scope: any;
+  branchId: string | null;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  usageCount: number;
+  createdAt: string;
+}
+
 export function setToken(token: string) {
   authToken = token;
   localStorage.setItem('admin_token', token);
@@ -64,14 +93,42 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, canRe
   }
 
   if (!res.ok) {
-    const err = new Error(json.message ?? 'Request failed') as Error & { code?: string; status?: number };
-    err.code = json.code;
+    const errorBody = json.error ?? json;
+    const err = new Error(errorBody.message ?? json.message ?? 'Request failed') as Error & { code?: string; status?: number; details?: unknown };
+    err.code = errorBody.code ?? json.code;
     err.status = res.status;
+    err.details = errorBody.details;
     throw err;
+  }
+
+  if (Array.isArray(json.data) && json.meta) {
+    return { items: json.data, ...json.meta } as T;
+  }
+
+  if (Array.isArray(json.items) && typeof json.total === 'number') {
+    return json as T;
+  }
+
+  if (Array.isArray(json.items) && json.meta) {
+    return { items: json.items, ...json.meta } as T;
   }
 
   return json.data;
 }
+
+export const integrations = {
+  list: async (): Promise<Integration[]> => {
+    const response = await apiFetch<{ items: Integration[] }>('/admin/integrations');
+    return response.items;
+  },
+};
+
+export const apiKeys = {
+  list: async (): Promise<APIKey[]> => {
+    const response = await apiFetch<{ items: APIKey[] }>('/admin/api-keys');
+    return response.items;
+  },
+};
 
 // ─────────────────────────────────────────────────────────
 // Auth
@@ -117,6 +174,43 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
 }
+
+export interface Branch {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  address?: string | null;
+  phone?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BranchInput {
+  nameAr: string;
+  nameEn: string;
+  address?: string;
+  phone?: string;
+  isActive?: boolean;
+}
+
+export const branches = {
+  list: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.search) q.set('search', params.search);
+    if (params?.isActive !== undefined) q.set('isActive', String(params.isActive));
+    return apiFetch<PaginatedResult<Branch>>(`/branches?${q}`);
+  },
+  get: (id: string) => apiFetch<Branch>(`/branches/${id}`),
+  create: (data: BranchInput) =>
+    apiFetch<Branch>('/branches', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<BranchInput>) =>
+    apiFetch<Branch>(`/branches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    apiFetch<null>(`/branches/${id}`, { method: 'DELETE' }),
+};
 
 export const suppliers = {
   list: (params?: { search?: string; page?: number; limit?: number }) => {
@@ -402,6 +496,7 @@ export interface Purchase {
 
 export interface PurchaseCreateInput {
   supplierId: string;
+  branchId: string;
   items: { model: string; quantity: number; unitCost: number; vin?: string }[];
   notes?: string;
 }
@@ -433,6 +528,86 @@ export const purchases = {
       method: 'POST',
       body: JSON.stringify({ items }),
     }),
+};
+
+// ─────────────────────────────────────────────────────────
+// Stock Transfers
+// ─────────────────────────────────────────────────────────
+export type TransferStatus = 'initiated' | 'in_transit' | 'received' | 'cancelled';
+
+export interface TransferMotorcycle {
+  id: string;
+  vin: string;
+  model: string;
+  currentStatus: string;
+  branchId: string;
+  brand: { nameEn: string; nameAr: string };
+}
+
+export interface TransferListItem {
+  id: string;
+  transferNumber: string;
+  fromBranch: Branch;
+  toBranch: Branch;
+  motorcycleCount: number;
+  status: TransferStatus;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface TransferDetail extends Omit<TransferListItem, 'motorcycleCount'> {
+  user: { id: string; name: string };
+  notes?: string;
+  motorcycles: TransferMotorcycle[];
+}
+
+export interface CreateTransferInput {
+  fromBranchId?: string;
+  toBranchId: string;
+  motorcycleIds: string[];
+  notes?: string;
+}
+
+export interface MotorcycleListItem {
+  id: string;
+  vin: string;
+  model: string;
+  year: number;
+  status: string;
+  branchId: string;
+  brand: { nameEn: string; nameAr: string };
+}
+
+export const transfers = {
+  list: (params?: { page?: number; limit?: number; search?: string; fromBranchId?: string; toBranchId?: string; status?: TransferStatus; startDate?: string; endDate?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.search) q.set('search', params.search);
+    if (params?.fromBranchId) q.set('fromBranchId', params.fromBranchId);
+    if (params?.toBranchId) q.set('toBranchId', params.toBranchId);
+    if (params?.status) q.set('status', params.status);
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    return apiFetch<PaginatedResult<TransferListItem>>(`/transfers?${q}`);
+  },
+  get: (id: string) => apiFetch<TransferDetail>(`/transfers/${id}`),
+  create: (data: CreateTransferInput) => apiFetch<TransferDetail>('/transfers', { method: 'POST', body: JSON.stringify(data) }),
+  ship: (id: string) => apiFetch<TransferDetail>(`/transfers/${id}/ship`, { method: 'POST' }),
+  receive: (id: string) => apiFetch<TransferDetail>(`/transfers/${id}/receive`, { method: 'POST' }),
+  cancel: (id: string) => apiFetch<TransferDetail>(`/transfers/${id}/cancel`, { method: 'POST' }),
+};
+
+export const motorcycles = {
+  list: (params?: { page?: number; limit?: number; search?: string; branchId?: string; status?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.search) q.set('search', params.search);
+    if (params?.branchId) q.set('branchId', params.branchId);
+    if (params?.status) q.set('status', params.status);
+    return apiFetch<PaginatedResult<MotorcycleListItem>>(`/motorcycles?${q}`);
+  },
 };
 
 // ─────────────────────────────────────────────────────────
@@ -629,8 +804,8 @@ export const invoices = {
     if (params?.status) q.set('status', params.status);
     if (params?.customerId) q.set('customerId', params.customerId);
     if (params?.branchId) q.set('branchId', params.branchId);
-    if (params?.startDate) q.set('startDate', params.startDate);
-    if (params?.endDate) q.set('endDate', params.endDate);
+    if (params?.startDate) q.set('fromDate', params.startDate);
+    if (params?.endDate) q.set('toDate', params.endDate);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.sort) q.set('sort', params.sort);
@@ -711,8 +886,8 @@ export const refunds = {
     if (params?.paymentId) q.set('paymentId', params.paymentId);
     if (params?.customerId) q.set('customerId', params.customerId);
     if (params?.branchId) q.set('branchId', params.branchId);
-    if (params?.startDate) q.set('startDate', params.startDate);
-    if (params?.endDate) q.set('endDate', params.endDate);
+    if (params?.startDate) q.set('fromDate', params.startDate);
+    if (params?.endDate) q.set('toDate', params.endDate);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     return apiFetch<PaginatedResult<RefundListItem>>(`/refunds?${q}`);
@@ -858,6 +1033,7 @@ export interface FinancingContractListItem {
   createdAt: string;
   approvedAt?: string;
   completedAt?: string;
+  installments?: Installment[];
 }
 
 export interface Installment {
@@ -940,7 +1116,7 @@ export const financingContracts = {
     if (params?.startDateTo) q.set('startDateTo', params.startDateTo);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
-    return apiFetch<{ data: FinancingContractListItem[]; total: number; page: number; limit: number }>(`/financing-contracts?${q}`);
+    return apiFetch<PaginatedResult<FinancingContractListItem>>(`/financing-contracts?${q}`);
   },
   get: (id: string) => apiFetch<FinancingContractDetail>(`/financing-contracts/${id}`),
   create: (data: CreateFinancingContractInput) =>
@@ -974,7 +1150,7 @@ export const installments = {
   get: (id: string) =>
     apiFetch<Installment & { contract: FinancingContractListItem }>(`/installments/${id}`),
   listByContract: (contractId: string) =>
-    apiFetch<Installment[]>(`/financing-contracts/${contractId}/installments`),
+    apiFetch<Installment[]>(`/installments/contract/${contractId}`),
   createPayment: (installmentId: string, data: InstallmentPaymentInput) =>
     apiFetch<Payment>(`/installments/${installmentId}/payments`, {
       method: 'POST',
@@ -1016,8 +1192,8 @@ export const customerFinancing = {
 // ─────────────────────────────────────────────────────────
 // Letters (SPEC-010)
 // ─────────────────────────────────────────────────────────
-export type LetterStatus = 'draft' | 'issued' | 'sent' | 'received' | 'not_received' | 'cancelled';
-export type LetterType = 'receipt_acknowledgment' | 'delivery_notice' | 'payment_reminder' | 'contract_expiry' | 'general';
+export type LetterStatus = 'issued' | 'received' | 'not_received';
+export type LetterType = 'receipt' | 'delivery';
 
 export interface LetterListItem {
   id: string;
@@ -1056,10 +1232,12 @@ export interface LetterDocument {
 export interface CreateLetterInput {
   type: LetterType;
   customerId: string;
+  motorcycleId: string;
   orderId?: string;
   financingContractId?: string;
   subject: string;
   content: string;
+  expectedDeliveryDate?: string;
   issueDate?: string;
   expiryDate?: string;
   notes?: string;
@@ -1196,6 +1374,27 @@ export interface ExecutiveDashboard {
   branches: string[];
 }
 
+export interface OperationalDashboard {
+  reservations: Record<string, number>;
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    amount: number;
+    status: OrderStatus;
+    createdAt: string;
+  }>;
+  recentPayments: Array<{
+    id: string;
+    paymentReference: string;
+    customerName: string;
+    amount: number;
+    method: PaymentMethod;
+    createdAt: string;
+  }>;
+  branchPerformance: Array<Record<string, unknown>>;
+}
+
 export interface SalesSummary {
   totalSales: number;
   orderCount: number;
@@ -1239,6 +1438,14 @@ export const reports = {
     if (params?.endDate) q.set('endDate', params.endDate);
     if (params?.branches) q.set('branches', params.branches);
     return apiFetch<ExecutiveDashboard>(`/reports/dashboard/executive?${q}`);
+  },
+  getOperationalDashboard: (params?: { preset?: string; startDate?: string; endDate?: string; branches?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.preset) q.set('preset', params.preset);
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    if (params?.branches) q.set('branches', params.branches);
+    return apiFetch<OperationalDashboard>(`/reports/dashboard/operational?${q}`);
   },
   getSalesSummary: (params?: { preset?: string; startDate?: string; endDate?: string; branches?: string; groupBy?: string }) => {
     const q = new URLSearchParams();
@@ -1366,13 +1573,13 @@ export interface DocumentNumbering {
   id: string;
   documentType: string;
   branchId?: string;
-  prefix: string;
-  suffix: string;
-  nextNumber: number;
-  currentNumber: number;
-  padding: number;
+  prefix?: string;
+  includeBranchCode: boolean;
+  includeYear: boolean;
+  sequenceLength: number;
+  currentSequence: number;
   resetPolicy: 'never' | 'yearly' | 'monthly';
-  lastResetAt?: string;
+  lastResetDate?: string;
   createdAt: string;
   updatedAt: string;
   branch?: { id: string; nameEn: string; nameAr: string };
@@ -1382,25 +1589,27 @@ export interface WorkingHours {
   id: string;
   branchId: string;
   dayOfWeek: number;
-  isOpen: boolean;
+  isClosed: boolean;
   openTime?: string;
   closeTime?: string;
-  breakStart?: string;
-  breakEnd?: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Holiday {
   id: string;
-  name: string;
-  date: string;
-  scope: 'company' | 'branch';
+  holidayName: string;
+  holidayDate: string;
+  scope: 'system' | 'branch';
   branchId?: string;
   isRecurring: boolean;
+  recurrencePattern?: string;
   createdAt: string;
+  updatedAt: string;
   createdBy: string;
-  creator: { id: string; name: string };
+  creator?: { id: string; name: string };
   branch?: { id: string; nameEn: string; nameAr: string };
 }
 
@@ -1439,8 +1648,9 @@ export interface FeatureFlagUpdate {
 
 export interface DocumentNumberingUpdate {
   prefix?: string;
-  suffix?: string;
-  padding?: number;
+  includeBranchCode?: boolean;
+  includeYear?: boolean;
+  sequenceLength?: number;
   resetPolicy?: 'never' | 'yearly' | 'monthly';
   reason?: string;
 }
@@ -1453,17 +1663,17 @@ export interface ResetNumberingInput {
 
 export interface WorkingHoursUpdate {
   dayOfWeek: number;
-  isOpen: boolean;
+  isClosed?: boolean;
   openTime?: string;
   closeTime?: string;
-  breakStart?: string;
-  breakEnd?: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
 }
 
 export interface CreateHolidayInput {
-  name: string;
-  date: string;
-  scope: 'company' | 'branch';
+  holidayName: string;
+  holidayDate: string;
+  scope: 'system' | 'branch';
   branchId?: string;
   isRecurring?: boolean;
   recurrencePattern?: string;
@@ -1526,6 +1736,7 @@ export const configuration = {
         updatedAt: string;
       }>;
     }>>('/admin/config/branches'),
+  listBranches: () => branches.list({ page: 1, limit: 100 }).then((result) => result.items),
 
   // Feature Flags
   listFeatureFlags: (params?: { scope?: string; enabled_only?: boolean }) => {

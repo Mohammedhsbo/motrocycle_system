@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsDate, IsObject, IsArray, ValidateNested, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsBoolean, IsDate, IsObject, IsArray, ValidateNested, IsInt, Min, Max, Matches, ValidateIf, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ConfigDataType } from '../configuration.types.js';
 
@@ -100,15 +100,17 @@ export class WorkingHoursUpdateDto {
   @Max(6)
   dayOfWeek: number;
 
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  openTime?: Date;
+  @ValidateIf(dto => !dto.isClosed)
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'openTime must use HH:mm format' })
+  openTime?: string;
 
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  closeTime?: Date;
+  @ValidateIf(dto => !dto.isClosed)
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'closeTime must use HH:mm format' })
+  closeTime?: string;
 
   @IsOptional()
   @IsBoolean()

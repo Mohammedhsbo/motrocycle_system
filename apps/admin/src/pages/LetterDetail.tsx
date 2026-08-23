@@ -74,6 +74,8 @@ const t = {
       payment_reminder: 'Payment Reminder',
       contract_expiry: 'Contract Expiry',
       general: 'General',
+      receipt: 'Receipt',
+      delivery: 'Delivery',
     },
     statuses: {
       draft: 'Draft',
@@ -145,6 +147,8 @@ const t = {
       payment_reminder: 'تذكير بالدفع',
       contract_expiry: 'انتهاء العقد',
       general: 'عام',
+      receipt: 'إيصال',
+      delivery: 'تسليم',
     },
     statuses: {
       draft: 'مسودة',
@@ -267,7 +271,7 @@ export default function LetterDetail({ lang }: Props) {
     });
   };
 
-  const getStatusColor = (status: LetterStatus): string => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
       case 'draft': return 'var(--text-muted)';
       case 'issued': return '#3b82f6';
@@ -299,6 +303,8 @@ export default function LetterDetail({ lang }: Props) {
       </div>
     );
   }
+
+  const status = letter.status as string;
 
   return (
     <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
@@ -557,7 +563,7 @@ export default function LetterDetail({ lang }: Props) {
               {i18n.actions}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {letter.status === 'draft' && (
+              {status === 'draft' && (
                 <button
                   onClick={() => issueMutation.mutate()}
                   disabled={issueMutation.isPending}
@@ -568,7 +574,7 @@ export default function LetterDetail({ lang }: Props) {
                 </button>
               )}
 
-              {letter.status === 'issued' && (
+              {status === 'issued' && (
                 <button
                   onClick={() => sendMutation.mutate()}
                   disabled={sendMutation.isPending}
@@ -579,7 +585,7 @@ export default function LetterDetail({ lang }: Props) {
                 </button>
               )}
 
-              {letter.status === 'sent' && (
+              {status === 'sent' && (
                 <>
                   <button
                     onClick={() => setConfirmReceiptModal(true)}
@@ -598,7 +604,7 @@ export default function LetterDetail({ lang }: Props) {
                 </>
               )}
 
-              {(letter.status === 'issued' || letter.status === 'sent') && (
+              {(status === 'issued' || status === 'sent') && (
                 <>
                   <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
                   <button
@@ -620,7 +626,7 @@ export default function LetterDetail({ lang }: Props) {
                 </>
               )}
 
-              {letter.status !== 'cancelled' && letter.status !== 'received' && (
+              {status !== 'cancelled' && status !== 'received' && (
                 <>
                   <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
                   <button

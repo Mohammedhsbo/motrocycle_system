@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { suppliers, purchases, type PurchaseCreateInput } from '../api';
+import { useBranch } from '../contexts/BranchContext';
 
 interface Props { lang: 'en' | 'ar' }
 
@@ -33,6 +34,8 @@ export default function PurchaseForm({ lang }: Props) {
   const i18n = t[lang];
   const isRtl = lang === 'ar';
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { branchId } = useBranch();
 
   const [supplierId, setSupplierId] = useState('');
   const [items, setItems] = useState<LineItem[]>([emptyItem()]);
@@ -45,7 +48,10 @@ export default function PurchaseForm({ lang }: Props) {
 
   const createMut = useMutation({
     mutationFn: (d: PurchaseCreateInput) => purchases.create(d),
-    onSuccess: (p) => navigate(`/purchases/${p.id}`),
+    onSuccess: (p) => {
+      qc.invalidateQueries({ queryKey: ['purchases'] });
+      navigate(`/purchases/${p.id}`);
+    },
     onError: (e: Error) => setFormError(e.message),
   });
 
@@ -63,7 +69,8 @@ export default function PurchaseForm({ lang }: Props) {
     if (!supplierId) { setFormError('Please select a supplier.'); return; }
     const invalidItem = items.find(it => !it.model.trim() || it.quantity < 1 || it.unitCost < 0);
     if (invalidItem) { setFormError('All items must have a model and valid quantity/cost.'); return; }
-    createMut.mutate({ supplierId, items });
+    if (!branchId) { setFormError('Please select a branch.'); return; }
+    createMut.mutate({ supplierId, branchId, items });
   }
 
   const isBusy = createMut.isPending;

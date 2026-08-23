@@ -33,10 +33,11 @@ const labelMap: Record<BadgeVariant, { en: string; ar: string }> = {
 interface BadgeProps {
   status: BadgeVariant;
   lang?: 'en' | 'ar';
+  label?: string;
 }
 
-export default function Badge({ status, lang = 'en' }: BadgeProps) {
-  const label = labelMap[status]?.[lang] ?? status;
+export default function Badge({ status, lang = 'en', label: customLabel }: BadgeProps) {
+  const label = customLabel ?? labelMap[status]?.[lang] ?? status;
   return (
     <span className={`badge badge-${status}`}>{label}</span>
   );

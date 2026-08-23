@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { FileText, RefreshCw, ChevronRight, Search } from 'lucide-react';
 import { invoices, type InvoiceStatus } from '../api';
+import CustomerSearch from '../components/CustomerSearch';
+import { useBranch } from '../contexts/BranchContext';
 import Badge from '../components/Badge';
 
 interface Props { lang: 'en' | 'ar' }
@@ -73,6 +75,11 @@ export default function Invoices({ lang }: Props) {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { branches, branchId } = useBranch();
+  const [customerId, setCustomerId] = useState<string>();
+  const [customerName, setCustomerName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Debounce search
   const handleSearch = (value: string) => {
@@ -82,11 +89,15 @@ export default function Invoices({ lang }: Props) {
   };
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['invoices', statusFilter, debouncedSearch],
+    queryKey: ['invoices', statusFilter, debouncedSearch, customerId, branchId, startDate, endDate],
     queryFn: () =>
       invoices.list({
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: debouncedSearch || undefined,
+        customerId,
+        branchId: branchId ?? undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
         limit: 50,
       }),
   });
@@ -178,6 +189,13 @@ export default function Invoices({ lang }: Props) {
         >
           <RefreshCw size={14} />
         </button>
+      </div>
+      <div className="card mb-4 flex gap-2" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+        <CustomerSearch lang={lang} onSelect={customer => { setCustomerId(customer.id); setCustomerName(customer.name); }} trigger={<button type="button" className="btn btn-outline">{customerName || 'Customer'}</button>} />
+        {customerId && <button className="btn btn-outline" onClick={() => { setCustomerId(undefined); setCustomerName(''); }}>Clear customer</button>}
+        <select className="input" value={branchId ?? ''} disabled><option value="">{branches.find(branch => branch.id === branchId)?.nameEn ?? 'Branch'}</option></select>
+        <input className="input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        <input className="input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
       </div>
 
       {/* Table */}

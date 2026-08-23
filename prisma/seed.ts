@@ -120,9 +120,11 @@ export async function seedDatabase() {
 
   // Branch Admin role
   const branchAdminPermissions = [
-    ...resources.filter(r => r !== 'role' && r !== 'branch' && r !== 'setting').flatMap((resource) =>
+    ...resources.filter(r => r !== 'role' && r !== 'setting').flatMap((resource) =>
       actions.map((action) => ({ resource, action })),
     ),
+    { resource: "configuration", action: "read" },
+    { resource: "configuration", action: "update" },
     { resource: "report", action: "read" },
     { resource: "report", action: "export" },
   ] as const;
@@ -635,17 +637,34 @@ export async function seedDatabase() {
     prisma.category.findFirst({ where: { nameEn: "Motocross Bikes" }, select: { id: true } }),
   ]);
 
+  const missingCatalogRecords = [
+    ["brand", "Honda", hondaDb],
+    ["brand", "Yamaha", yamahaDb],
+    ["brand", "Kawasaki", kawasakiDb],
+    ["category", "Street Bikes", streetDb],
+    ["category", "Sport Bikes", sportDb],
+    ["category", "Touring Bikes", touringDb],
+    ["category", "Off-Road Bikes", offRoadDb],
+    ["category", "Motocross Bikes", motocrossDb],
+  ].filter(([, , record]) => !record);
+
+  if (missingCatalogRecords.length > 0) {
+    throw new Error(
+      `Expected seeded catalog record(s) before motorcycles: ${missingCatalogRecords.map(([type, name]) => `${type} "${name}"`).join(", ")}`,
+    );
+  }
+
   const brandMap: Record<string, string> = {
-    "10000000-0000-0000-0000-000000000001": hondaDb!.id,
-    "10000000-0000-0000-0000-000000000002": yamahaDb!.id,
-    "10000000-0000-0000-0000-000000000003": kawasakiDb!.id,
+    "10000000-0000-0000-0000-000000000001": hondaDb.id,
+    "10000000-0000-0000-0000-000000000002": yamahaDb.id,
+    "10000000-0000-0000-0000-000000000003": kawasakiDb.id,
   };
   const catMap: Record<string, string> = {
-    "20000000-0000-0000-0000-000000000001": streetDb!.id,
-    "20000000-0000-0000-0000-000000000002": sportDb!.id,
-    "20000000-0000-0000-0000-000000000003": touringDb!.id,
-    "20000000-0000-0000-0000-000000000004": offRoadDb!.id,
-    "20000000-0000-0000-0000-000000000005": motocrossDb!.id,
+    "20000000-0000-0000-0000-000000000001": streetDb.id,
+    "20000000-0000-0000-0000-000000000002": sportDb.id,
+    "20000000-0000-0000-0000-000000000003": touringDb.id,
+    "20000000-0000-0000-0000-000000000004": offRoadDb.id,
+    "20000000-0000-0000-0000-000000000005": motocrossDb.id,
   };
 
   for (const motorcycle of motorcycles) {

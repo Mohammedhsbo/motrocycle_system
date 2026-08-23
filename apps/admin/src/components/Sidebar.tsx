@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, PackageSearch, ShoppingCart, Users, ArrowLeftRight, ShoppingBag, X, FileText, CreditCard, Wallet, Mail, BarChart2, Settings, Flag, Building2, History, Key } from 'lucide-react';
+import { useBranch } from '../contexts/BranchContext';
 
 interface SidebarProps {
   lang: 'en' | 'ar';
@@ -29,6 +30,7 @@ const nav = [
 
 export default function Sidebar({ lang, onToggleLang, onLogout }: SidebarProps) {
   const isRtl = lang === 'ar';
+  const { branches, branchId, setBranchId } = useBranch();
 
   return (
     <aside className="sidebar" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
@@ -72,6 +74,10 @@ export default function Sidebar({ lang, onToggleLang, onLogout }: SidebarProps) 
           </NavLink>
         ))}
       </nav>
+
+      <select className="input" value={branchId ?? ''} onChange={event => event.target.value && setBranchId(event.target.value)}>
+        {branches.map(branch => <option key={branch.id} value={branch.id}>{isRtl ? branch.nameAr : branch.nameEn}</option>)}
+      </select>
 
       {/* Language toggle */}
       <button

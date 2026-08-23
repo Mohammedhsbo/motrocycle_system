@@ -43,19 +43,13 @@ const t = {
     allStatuses: 'All Statuses',
     createNew: 'Create Letter',
     types: {
-      receipt_acknowledgment: 'Receipt Acknowledgment',
-      delivery_notice: 'Delivery Notice',
-      payment_reminder: 'Payment Reminder',
-      contract_expiry: 'Contract Expiry',
-      general: 'General',
+      receipt: 'Receipt',
+      delivery: 'Delivery',
     },
     statuses: {
-      draft: 'Draft',
       issued: 'Issued',
-      sent: 'Sent',
       received: 'Received',
       not_received: 'Not Received',
-      cancelled: 'Cancelled',
     },
   },
   ar: {
@@ -81,19 +75,13 @@ const t = {
     allStatuses: 'جميع الحالات',
     createNew: 'إنشاء خطاب',
     types: {
-      receipt_acknowledgment: 'إقرار الاستلام',
-      delivery_notice: 'إشعار التسليم',
-      payment_reminder: 'تذكير بالدفع',
-      contract_expiry: 'انتهاء العقد',
-      general: 'عام',
+      receipt: 'إيصال',
+      delivery: 'تسليم',
     },
     statuses: {
-      draft: 'مسودة',
       issued: 'صادر',
-      sent: 'مرسل',
       received: 'مستلم',
       not_received: 'غير مستلم',
-      cancelled: 'ملغي',
     },
   },
 };
@@ -136,12 +124,9 @@ export default function Letters({ lang }: Props) {
 
   const getStatusColor = (status: LetterStatus): string => {
     switch (status) {
-      case 'draft': return 'var(--text-muted)';
       case 'issued': return '#3b82f6';
-      case 'sent': return '#f59e0b';
       case 'received': return '#10b981';
       case 'not_received': return '#ef4444';
-      case 'cancelled': return 'var(--error)';
       default: return 'var(--text-secondary)';
     }
   };
@@ -202,11 +187,8 @@ export default function Letters({ lang }: Props) {
             }}
           >
             <option value="">{i18n.allTypes}</option>
-            <option value="receipt_acknowledgment">{i18n.types.receipt_acknowledgment}</option>
-            <option value="delivery_notice">{i18n.types.delivery_notice}</option>
-            <option value="payment_reminder">{i18n.types.payment_reminder}</option>
-            <option value="contract_expiry">{i18n.types.contract_expiry}</option>
-            <option value="general">{i18n.types.general}</option>
+            <option value="receipt">{i18n.types.receipt}</option>
+            <option value="delivery">{i18n.types.delivery}</option>
           </select>
           <select
             value={filters.status ?? ''}
@@ -220,12 +202,9 @@ export default function Letters({ lang }: Props) {
             }}
           >
             <option value="">{i18n.allStatuses}</option>
-            <option value="draft">{i18n.statuses.draft}</option>
             <option value="issued">{i18n.statuses.issued}</option>
-            <option value="sent">{i18n.statuses.sent}</option>
             <option value="received">{i18n.statuses.received}</option>
             <option value="not_received">{i18n.statuses.not_received}</option>
-            <option value="cancelled">{i18n.statuses.cancelled}</option>
           </select>
         </form>
       </div>

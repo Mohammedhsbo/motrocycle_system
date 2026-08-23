@@ -9,6 +9,7 @@ import {
   Body,
   Param,
   Query,
+  ParseArrayPipe,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -62,7 +63,7 @@ export class ConfigurationAdminController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
   async getSystemConfiguration(@Query() query: ConfigurationQueryDto) {
-    return this.adminService.getSystemConfiguration(query);
+    return { success: true, data: await this.adminService.getSystemConfiguration(query) };
   }
 
   @Patch('system')
@@ -71,19 +72,19 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: UpdateSystemConfigurationDto,
   ) {
-    return this.adminService.updateSystemConfiguration(dto, req.user.id, req.ip, req.get('user-agent'));
+    return { success: true, data: await this.adminService.updateSystemConfiguration(dto, req.user.id, req.ip, req.get('user-agent')) };
   }
 
   @Get('schema')
   async getConfigurationSchema() {
-    return this.configService.getAllMetadata();
+    return { success: true, data: await this.configService.getAllMetadata() };
   }
 
   // Company Configuration
   @Get('company')
   @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async getCompanyConfiguration(@Query() query: ConfigurationQueryDto) {
-    return this.adminService.getCompanyConfiguration(query);
+    return { success: true, data: await this.adminService.getCompanyConfiguration(query) };
   }
 
   @Patch('company')
@@ -92,7 +93,7 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: UpdateCompanyConfigurationDto,
   ) {
-    return this.adminService.updateCompanyConfiguration(dto, req.user.id, req.ip, req.get('user-agent'));
+    return { success: true, data: await this.adminService.updateCompanyConfiguration(dto, req.user.id, req.ip, req.get('user-agent')) };
   }
 
   // Branch Configuration
@@ -102,7 +103,7 @@ export class ConfigurationAdminController {
     @Param('branchId') branchId: string,
   ) {
     // TODO: Add branch access control
-    return this.adminService.getBranchConfiguration(branchId);
+    return { success: true, data: await this.adminService.getBranchConfiguration(branchId) };
   }
 
   @Patch('branches/:branchId')
@@ -112,19 +113,19 @@ export class ConfigurationAdminController {
     @Body() dto: UpdateBranchConfigurationDto,
   ) {
     // TODO: Add branch access control
-    return this.adminService.updateBranchConfiguration(branchId, dto, req.user.id, req.ip, req.get('user-agent'));
+    return { success: true, data: await this.adminService.updateBranchConfiguration(branchId, dto, req.user.id, req.ip, req.get('user-agent')) };
   }
 
   @Get('branches')
   @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async listBranchConfigurations() {
-    return this.adminService.listAllBranchConfigurations();
+    return { success: true, data: await this.adminService.listAllBranchConfigurations() };
   }
 
   // Feature Flags
   @Get('feature-flags')
   async listFeatureFlags(@Query() query: FeatureFlagQueryDto) {
-    return this.featureFlagService.getAllFlags(query.scope, query.enabled_only);
+    return { success: true, data: await this.featureFlagService.getAllFlags(query.scope, query.enabled_only) };
   }
 
   @Patch('feature-flags/:flagKey')
@@ -134,7 +135,7 @@ export class ConfigurationAdminController {
     @Param('flagKey') flagKey: string,
     @Body() dto: FeatureFlagUpdateDto,
   ) {
-    return this.featureFlagService.updateFlag(flagKey, dto, req.user.id);
+    return { success: true, data: await this.featureFlagService.updateFlag(flagKey, dto, req.user.id) };
   }
 
   @Post('feature-flags')
@@ -143,13 +144,13 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: any,
   ) {
-    return this.featureFlagService.createFlag(dto, req.user.id);
+    return { success: true, data: await this.featureFlagService.createFlag(dto, req.user.id) };
   }
 
   // Document Numbering
   @Get('numbering')
   async getNumberingConfiguration(@Query() query: DocumentNumberingQueryDto) {
-    return this.adminService.getDocumentNumbering(query.document_type, query.branch);
+    return { success: true, data: await this.adminService.getDocumentNumbering(query.document_type, query.branch) };
   }
 
   @Patch('numbering/:documentType')
@@ -159,7 +160,7 @@ export class ConfigurationAdminController {
     @Param('documentType') documentType: string,
     @Body() dto: DocumentNumberingUpdateDto,
   ) {
-    return this.adminService.updateDocumentNumbering(documentType, dto, req.user.id, req.ip, req.get('user-agent'));
+    return { success: true, data: await this.adminService.updateDocumentNumbering(documentType, dto, req.user.id, req.ip, req.get('user-agent')) };
   }
 
   @Post('numbering/:documentType/reset')
@@ -169,28 +170,28 @@ export class ConfigurationAdminController {
     @Param('documentType') documentType: string,
     @Body() dto: ResetNumberingDto,
   ) {
-    return this.adminService.resetDocumentSequence(documentType, dto, req.user.id, req.ip, req.get('user-agent'));
+    return { success: true, data: await this.adminService.resetDocumentSequence(documentType, dto, req.user.id, req.ip, req.get('user-agent')) };
   }
 
   // Working Hours
   @Get('working-hours/:branchId')
   async getWorkingHours(@Param('branchId') branchId: string) {
-    return this.adminService.getWorkingHours(branchId);
+    return { success: true, data: await this.adminService.getWorkingHours(branchId) };
   }
 
   @Put('working-hours/:branchId')
   async updateWorkingHours(
     @Req() req: AuthRequest,
     @Param('branchId') branchId: string,
-    @Body() dto: WorkingHoursUpdateDto[],
+    @Body(new ParseArrayPipe({ items: WorkingHoursUpdateDto })) dto: WorkingHoursUpdateDto[],
   ) {
-    return this.adminService.updateWorkingHours(branchId, dto, req.user.id);
+    return { success: true, data: await this.adminService.updateWorkingHours(branchId, dto, req.user.id) };
   }
 
   // Holidays
   @Get('holidays')
   async listHolidays(@Query('branch_id') branchId?: string) {
-    return this.adminService.getHolidays(branchId);
+    return { success: true, data: await this.adminService.getHolidays(branchId) };
   }
 
   @Post('holidays')
@@ -199,20 +200,20 @@ export class ConfigurationAdminController {
     @Req() req: AuthRequest,
     @Body() dto: CreateHolidayDto,
   ) {
-    return this.adminService.createHoliday(dto, req.user.id);
+    return { success: true, data: await this.adminService.createHoliday(dto, req.user.id) };
   }
 
   @Delete('holidays/:id')
   @RequirePermission(Resource.CONFIGURATION, Action.DELETE)
   async deleteHoliday(@Param('id') id: string) {
-    return this.adminService.deleteHoliday(id);
+    return { success: true, data: await this.adminService.deleteHoliday(id) };
   }
 
   // Configuration Audit
   @Get('audit')
   @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async getConfigurationAudit(@Query() query: ConfigurationAuditQueryDto) {
-    return this.adminService.getConfigurationAudit(query);
+    return { success: true, data: await this.adminService.getConfigurationAudit(query) };
   }
 
   // Configuration Statistics
@@ -241,14 +242,14 @@ export class ConfigurationAdminController {
 
     const enabledFlags = await this.prisma.featureFlag.count({ where: { isEnabled: true } });
 
-    return {
+    return { success: true, data: {
       systemConfigurations: systemCount,
       companyConfigurations: companyCount,
       branchConfigurations: branchCount,
       totalFeatureFlags: featureFlagCount,
       enabledFeatureFlags: enabledFlags,
       recentChangesLast7Days: recentChanges,
-    };
+    } };
   }
 }
 
@@ -281,7 +282,7 @@ export class ConfigurationController {
           // Skip missing keys
         }
       }
-      return result;
+      return { success: true, data: result };
     }
 
     // Return all configuration
@@ -289,11 +290,11 @@ export class ConfigurationController {
     const companyConfig = await this.configService.getAllConfiguration('company' as any);
     const branchConfig = branchId ? await this.configService.getAllConfiguration('branch' as any, branchId) : {};
 
-    return {
+    return { success: true, data: {
       ...systemConfig,
       ...companyConfig,
       ...branchConfig,
-    };
+    } };
   }
 
   /**
@@ -305,7 +306,7 @@ export class ConfigurationController {
     @Param('key') key: string,
   ) {
     const value = await this.configService.getValueWithMeta(key, req.user.branchId ?? undefined);
-    return value;
+    return { success: true, data: value };
   }
 
   /**
@@ -322,6 +323,6 @@ export class ConfigurationController {
       req.user.id,
     );
 
-    return { flagKey, isEnabled };
+    return { success: true, data: { flagKey, isEnabled } };
   }
 }

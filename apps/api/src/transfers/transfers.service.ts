@@ -164,6 +164,7 @@ export class TransfersService {
     const where: Prisma.TransferWhereInput = {};
 
     // Branch scoping: non-admins only see transfers involving their branch
+    // Follow-up: concurrent creates can still race the active-transfer check.
     if (!isSuperAdmin && userBranchId) {
       where.OR = [
         { fromBranchId: userBranchId },
@@ -231,6 +232,7 @@ export class TransfersService {
   }
 
   async findOne(id: string, userBranchId: string | null, isSuperAdmin: boolean) {
+    // Follow-up: transfer history is represented through audit entries; no dedicated history table exists.
     const transfer = await this.prisma.transfer.findUnique({
       where: { id },
       include: {
@@ -320,6 +322,7 @@ export class TransfersService {
       `;
 
       // 3. Verify they are all still available
+      // Follow-up: branch ownership is not rechecked after the row lock.
       for (const m of lockedMotorcycles) {
         if (m.status !== 'available') {
            throw new ConflictException({ code: 'MOTORCYCLE_STATUS_CHANGED', message: `Motorcycle ${m.vin} is no longer available (${m.status})` });

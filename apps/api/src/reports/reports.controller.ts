@@ -45,12 +45,12 @@ export class ReportsController {
         )
       : { start: new Date(startDate!), end: new Date(endDate!) };
 
-    ReportUtils.validateDateRange(dateRange);
+    ReportUtils.validateDateRange(dateRange, preset === DateRangePreset.ALL_TIME ? Infinity : undefined);
 
     const requestedBranches = branches ? branches.split(',') : undefined;
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
 
-    return this.dashboardService.getExecutiveDashboard(req.user, dateRange, branchIds);
+    return { success: true, data: await this.dashboardService.getExecutiveDashboard(req.user, dateRange, branchIds) };
   }
 
   @Get('dashboard/operational')
@@ -72,7 +72,7 @@ export class ReportsController {
     const requestedBranches = branches ? branches.split(',') : undefined;
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
 
-    return this.dashboardService.getOperationalDashboard(req.user, dateRange, branchIds);
+    return { success: true, data: await this.dashboardService.getOperationalDashboard(req.user, dateRange, branchIds) };
   }
 
   // Sales Reports
@@ -93,13 +93,13 @@ export class ReportsController {
         )
       : { start: new Date(startDate!), end: new Date(endDate!) };
 
-    ReportUtils.validateDateRange(dateRange);
+    ReportUtils.validateDateRange(dateRange, preset === DateRangePreset.ALL_TIME ? Infinity : undefined);
 
     const requestedBranches = branches ? branches.split(',') : undefined;
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.salesService.getSalesSummary(branchFilter, dateRange, groupBy);
+    return { success: true, data: await this.salesService.getSalesSummary(branchFilter, dateRange, groupBy) };
   }
 
   @Get('sales/by-dimension')
@@ -124,7 +124,7 @@ export class ReportsController {
         )
       : { start: new Date(startDate!), end: new Date(endDate!) };
 
-    ReportUtils.validateDateRange(dateRange);
+    ReportUtils.validateDateRange(dateRange, preset === DateRangePreset.ALL_TIME ? Infinity : undefined);
 
     const requestedBranches = branches ? branches.split(',') : undefined;
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
@@ -132,7 +132,7 @@ export class ReportsController {
 
     const limitNum = limit ? parseInt(limit, 10) : 10;
 
-    return this.salesService.getSalesByDimension(branchFilter, dateRange, dimension, limitNum);
+    return { success: true, data: await this.salesService.getSalesByDimension(branchFilter, dateRange, dimension, limitNum) };
   }
 
   // Financial Reports
@@ -152,13 +152,13 @@ export class ReportsController {
         )
       : { start: new Date(startDate!), end: new Date(endDate!) };
 
-    ReportUtils.validateDateRange(dateRange);
+    ReportUtils.validateDateRange(dateRange, preset === DateRangePreset.ALL_TIME ? Infinity : undefined);
 
     const requestedBranches = branches ? branches.split(',') : undefined;
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.salesService.getRevenueCollection(branchFilter, dateRange);
+    return { success: true, data: await this.salesService.getRevenueCollection(branchFilter, dateRange) };
   }
 
   @Get('financial/aging')
@@ -168,7 +168,7 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.salesService.getAgingReport(branchFilter);
+    return { success: true, data: await this.salesService.getAgingReport(branchFilter) };
   }
 
   // Inventory Reports
@@ -179,7 +179,7 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.inventoryService.getCurrentInventoryStatus(branchFilter);
+    return { success: true, data: await this.inventoryService.getCurrentInventoryStatus(branchFilter) };
   }
 
   @Get('inventory/movement')
@@ -202,7 +202,7 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.inventoryService.getInventoryMovement(branchFilter, dateRange);
+    return { success: true, data: await this.inventoryService.getInventoryMovement(branchFilter, dateRange) };
   }
 
   @Get('purchases/analytics')
@@ -225,7 +225,7 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.inventoryService.getPurchaseAnalytics(branchFilter, dateRange);
+    return { success: true, data: await this.inventoryService.getPurchaseAnalytics(branchFilter, dateRange) };
   }
 
   @Get('suppliers/performance')
@@ -243,7 +243,7 @@ export class ReportsController {
         )
       : { start: new Date(startDate!), end: new Date(endDate!) };
 
-    return this.inventoryService.getSupplierPerformance(dateRange);
+    return { success: true, data: await this.inventoryService.getSupplierPerformance(dateRange) };
   }
 
   // Installment & Customer Reports
@@ -254,7 +254,7 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.installmentsService.getInstallmentPortfolio(branchFilter);
+    return { success: true, data: await this.installmentsService.getInstallmentPortfolio(branchFilter) };
   }
 
   @Get('installments/overdue')
@@ -264,7 +264,7 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.installmentsService.getOverdueInstallments(branchFilter);
+    return { success: true, data: await this.installmentsService.getOverdueInstallments(branchFilter) };
   }
 
   @Get('customers/analytics')
@@ -287,6 +287,6 @@ export class ReportsController {
     const branchIds = ReportUtils.getAccessibleBranchIds(req.user, requestedBranches);
     const branchFilter = ReportUtils.buildBranchFilter(branchIds);
 
-    return this.installmentsService.getCustomerAnalytics(branchFilter, dateRange);
+    return { success: true, data: await this.installmentsService.getCustomerAnalytics(branchFilter, dateRange) };
   }
 }

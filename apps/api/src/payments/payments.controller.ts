@@ -40,12 +40,13 @@ export class PaymentsController {
     @Body(new ZodValidationPipe(createPaymentSchema)) data: CreatePaymentRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.paymentsService.create(
+    const payment = await this.paymentsService.create(
       data,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: payment };
   }
 
   @Get()
@@ -74,23 +75,25 @@ export class PaymentsController {
       limit: limit ? parseInt(limit) : undefined,
     };
 
-    return this.paymentsService.list(
+    const result = await this.paymentsService.list(
       filters,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: result.items, meta: { total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages } };
   }
 
   @Get(":id")
   @RequirePermission(Resource.PAYMENTS, Action.READ)
   async findOne(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.paymentsService.findById(
+    const payment = await this.paymentsService.findById(
       id,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: payment };
   }
 
   @Patch(":id/confirm")
@@ -100,13 +103,14 @@ export class PaymentsController {
     @Body(new ZodValidationPipe(confirmPaymentSchema)) data: ConfirmPaymentRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.paymentsService.confirm(
+    const payment = await this.paymentsService.confirm(
       id,
       data,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: payment };
   }
 
   @Patch(":id/cancel")
@@ -116,13 +120,14 @@ export class PaymentsController {
     @Body(new ZodValidationPipe(cancelPaymentSchema)) data: CancelPaymentRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.paymentsService.cancel(
+    const payment = await this.paymentsService.cancel(
       id,
       data,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: payment };
   }
 
   @Get(":id/allocations")
@@ -131,11 +136,12 @@ export class PaymentsController {
     @Param("id") id: string,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.paymentsService.getAllocations(
+    const allocations = await this.paymentsService.getAllocations(
       id,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: allocations };
   }
 }

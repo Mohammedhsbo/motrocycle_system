@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { CreditCard, RefreshCw, ChevronRight, Search } from 'lucide-react';
 import { payments, type PaymentStatus, type PaymentMethod } from '../api';
+import CustomerSearch from '../components/CustomerSearch';
+import { useBranch } from '../contexts/BranchContext';
 import Badge from '../components/Badge';
 
 interface Props {
@@ -82,6 +84,12 @@ export default function Payments({ lang }: Props) {
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { branches, branchId } = useBranch();
+  const [customerId, setCustomerId] = useState<string>();
+  const [customerName, setCustomerName] = useState('');
+  const [methodFilter, setMethodFilter] = useState<PaymentMethod | 'all'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -90,11 +98,16 @@ export default function Payments({ lang }: Props) {
   };
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['payments', statusFilter, debouncedSearch],
+    queryKey: ['payments', statusFilter, debouncedSearch, customerId, methodFilter, branchId, startDate, endDate],
     queryFn: () =>
       payments.list({
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: debouncedSearch || undefined,
+        customerId,
+        method: methodFilter === 'all' ? undefined : methodFilter,
+        branchId: branchId ?? undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
         limit: 50,
       }),
   });
@@ -128,6 +141,14 @@ export default function Payments({ lang }: Props) {
             {data?.total ?? 0} {i18n.subtitle}
           </p>
         </div>
+      </div>
+      <div className="card mb-4 flex gap-2" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+        <CustomerSearch lang={lang} onSelect={customer => { setCustomerId(customer.id); setCustomerName(customer.name); }} trigger={<button type="button" className="btn btn-outline">{customerName || 'Customer'}</button>} />
+        {customerId && <button className="btn btn-outline" onClick={() => { setCustomerId(undefined); setCustomerName(''); }}>Clear customer</button>}
+        <select className="input" value={methodFilter} onChange={e => setMethodFilter(e.target.value as PaymentMethod | 'all')}><option value="all">All methods</option>{(['cash', 'card', 'bank_transfer', 'cheque'] as PaymentMethod[]).map(method => <option key={method} value={method}>{method}</option>)}</select>
+        <select className="input" value={branchId ?? ''} disabled><option value="">{branches.find(branch => branch.id === branchId)?.nameEn ?? 'Branch'}</option></select>
+        <input className="input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        <input className="input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
       </div>
 
       {/* Search bar */}

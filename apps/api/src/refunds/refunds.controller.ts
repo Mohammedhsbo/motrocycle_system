@@ -33,12 +33,13 @@ export class RefundsController {
     @Body(new ZodValidationPipe(createRefundSchema)) data: CreateRefundRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.refundsService.create(
+    const refund = await this.refundsService.create(
       data,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: refund };
   }
 
   @Get()
@@ -63,22 +64,24 @@ export class RefundsController {
       limit: limit ? parseInt(limit) : undefined,
     };
 
-    return this.refundsService.list(
+    const result = await this.refundsService.list(
       filters,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: result.items, meta: { total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages } };
   }
 
   @Get(":id")
   @RequirePermission(Resource.PAYMENTS, Action.READ)
   async findOne(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.refundsService.findById(
+    const refund = await this.refundsService.findById(
       id,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: refund };
   }
 }

@@ -34,6 +34,7 @@ export enum DateRangePreset {
   LAST_QUARTER = 'last_quarter',
   THIS_YEAR = 'this_year',
   LAST_YEAR = 'last_year',
+  ALL_TIME = 'all_time',
   CUSTOM = 'custom',
 }
 

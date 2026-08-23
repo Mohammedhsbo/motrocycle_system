@@ -87,6 +87,9 @@ export class ReportUtils {
       case DateRangePreset.LAST_YEAR:
         const lastYear = ReportUtils.subYears(now, 1);
         return { start: ReportUtils.startOfYear(lastYear), end: ReportUtils.endOfYear(lastYear) };
+
+      case DateRangePreset.ALL_TIME:
+        return { start: new Date(0), end: now };
       
       case DateRangePreset.CUSTOM:
         if (!customRange) {
@@ -103,6 +106,10 @@ export class ReportUtils {
    * Get branch IDs accessible by user
    */
   static getAccessibleBranchIds(user: User & { branch?: Branch | null, role: Role }, requestedBranches?: string[]): string[] {
+    if (!user.role) {
+      throw new Error('User role not loaded — check JWT strategy include');
+    }
+
     // Super admin can access all branches or requested branches
     if (user.role.name === 'super_admin') {
       return requestedBranches || [];

@@ -174,31 +174,44 @@ export default function FinancingContractDetail({ lang }: Props) {
       installments.createPayment(data.installmentId, data.payment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financing-contract', id] });
+      queryClient.invalidateQueries({ queryKey: ['financing-contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-financing'] });
       setShowPaymentModal(false);
       setPaymentForm({ amount: '', method: 'cash', reference: '', notes: '' });
       alert(i18n.paymentSuccess);
     },
   });
+    const settlementMutation = useMutation({
+      mutationFn: () => financingContracts.settle(id!, {
+        paymentMethod: settlementForm.method,
+        reference: settlementForm.reference || undefined,
+        notes: settlementForm.notes || undefined,
+      }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['financing-contract', id] });
+        queryClient.invalidateQueries({ queryKey: ['financing-contracts'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-financing'] });
+        setShowSettlementModal(false);
+        alert(i18n.settlementSuccess);
+      },
+    });
+    const approvalMutation = useMutation({
+      mutationFn: () => financingContracts.approve(id!),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['financing-contract', id] });
+        queryClient.invalidateQueries({ queryKey: ['financing-contracts'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-financing'] });
+        setShowApprovalModal(false);
+        alert(i18n.approvalSuccess);
+      },
+    });
 
-  const settlementMutation = useMutation({
-    mutationFn: () => financingContracts.settle(id!, {
-      paymentMethod: settlementForm.method,
-      reference: settlementForm.reference || undefined,
-      notes: settlementForm.notes || undefined,
-    }),
+  const cancelMutation = useMutation({
+    mutationFn: () => financingContracts.updateStatus(id!, 'cancelled'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financing-contract', id] });
-      setShowSettlementModal(false);
-      alert(i18n.settlementSuccess);
-    },
-  });
-
-  const approvalMutation = useMutation({
-    mutationFn: () => financingContracts.approve(id!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financing-contract', id] });
-      setShowApprovalModal(false);
-      alert(i18n.approvalSuccess);
+      queryClient.invalidateQueries({ queryKey: ['financing-contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-financing'] });
     },
   });
 
@@ -226,11 +239,18 @@ export default function FinancingContractDetail({ lang }: Props) {
 
   const submitPayment = () => {
     if (!selectedInstallment) return;
-    const idempotencyKey = `payment-${selectedInstallment}-${Date.now()}`;
+    const installment = contract?.installments.find(item => item.id === selectedInstallment);
+    const remaining = installment ? Math.max(0, installment.amount - installment.paidAmount) : 0;
+    const amount = parseFloat(paymentForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > remaining + 0.01) {
+      alert(`Payment amount must be between 0 and ${remaining.toFixed(2)}`);
+      return;
+    }
+    const idempotencyKey = crypto.randomUUID();
     paymentMutation.mutate({
       installmentId: selectedInstallment,
       payment: {
-        amount: parseFloat(paymentForm.amount),
+        amount,
         method: paymentForm.method,
         reference: paymentForm.reference || undefined,
         idempotencyKey,
@@ -296,6 +316,9 @@ export default function FinancingContractDetail({ lang }: Props) {
                 <button onClick={() => setShowSettlementModal(true)} className="btn btn-secondary">
                   <CheckCircle size={18} />
                   {i18n.settle}
+                </button>
+                <button onClick={() => { if (window.confirm('Cancel this active financing contract?')) cancelMutation.mutate(); }} className="btn btn-outline" disabled={cancelMutation.isPending}>
+                  Cancel Contract
                 </button>
               </>
             )}
@@ -368,7 +391,7 @@ export default function FinancingContractDetail({ lang }: Props) {
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>{i18n.installmentSchedule}</h3>
-        {contract.installments.length === 0 ? (
+        {(contract.installments ?? []).length === 0 ? (
           <p className="text-muted" style={{ textAlign: 'center', padding: '2rem' }}>{i18n.noInstallments}</p>
         ) : (
           <div className="table-container">
@@ -385,7 +408,7 @@ export default function FinancingContractDetail({ lang }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {contract.installments.map((inst) => (
+                {(contract.installments ?? []).map((inst) => (
                   <tr key={inst.id}>
                     <td>
                       <span style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: '#f1f5f9', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 600 }}>

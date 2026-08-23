@@ -77,7 +77,13 @@ export class FinancingContractsController {
 
     return {
       success: true,
-      ...result,
+        data: result.data,
+        meta: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / result.limit),
+        },
     };
   }
 

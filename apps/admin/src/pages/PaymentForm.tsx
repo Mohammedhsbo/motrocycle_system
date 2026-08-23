@@ -160,7 +160,7 @@ export default function PaymentForm({ lang }: Props) {
     if (!validateForm() || !invoice) return;
 
     const paymentAmount = Number(amount);
-    const idempotencyKey = `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const idempotencyKey = crypto.randomUUID();
 
     const paymentData: any = {
       idempotencyKey,

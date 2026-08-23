@@ -2,27 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Activity, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { apiFetch } from '../api';
-
-interface Integration {
-  id: string;
-  integrationName: string;
-  isEnabled: boolean;
-  healthStatus: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
-  lastHealthCheck: string;
-  provider: {
-    providerKey: string;
-    providerName: string;
-    category: string;
-  };
-  branch?: {
-    nameEn: string;
-  };
-}
+import { apiFetch, integrations as integrationsApi, type Integration } from '../api';
+import Badge from '../components/Badge';
 
 export default function Integrations() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
 
   useEffect(() => {
@@ -31,10 +17,12 @@ export default function Integrations() {
 
   const loadIntegrations = async () => {
     setLoading(true);
+    setError(null);
     try {
-      setIntegrations(await apiFetch<Integration[]>('/admin/integrations'));
-    } catch (error) {
-      console.error('Failed to load integrations:', error);
+      setIntegrations(await integrationsApi.list());
+    } catch (loadError) {
+      console.error('Failed to load integrations:', loadError);
+      setError('Failed to load integrations.');
     } finally {
       setLoading(false);
     }
@@ -78,42 +66,15 @@ export default function Integrations() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      healthy: 'bg-green-100 text-green-800',
-      degraded: 'bg-yellow-100 text-yellow-800',
-      unhealthy: 'bg-red-100 text-red-800',
-      unknown: 'bg-gray-100 text-gray-800',
-    };
-    return colors[status as keyof typeof colors] || colors.unknown;
-  };
-
-  const getCategoryBadge = (category: string) => {
-    const colors = {
-      payment: 'bg-blue-100 text-blue-800',
-      email: 'bg-purple-100 text-purple-800',
-      sms: 'bg-pink-100 text-pink-800',
-      whatsapp: 'bg-green-100 text-green-800',
-      storage: 'bg-indigo-100 text-indigo-800',
-      other: 'bg-gray-100 text-gray-800',
-    };
-    return colors[category as keyof typeof colors] || colors.other;
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-600">Loading integrations...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="alert">
+            {error}
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -128,135 +89,147 @@ export default function Integrations() {
             </div>
             <button
               onClick={loadIntegrations}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              className="btn btn-primary"
+              disabled={loading}
+              aria-busy={loading}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw size={16} style={loading ? { animation: 'spin 1s linear infinite' } : undefined} />
               Refresh
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Total</p>
-                <p className="text-2xl font-bold">{integrations.length}</p>
-              </div>
-              <Settings className="w-8 h-8 text-gray-400" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', flexShrink: 0 }}>
+              <Settings size={22} />
+            </div>
+            <div>
+              <p className="text-muted" style={{ fontSize: '0.875rem' }}>Total</p>
+              <p style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.2 }}>{integrations.length}</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Healthy</p>
-                <p className="text-2xl font-bold text-green-600">
+          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--success-bg)', color: 'var(--success)', flexShrink: 0 }}>
+              <CheckCircle size={22} />
+            </div>
+            <div>
+              <p className="text-muted" style={{ fontSize: '0.875rem' }}>Healthy</p>
+              <p style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.2, color: 'var(--success)' }}>
                   {integrations.filter((i) => i.healthStatus === 'healthy').length}
-                </p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
+              </p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Degraded</p>
-                <p className="text-2xl font-bold text-yellow-600">
+          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--warning-bg)', color: 'var(--warning)', flexShrink: 0 }}>
+              <AlertTriangle size={22} />
+            </div>
+            <div>
+              <p className="text-muted" style={{ fontSize: '0.875rem' }}>Degraded</p>
+              <p style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.2, color: 'var(--warning)' }}>
                   {integrations.filter((i) => i.healthStatus === 'degraded').length}
-                </p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-yellow-500" />
+              </p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Unhealthy</p>
-                <p className="text-2xl font-bold text-red-600">
+          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--error-bg)', color: 'var(--error)', flexShrink: 0 }}>
+              <XCircle size={22} />
+            </div>
+            <div>
+              <p className="text-muted" style={{ fontSize: '0.875rem' }}>Unhealthy</p>
+              <p style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.2, color: 'var(--error)' }}>
                   {integrations.filter((i) => i.healthStatus === 'unhealthy').length}
-                </p>
-              </div>
-              <XCircle className="w-8 h-8 text-red-500" />
+              </p>
             </div>
           </div>
         </div>
 
         {/* Integrations List */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="table-container">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+            <table>
+              <colgroup>
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '8%' }} />
+              </colgroup>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Integration
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Provider
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Health
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Branch
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
+                  <th>Integration</th>
+                  <th>Provider</th>
+                  <th>Category</th>
+                  <th>Health</th>
+                  <th>Status</th>
+                  <th>Branch</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {integrations.map((integration) => (
-                  <tr key={integration.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">
+              <tbody>
+                {loading ? Array.from({ length: 4 }, (_, index) => (
+                  <tr key={`skeleton-${index}`} aria-hidden="true">
+                    {Array.from({ length: 7 }, (_, cellIndex) => (
+                      <td key={cellIndex}>
+                        <div style={{ height: cellIndex === 0 ? '1rem' : '0.75rem', width: cellIndex === 0 ? '70%' : '60%', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', opacity: 0.7 }} />
+                      </td>
+                    ))}
+                  </tr>
+                )) : integrations.map((integration, index) => (
+                  <tr key={integration.id} style={{ background: index % 2 === 1 ? 'rgba(255, 255, 255, 0.015)' : undefined }}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>
                         {integration.integrationName}
                       </div>
-                      <div className="text-xs text-gray-500">{integration.id.substring(0, 8)}</div>
+                      <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>{integration.id.substring(0, 8)}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{integration.provider.providerName}</div>
-                      <div className="text-xs text-gray-500">{integration.provider.providerKey}</div>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{integration.provider.providerName}</div>
+                      <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>{integration.provider.providerKey}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded ${getCategoryBadge(integration.provider.category)}`}>
+                    <td>
+                      <span className="badge badge-draft">
                         {integration.provider.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       <div className="flex items-center gap-2">
                         {getStatusIcon(integration.healthStatus)}
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(integration.healthStatus)}`}>
-                          {integration.healthStatus}
-                        </span>
+                        <Badge
+                          status={integration.healthStatus === 'healthy' ? 'active' : integration.healthStatus === 'degraded' ? 'pending' : integration.healthStatus === 'unhealthy' ? 'cancelled' : 'inactive'}
+                          label={integration.healthStatus}
+                        />
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <label className="relative inline-flex items-center cursor-pointer">
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <Badge status={integration.isEnabled ? 'active' : 'inactive'} label={integration.isEnabled ? 'Enabled' : 'Disabled'} />
+                        <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }} title={integration.isEnabled ? 'Disable integration' : 'Enable integration'}>
                         <input
                           type="checkbox"
                           checked={integration.isEnabled}
                           onChange={() => toggleIntegration(integration.id, integration.isEnabled)}
-                          className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
+                        </label>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {integration.branch?.nameEn || 'System-wide'}
+                    <td>
+                      <span className="badge badge-draft">
+                        {integration.branch?.nameEn || 'All Branches'}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td style={{ textAlign: 'right' }}>
                       <button
                         onClick={() => testIntegration(integration.id)}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
+                        className="btn btn-outline"
+                        style={{ padding: '0.375rem' }}
+                        title="Test integration"
+                        aria-label={`Test ${integration.integrationName}`}
                       >
-                        Test
+                        <Activity size={16} />
                       </button>
                     </td>
                   </tr>
@@ -265,10 +238,10 @@ export default function Integrations() {
             </table>
           </div>
 
-          {integrations.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No integrations configured</p>
+          {!loading && integrations.length === 0 && (
+            <div className="center-content" style={{ padding: '3rem 1.5rem' }}>
+              <Settings size={48} style={{ color: 'var(--text-muted)', opacity: 0.6, marginBottom: '0.75rem' }} />
+              <p className="text-muted">No integrations configured</p>
             </div>
           )}
         </div>

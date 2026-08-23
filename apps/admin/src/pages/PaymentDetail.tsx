@@ -127,6 +127,23 @@ export default function PaymentDetail({ lang }: Props) {
   const [refundNotes, setRefundNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const confirmMutation = useMutation({
+    mutationFn: () => payments.confirm(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment', id] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', payment?.invoiceId] });
+    },
+  });
+  const cancelMutation = useMutation({
+    mutationFn: (reason: string) => payments.cancel(id!, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment', id] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', payment?.invoiceId] });
+    },
+  });
+
   const { data: payment, isLoading, isError } = useQuery({
     queryKey: ['payment', id],
     queryFn: () => payments.get(id!),
@@ -239,6 +256,8 @@ export default function PaymentDetail({ lang }: Props) {
   }
 
   const canRefund = payment.status === 'completed' && calculateAvailableForRefund() > 0;
+  const canConfirm = payment.status === 'pending';
+  const canCancel = payment.status === 'pending';
 
   return (
     <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
@@ -258,11 +277,11 @@ export default function PaymentDetail({ lang }: Props) {
             </h1>
             <Badge status={payment.status} lang={lang} />
           </div>
-          {canRefund && (
-            <button onClick={openRefundModal} className="btn btn-primary">
-              <RotateCcw size={16} /> {i18n.issueRefund}
-            </button>
-          )}
+          <div className="flex gap-2">
+            {canConfirm && <button onClick={() => confirmMutation.mutate()} className="btn btn-primary" disabled={confirmMutation.isPending}>Confirm</button>}
+            {canCancel && <button onClick={() => { const reason = window.prompt('Reason for cancelling this payment:'); if (reason?.trim()) cancelMutation.mutate(reason.trim()); }} className="btn btn-outline" disabled={cancelMutation.isPending}>Cancel Payment</button>}
+            {canRefund && <button onClick={openRefundModal} className="btn btn-primary"><RotateCcw size={16} /> {i18n.issueRefund}</button>}
+          </div>
         </div>
       </div>
 

@@ -1,235 +1,119 @@
-import { useState, useEffect } from 'react';
-import { configuration } from '../api';
-import type { SystemConfiguration, CompanyConfiguration } from '../api';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { configuration, type CompanyConfiguration, type ConfigurationAuditEntry, type DocumentNumbering, type FeatureFlag, type Holiday, type SystemConfiguration, type WorkingHours } from '../api';
+import { useBranch } from '../contexts/BranchContext';
+import Badge from '../components/Badge';
 
-export default function Configuration() {
-  const [configs, setConfigs] = useState<(SystemConfiguration | CompanyConfiguration)[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'system' | 'company'>('system');
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
-  const [editReason, setEditReason] = useState<string>('');
-  const [saving, setSaving] = useState(false);
+type Lang = 'en' | 'ar';
+type Tab = 'overview' | 'system' | 'company' | 'branch' | 'flags' | 'numbering' | 'hours' | 'holidays' | 'audit';
+type ConfigRow = SystemConfiguration | CompanyConfiguration;
+type UpdateHours = { dayOfWeek: number; isClosed?: boolean; openTime?: string; closeTime?: string; effectiveFrom: string; effectiveTo?: string };
 
-  useEffect(() => {
-    loadConfigurations();
-  }, [activeTab]);
+const tabs: Array<{ key: Tab; en: string; ar: string }> = [
+  { key: 'overview', en: 'Overview', ar: 'نظرة عامة' }, { key: 'system', en: 'System', ar: 'النظام' },
+  { key: 'company', en: 'Company', ar: 'الشركة' }, { key: 'branch', en: 'Branch', ar: 'الفرع' },
+  { key: 'flags', en: 'Feature Flags', ar: 'الميزات' }, { key: 'numbering', en: 'Numbering', ar: 'الترقيم' },
+  { key: 'hours', en: 'Working Hours', ar: 'ساعات العمل' }, { key: 'holidays', en: 'Holidays', ar: 'العطلات' },
+  { key: 'audit', en: 'Audit Log', ar: 'سجل التدقيق' },
+];
+const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const loadConfigurations = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = activeTab === 'system' 
-        ? await configuration.getSystemConfig() 
-        : await configuration.getCompanyConfig();
-      setConfigs(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load configurations');
-      console.error('Failed to load configurations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+function display(value: unknown) { return typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value ?? ''); }
+function time(value?: string) { return value ? new Date(value).toISOString().slice(11, 16) : ''; }
+function hoursRow(row: WorkingHours | UpdateHours): UpdateHours { return { dayOfWeek: row.dayOfWeek, isClosed: row.isClosed, openTime: time(row.openTime), closeTime: time(row.closeTime), effectiveFrom: row.effectiveFrom }; }
 
-  const handleEdit = (config: SystemConfiguration | CompanyConfiguration) => {
-    setEditingKey(config.configKey);
-    setEditValue(typeof config.configValue === 'object' 
-      ? JSON.stringify(config.configValue, null, 2) 
-      : String(config.configValue));
-    setEditReason('');
-  };
+function ConfigEditor({ row, save, close, pending }: { row: ConfigRow; save: (value: string, reason: string, from?: string, to?: string) => void; close: () => void; pending: boolean }) {
+  const [value, setValue] = useState(display(row.configValue)); const [reason, setReason] = useState('');
+  const [from, setFrom] = useState(''); const [to, setTo] = useState('');
+  return <div className="card" style={{ marginBottom: '1rem' }}><h3>Edit {row.configKey}</h3><textarea className="input" rows={row.dataType === 'json' ? 5 : 2} value={value} onChange={e => setValue(e.target.value)} /><input className="input" placeholder="Reason for change (required)" value={reason} onChange={e => setReason(e.target.value)} style={{ marginTop: '.5rem' }} />{'effectiveFrom' in row && <div className="flex gap-2" style={{ marginTop: '.5rem' }}><input className="input" type="datetime-local" value={from} onChange={e => setFrom(e.target.value)} /><input className="input" type="datetime-local" value={to} onChange={e => setTo(e.target.value)} /></div>}<div className="flex gap-2" style={{ marginTop: '.75rem' }}><button className="btn btn-primary" disabled={pending || !reason.trim()} onClick={() => save(value, reason, from || undefined, to || undefined)}>Save</button><button className="btn btn-outline" onClick={close}>Cancel</button></div></div>;
+}
 
-  const handleSave = async (configKey: string) => {
-    if (!editReason.trim()) {
-      alert('Please provide a reason for this change');
-      return;
-    }
+function ConfigLevel({ level }: { level: 'system' | 'company' }) {
+  const qc = useQueryClient(); const [category, setCategory] = useState(''); const [editing, setEditing] = useState<ConfigRow | null>(null);
+  const query = useQuery<ConfigRow[]>({ queryKey: [`configuration-${level}`, category], queryFn: () => level === 'system' ? configuration.getSystemConfig({ category: category || undefined }) : configuration.getCompanyConfig() });
+  const save = useMutation<any, Error, { value: string; reason: string; from?: string; to?: string }>({ mutationFn: (input) => level === 'system' ? configuration.updateSystemConfig({ configurations: [{ configKey: editing!.configKey, configValue: input.value, reason: input.reason }] }) : configuration.updateCompanyConfig({ configurations: [{ configKey: editing!.configKey, configValue: input.value, reason: input.reason, effectiveFrom: input.from, effectiveTo: input.to }] }), onSuccess: () => { qc.invalidateQueries({ queryKey: [`configuration-${level}`] }); setEditing(null); } });
+  const rows = (query.data ?? []).filter(row => !category || row.category === category); const categories = [...new Set((query.data ?? []).map(row => row.category))].sort();
+  return <section><div className="flex items-center justify-between mb-4"><div><h2>{level === 'system' ? 'System Configuration' : 'Company Configuration'}</h2><p className="text-muted">{rows.length} entries</p></div><select className="input" value={category} onChange={e => setCategory(e.target.value)}><option value="">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></div>{editing && <ConfigEditor row={editing} close={() => setEditing(null)} pending={save.isPending} save={(value, reason, from, to) => save.mutate({ value, reason, from, to })} />}{query.isLoading ? <div className="center-content">Loading configurations...</div> : query.isError ? <div className="center-content" style={{ color: 'var(--error)' }}>Failed to load configurations.</div> : rows.length === 0 ? <div className="center-content">No configurations found.</div> : <div className="table-container"><table><thead><tr><th>Key</th><th>Category</th><th>Value</th><th>Description</th>{level === 'company' && <th>Effective from</th>}<th /></tr></thead><tbody>{rows.map(row => <tr key={row.configKey}><td style={{ fontFamily: 'monospace' }}>{row.configKey}</td><td>{row.category}</td><td><pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{display(row.configValue)}</pre></td><td>{row.description || '—'}</td>{level === 'company' && <td>{'effectiveFrom' in row && row.effectiveFrom ? new Date(row.effectiveFrom).toLocaleString() : '—'}</td>}<td><button className="btn btn-outline" onClick={() => setEditing(row)}>Edit</button></td></tr>)}</tbody></table></div>}</section>;
+}
 
-    setSaving(true);
-    try {
-      let parsedValue: any = editValue;
-      const config = configs.find(c => c.configKey === configKey);
-      
-      if (config?.dataType === 'number') {
-        parsedValue = parseFloat(editValue);
-        if (isNaN(parsedValue)) throw new Error('Invalid number format');
-      } else if (config?.dataType === 'boolean') {
-        parsedValue = editValue === 'true' || editValue === '1';
-      } else if (config?.dataType === 'json') {
-        parsedValue = JSON.parse(editValue);
-      }
+function Overview({ lang }: { lang: Lang }) {
+  const query = useQuery({ queryKey: ['configuration-stats'], queryFn: configuration.getStats }); if (query.isLoading) return <div className="center-content">Loading statistics...</div>; if (query.isError || !query.data) return <div className="center-content" style={{ color: 'var(--error)' }}>Unable to load statistics.</div>;
+  const s = query.data; const cards: Array<[string, string | number]> = lang === 'ar' ? [['إعدادات النظام', s.systemConfigurations], ['إعدادات الشركة', s.companyConfigurations], ['إعدادات الفروع', s.branchConfigurations], ['الميزات المفعلة', `${s.enabledFeatureFlags}/${s.totalFeatureFlags}`], ['التغييرات خلال 7 أيام', s.recentChangesLast7Days]] : [['System configurations', s.systemConfigurations], ['Company configurations', s.companyConfigurations], ['Branch configurations', s.branchConfigurations], ['Enabled feature flags', `${s.enabledFeatureFlags}/${s.totalFeatureFlags}`], ['Changes in 7 days', s.recentChangesLast7Days]];
+  return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>{cards.map(([label, value]) => <div className="card" key={String(label)}><div className="text-muted">{label}</div><div style={{ fontSize: '1.75rem', fontWeight: 700, marginTop: '.5rem' }}>{value}</div></div>)}</div>;
+}
 
-      if (activeTab === 'system') {
-        await configuration.updateSystemConfig({
-          configurations: [{
-            configKey,
-            configValue: parsedValue,
-            reason: editReason,
-          }],
-        });
-      } else {
-        await configuration.updateCompanyConfig({
-          configurations: [{
-            configKey,
-            configValue: parsedValue,
-            reason: editReason,
-          }],
-        });
-      }
+function BranchTab({ lang }: { lang: Lang }) {
+  const { branches, branchId, setBranchId } = useBranch(); const qc = useQueryClient(); const [editing, setEditing] = useState<{ configKey: string; configValue: unknown; dataType?: string } | null>(null);
+  const query = useQuery({ queryKey: ['branch-configuration', branchId], queryFn: () => configuration.getBranchConfig(branchId!), enabled: !!branchId });
+  const save = useMutation({ mutationFn: (input: { value: string; reason: string }) => configuration.updateBranchConfig(branchId!, { configurations: [{ configKey: editing!.configKey, configValue: input.value, reason: input.reason }] }), onSuccess: () => { qc.invalidateQueries({ queryKey: ['branch-configuration', branchId] }); setEditing(null); } });
+  return <section><div className="flex items-center justify-between mb-4"><h2>{lang === 'ar' ? 'إعدادات الفرع' : 'Branch Configuration'}</h2><select className="input" value={branchId ?? ''} onChange={e => setBranchId(e.target.value)}>{branches.map(branch => <option key={branch.id} value={branch.id}>{lang === 'ar' ? branch.nameAr : branch.nameEn}</option>)}</select></div>{editing && <SimpleEditor entry={editing} close={() => setEditing(null)} pending={save.isPending} save={(value, reason) => save.mutate({ value, reason })} />}{query.isLoading ? <div className="center-content">Loading branch configuration...</div> : query.isError ? <div className="center-content" style={{ color: 'var(--error)' }}>Failed to load branch configuration.</div> : <div className="table-container">{(query.data ?? []).length === 0 ? <div className="center-content">No branch overrides found.</div> : <table><thead><tr><th>Key</th><th>Value</th><th>Source</th><th /></tr></thead><tbody>{(query.data ?? []).map(row => <tr key={row.configKey}><td>{row.configKey}</td><td><pre style={{ margin: 0 }}>{display(row.configValue)}</pre></td><td>{row.inheritsFromCompany ? 'Inherited' : 'Override'}</td><td><button className="btn btn-outline" onClick={() => setEditing(row)}>Edit</button></td></tr>)}</tbody></table>}</div>}</section>;
+}
 
-      setEditingKey(null);
-      setEditReason('');
-      await loadConfigurations();
-      alert('Configuration updated successfully');
-    } catch (err: any) {
-      console.error('Failed to update configuration:', err);
-      alert(`Failed to update configuration: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
-  };
+function SimpleEditor({ entry, save, close, pending }: { entry: { configKey: string; configValue: unknown; dataType?: string }; save: (value: string, reason: string) => void; close: () => void; pending: boolean }) {
+  const [value, setValue] = useState(display(entry.configValue)); const [reason, setReason] = useState(''); return <div className="card" style={{ marginBottom: '1rem' }}><h3>Edit {entry.configKey}</h3><textarea className="input" rows={entry.dataType === 'json' ? 5 : 2} value={value} onChange={e => setValue(e.target.value)} /><input className="input" placeholder="Reason for change (required)" value={reason} onChange={e => setReason(e.target.value)} style={{ marginTop: '.5rem' }} /><div className="flex gap-2" style={{ marginTop: '.75rem' }}><button className="btn btn-primary" disabled={pending || !reason.trim()} onClick={() => save(value, reason)}>Save</button><button className="btn btn-outline" onClick={close}>Cancel</button></div></div>;
+}
 
-  const groupedConfigs = configs.reduce((acc, config) => {
-    const category = config.category || 'Other';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(config);
-    return acc;
-  }, {} as Record<string, (SystemConfiguration | CompanyConfiguration)[]>);
+function FlagsTab() {
+  const { branches } = useBranch(); const qc = useQueryClient(); const query = useQuery({ queryKey: ['configuration-flags'], queryFn: () => configuration.listFeatureFlags() }); const [form, setForm] = useState({ flagKey: '', flagName: '', description: '', scope: 'system' });
+  const create = useMutation({ mutationFn: () => configuration.createFeatureFlag(form), onSuccess: () => { qc.invalidateQueries({ queryKey: ['configuration-flags'] }); setForm({ flagKey: '', flagName: '', description: '', scope: 'system' }); } }); const update = useMutation({ mutationFn: ({ key, data }: { key: string; data: { isEnabled?: boolean; rolloutPercentage?: number; targetBranches?: string[] } }) => configuration.updateFeatureFlag(key, data), onSuccess: () => qc.invalidateQueries({ queryKey: ['configuration-flags'] }) });
+  return <section><h2>Feature Flags</h2><div className="card" style={{ margin: '1rem 0' }}><div className="flex gap-2" style={{ flexWrap: 'wrap' }}><input className="input" placeholder="Flag key" value={form.flagKey} onChange={e => setForm({ ...form, flagKey: e.target.value })} /><input className="input" placeholder="Flag name" value={form.flagName} onChange={e => setForm({ ...form, flagName: e.target.value })} /><input className="input" placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /><button className="btn btn-primary" disabled={!form.flagKey || !form.flagName} onClick={() => create.mutate()}>Create flag</button></div></div>{query.isLoading ? <div className="center-content">Loading feature flags...</div> : query.isError ? <div className="center-content" style={{ color: 'var(--error)' }}>Failed to load feature flags.</div> : <div className="table-container">{(query.data ?? []).length === 0 ? <div className="center-content">No feature flags found.</div> : <table><thead><tr><th>Key</th><th>Name</th><th>Scope</th><th>Enabled</th><th>Rollout</th><th>Target branches</th></tr></thead><tbody>{(query.data ?? []).map(flag => <tr key={flag.id}><td>{flag.flagKey}</td><td>{flag.flagName}</td><td>{flag.scope}</td><td><input type="checkbox" checked={flag.isEnabled} onChange={e => { if (!e.target.checked && !window.confirm('Disable this feature flag?')) return; update.mutate({ key: flag.flagKey, data: { isEnabled: e.target.checked } }); }} /></td><td><input type="number" min={0} max={100} defaultValue={flag.rolloutPercentage} onBlur={e => update.mutate({ key: flag.flagKey, data: { rolloutPercentage: Number(e.target.value) } })} style={{ width: 80 }} />%</td><td><select multiple className="input" defaultValue={flag.targetBranches ?? []} onChange={e => update.mutate({ key: flag.flagKey, data: { targetBranches: Array.from(e.target.selectedOptions, option => option.value) } })}>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.nameEn}</option>)}</select></td></tr>)}</tbody></table>}</div>}</section>;
+}
 
-  return (
-    <div className="page-container">
-      <div className="flex justify-between items-center mb-6">
-        <h1 style={{ background: 'linear-gradient(135deg, #f8fafc, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          System Configuration
-        </h1>
-        <button
-          onClick={loadConfigurations}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
-      </div>
+function NumberingTab() {
+  const { branchId } = useBranch(); const qc = useQueryClient(); const query = useQuery({ queryKey: ['configuration-numbering', branchId], queryFn: () => configuration.getNumbering({ branch: branchId ?? undefined }) });
+  const update = useMutation({ mutationFn: ({ type, data }: { type: string; data: any }) => configuration.updateNumbering(type, data), onSuccess: () => qc.invalidateQueries({ queryKey: ['configuration-numbering'] }) }); const reset = useMutation({ mutationFn: ({ type, reason }: { type: string; reason: string }) => configuration.resetSequence(type, { newStartingNumber: 1, reason, confirmed: true }), onSuccess: () => qc.invalidateQueries({ queryKey: ['configuration-numbering'] }) });
+  return <section><h2>Document Numbering</h2>{query.isLoading ? <div className="center-content">Loading numbering...</div> : <div className="table-container">{(query.data ?? []).length === 0 ? <div className="center-content">No numbering sequences found.</div> : <table><thead><tr><th>Document</th><th>Prefix</th><th>Branch code</th><th>Year</th><th>Length</th><th>Current</th><th /></tr></thead><tbody>{(query.data ?? []).map(row => <NumberingRow key={`${row.documentType}-${row.branchId ?? 'company'}`} row={row} update={data => update.mutate({ type: row.documentType, data })} reset={reason => reset.mutate({ type: row.documentType, reason })} />)}</tbody></table>}</div>}</section>;
+}
+function NumberingRow({ row, update, reset }: { row: DocumentNumbering; update: (data: any) => void; reset: (reason: string) => void }) { const [prefix, setPrefix] = useState(row.prefix ?? ''); const [length, setLength] = useState(row.sequenceLength); return <tr><td>{row.documentType}</td><td><input className="input" value={prefix} onChange={e => setPrefix(e.target.value)} onBlur={() => update({ prefix })} /></td><td><input type="checkbox" checked={row.includeBranchCode} onChange={e => update({ includeBranchCode: e.target.checked })} /></td><td><input type="checkbox" checked={row.includeYear} onChange={e => update({ includeYear: e.target.checked })} /></td><td><input type="number" min={1} max={10} value={length} onChange={e => setLength(Number(e.target.value))} onBlur={() => update({ sequenceLength: length })} style={{ width: 70 }} /></td><td>{row.currentSequence}</td><td><button className="btn" onClick={() => { const reason = window.prompt('Type the reason for resetting this sequence:'); if (reason?.trim() && window.confirm('Reset this sequence?')) reset(reason.trim()); }}>Reset</button></td></tr>; }
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        {(['system', 'company'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-medium capitalize transition-colors ${
-              activeTab === tab
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            {tab === 'system' ? 'System Level' : 'Company Level'}
-          </button>
-        ))}
-      </div>
+function HoursTab() {
+  const { branchId } = useBranch(); const qc = useQueryClient(); const [draftRows, setDraftRows] = useState<UpdateHours[] | null>(null); const [saveError, setSaveError] = useState(''); const query = useQuery({ queryKey: ['working-hours', branchId], queryFn: () => configuration.getWorkingHours(branchId!), enabled: !!branchId }); const loadedRows = Array.from({ length: 7 }, (_, dayOfWeek) => hoursRow(query.data?.find(row => row.dayOfWeek === dayOfWeek) ?? { dayOfWeek, isClosed: true, openTime: '', closeTime: '', effectiveFrom: new Date().toISOString() })); const rows = draftRows ?? loadedRows; const update = useMutation({ mutationFn: (nextRows: UpdateHours[]) => configuration.updateWorkingHours(branchId!, nextRows), onSuccess: () => { setDraftRows(null); setSaveError(''); qc.invalidateQueries({ queryKey: ['working-hours', branchId] }); }, onError: (error: Error & { details?: { message?: string | string[] } }) => { const details = error.details?.message; setSaveError(Array.isArray(details) ? details.join(', ') : details ?? error.message); } }); const editRow = (dayOfWeek: number, patch: Partial<UpdateHours>) => { setSaveError(''); setDraftRows(current => (current ?? loadedRows).map(row => row.dayOfWeek === dayOfWeek ? { ...row, ...patch } : row)); }; const save = () => { const invalid = rows.find(row => !row.isClosed && (!row.openTime || !row.closeTime)); if (invalid) { setSaveError('Open days require both opening and closing times in HH:mm format.'); return; } update.mutate(rows); };
+  return <section><div className="flex items-center justify-between mb-4"><h2>Working Hours</h2><button className="btn btn-primary" disabled={update.isPending} onClick={save}>{update.isPending ? 'Saving...' : 'Save hours'}</button></div>{saveError && <div className="center-content" style={{ color: 'var(--error)', marginBottom: '1rem' }}>{saveError}</div>}{query.isLoading ? <div className="center-content">Loading working hours...</div> : <div className="table-container"><table><thead><tr><th>Day</th><th>Open</th><th>Close</th><th>Closed</th></tr></thead><tbody>{rows.map(row => <tr key={row.dayOfWeek}><td>{days[row.dayOfWeek]}</td><td><input type="time" disabled={row.isClosed} value={row.openTime ?? ''} onChange={e => editRow(row.dayOfWeek, { openTime: e.target.value })} /></td><td><input type="time" disabled={row.isClosed} value={row.closeTime ?? ''} onChange={e => editRow(row.dayOfWeek, { closeTime: e.target.value })} /></td><td><input type="checkbox" checked={!!row.isClosed} onChange={e => editRow(row.dayOfWeek, { isClosed: e.target.checked, openTime: e.target.checked ? '' : row.openTime, closeTime: e.target.checked ? '' : row.closeTime })} /></td></tr>)}</tbody></table></div>}</section>;
+}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+function HolidaysTab({ lang }: { lang: Lang }) {
+  const { branchId, branches } = useBranch(); const qc = useQueryClient(); const query = useQuery({ queryKey: ['configuration-holidays', branchId], queryFn: () => configuration.listHolidays({ branch_id: branchId ?? undefined }) }); const [form, setForm] = useState({ holidayName: '', holidayDate: '', scope: 'system' as 'system' | 'branch' });
+  const create = useMutation({ mutationFn: () => configuration.createHoliday({ ...form, branchId: form.scope === 'branch' ? branchId ?? undefined : undefined }), onSuccess: () => { qc.invalidateQueries({ queryKey: ['configuration-holidays'] }); setForm({ holidayName: '', holidayDate: '', scope: 'system' }); } }); const remove = useMutation({ mutationFn: (id: string) => configuration.deleteHoliday(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['configuration-holidays'] }) });
+  return <section><h2>{lang === 'ar' ? 'العطلات' : 'Holidays'}</h2><div className="card" style={{ margin: '1rem 0' }}><div className="flex gap-2"><input className="input" placeholder="Holiday name" value={form.holidayName} onChange={e => setForm({ ...form, holidayName: e.target.value })} /><input className="input" type="date" value={form.holidayDate} onChange={e => setForm({ ...form, holidayDate: e.target.value })} /><select className="input" value={form.scope} onChange={e => setForm({ ...form, scope: e.target.value as 'system' | 'branch' })}><option value="system">Company-wide</option><option value="branch">Selected branch</option></select><button className="btn btn-primary" disabled={!form.holidayName || !form.holidayDate} onClick={() => create.mutate()}>Add holiday</button></div></div>{query.isLoading ? <div className="center-content">Loading holidays...</div> : <div className="table-container">{(query.data ?? []).length === 0 ? <div className="center-content">No holidays found.</div> : <table><thead><tr><th>Name</th><th>Date</th><th>Scope</th><th>Branch</th><th /></tr></thead><tbody>{(query.data ?? []).map(holiday => <tr key={holiday.id}><td>{holiday.holidayName}</td><td>{new Date(holiday.holidayDate).toLocaleDateString()}</td><td>{holiday.scope}</td><td>{branches.find(branch => branch.id === holiday.branchId)?.nameEn ?? '—'}</td><td><button className="btn" onClick={() => { if (window.confirm('Delete this holiday?')) remove.mutate(holiday.id); }}>Delete</button></td></tr>)}</tbody></table>}</div>}</section>;
+}
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading configurations...</p>
-        </div>
-      ) : configs.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          No configurations found for this level.
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedConfigs).sort(([a], [b]) => a.localeCompare(b)).map(([category, items]) => (
-            <div key={category} className="card">
-              <h2 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">{category}</h2>
-              <div className="space-y-4">
-                {items.map((config) => (
-                  <div
-                    key={config.configKey}
-                    className="flex items-start justify-between py-3 border-b last:border-0"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900">{config.configKey}</div>
-                      {config.description && (
-                        <div className="text-sm text-gray-500 mt-1">{config.description}</div>
-                      )}
-                      <div className="mt-2">
-                        {editingKey === config.configKey ? (
-                          <div className="space-y-2">
-                            <textarea
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              className="border rounded px-3 py-2 w-full max-w-2xl font-mono text-sm"
-                              rows={config.dataType === 'json' ? 4 : 1}
-                              autoFocus
-                            />
-                            <input
-                              type="text"
-                              value={editReason}
-                              onChange={(e) => setEditReason(e.target.value)}
-                              placeholder="Reason for change (required)"
-                              className="border rounded px-3 py-2 w-full max-w-2xl text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <pre className="text-sm font-mono bg-gray-50 px-3 py-2 rounded inline-block max-w-2xl overflow-x-auto">
-                            {typeof config.configValue === 'object'
-                              ? JSON.stringify(config.configValue, null, 2)
-                              : String(config.configValue)}
-                          </pre>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-2 flex gap-4">
-                        <span>Type: <strong>{config.dataType}</strong></span>
-                        <span>Updated: {new Date(config.updatedAt).toLocaleString()}</span>
-                        {'version' in config && <span>Version: {config.version}</span>}
-                        {'creator' in config && <span>By: {config.creator.name}</span>}
-                      </div>
-                    </div>
-                    <div className="ml-4 flex gap-2 flex-shrink-0">
-                      {editingKey === config.configKey ? (
-                        <>
-                          <button
-                            onClick={() => handleSave(config.configKey)}
-                            disabled={saving}
-                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            {saving ? 'Saving...' : 'Save'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingKey(null);
-                              setEditReason('');
-                            }}
-                            disabled={saving}
-                            className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => handleEdit(config)}
-                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function auditValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return '—';
+  return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+function relativeTime(value: string, lang: Lang) {
+  const seconds = Math.round((Date.now() - new Date(value).getTime()) / 1000);
+  const formatter = new Intl.RelativeTimeFormat(lang === 'ar' ? 'ar-EG' : 'en', { numeric: 'auto' });
+  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
+  const unit = units.find(([, duration]) => Math.abs(seconds) >= duration) ?? ['second', 1] as [Intl.RelativeTimeFormatUnit, number];
+  return formatter.format(-Math.round(seconds / unit[1]), unit[0]);
+}
+
+function AuditValue({ value, label }: { value: unknown; label: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const formatted = auditValue(value);
+  const compact = formatted.length > 120 ? `${formatted.slice(0, 117)}...` : formatted;
+  return <div className="audit-value"><button type="button" className="audit-value-toggle" aria-expanded={expanded} onClick={() => setExpanded(current => !current)}><span>{expanded ? `Hide ${label.toLowerCase()} value` : compact}</span><span aria-hidden="true">{expanded ? '▲' : '▼'}</span></button>{expanded && <div className="audit-value-panel"><div className="text-muted audit-value-label">{label}</div><pre>{formatted}</pre></div>}</div>;
+}
+
+function AuditTab({ lang }: { lang: Lang }) {
+  const { branches } = useBranch();
+  const isRtl = lang === 'ar';
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({ config_type: '', config_key: '', branch_id: '', from_date: '', to_date: '' });
+  const query = useQuery({ queryKey: ['configuration-audit', page, filters], queryFn: () => configuration.getAudit({ ...filters, page, limit: 20 }) });
+  const result = query.data;
+  const rows: ConfigurationAuditEntry[] = result?.data ?? [];
+  const change = (key: keyof typeof filters, value: string) => { setPage(1); setFilters(current => ({ ...current, [key]: value })); };
+  const branchName = (row: ConfigurationAuditEntry) => row.branch?.[isRtl ? 'nameAr' : 'nameEn'] ?? branches.find(branch => branch.id === row.branchId)?.[isRtl ? 'nameAr' : 'nameEn'] ?? (isRtl ? 'غير محدد' : 'Unassigned');
+  const badgeStatus = (type: string) => ({ system: 'active', company: 'confirmed', branch: 'in_transit', feature_flag: 'pending', document_numbering: 'issued' }[type] ?? 'draft') as 'active' | 'confirmed' | 'in_transit' | 'pending' | 'issued' | 'draft';
+  const typeLabel = (type: string) => ({ system: isRtl ? 'النظام' : 'System', company: isRtl ? 'الشركة' : 'Company', branch: isRtl ? 'الفرع' : 'Branch', feature_flag: isRtl ? 'ميزة' : 'Feature flag', document_numbering: isRtl ? 'ترقيم المستندات' : 'Document numbering' }[type] ?? type);
+  const totalPages = result?.meta.totalPages ?? 1;
+  return <section><div className="flex items-center justify-between mb-4" style={{ gap: '1rem', flexWrap: 'wrap' }}><div><h2>{isRtl ? 'سجل التدقيق' : 'Audit Log'}</h2><p className="text-muted">{result?.meta.total ?? 0} {isRtl ? 'تغيير' : 'recorded changes'}</p></div><div className="audit-filter-bar"><input className="input" aria-label={isRtl ? 'نوع الإعداد' : 'Configuration type'} placeholder={isRtl ? 'النوع' : 'Type'} value={filters.config_type} onChange={e => change('config_type', e.target.value)} /><input className="input" aria-label={isRtl ? 'مفتاح الإعداد' : 'Configuration key'} placeholder={isRtl ? 'المفتاح' : 'Key'} value={filters.config_key} onChange={e => change('config_key', e.target.value)} /><select className="input" aria-label={isRtl ? 'الفرع' : 'Branch'} value={filters.branch_id} onChange={e => change('branch_id', e.target.value)}><option value="">{isRtl ? 'كل الفروع' : 'All branches'}</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{isRtl ? branch.nameAr : branch.nameEn}</option>)}</select><input className="input" aria-label={isRtl ? 'من تاريخ' : 'From date'} type="date" value={filters.from_date} onChange={e => change('from_date', e.target.value)} /><input className="input" aria-label={isRtl ? 'إلى تاريخ' : 'To date'} type="date" value={filters.to_date} onChange={e => change('to_date', e.target.value)} /></div></div>{query.isLoading ? <div className="center-content"><div className="spinner" />{isRtl ? 'جار تحميل سجل التدقيق...' : 'Loading audit log...'}</div> : query.isError ? <div className="center-content" style={{ color: 'var(--error)' }}>{isRtl ? 'تعذر تحميل سجل التدقيق.' : 'Failed to load audit log.'}</div> : <><div className="table-container audit-table-container">{rows.length === 0 ? <div className="center-content">{isRtl ? 'لا توجد إدخالات تدقيق.' : 'No audit entries found.'}</div> : <table className="audit-table"><colgroup><col className="audit-col-type" /><col className="audit-col-key" /><col className="audit-col-branch" /><col className="audit-col-value" /><col className="audit-col-value" /><col className="audit-col-changer" /><col className="audit-col-when" /><col className="audit-col-reason" /></colgroup><thead><tr><th>{isRtl ? 'النوع' : 'Type'}</th><th>{isRtl ? 'المفتاح' : 'Config key'}</th><th>{isRtl ? 'الفرع' : 'Branch'}</th><th>{isRtl ? 'القيمة السابقة' : 'Previous value'}</th><th>{isRtl ? 'القيمة الجديدة' : 'New value'}</th><th>{isRtl ? 'بواسطة' : 'Changed by'}</th><th>{isRtl ? 'وقت التغيير' : 'When'}</th><th>{isRtl ? 'السبب' : 'Reason'}</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td><Badge status={badgeStatus(row.configType)} label={typeLabel(row.configType)} /></td><td className="audit-key">{row.configKey}</td><td><Badge status="draft" label={branchName(row)} /></td><td><AuditValue value={row.previousValue} label={isRtl ? 'القيمة السابقة' : 'Previous'} /></td><td><AuditValue value={row.newValue} label={isRtl ? 'القيمة الجديدة' : 'New'} /></td><td><div style={{ fontWeight: 600 }}>{row.changer?.name ?? '—'}</div><div className="text-muted" style={{ fontSize: '.75rem' }}>{row.changer?.email}</div></td><td className="audit-when" title={new Date(row.changeTimestamp).toLocaleString(isRtl ? 'ar-EG' : 'en-EG')}>{relativeTime(row.changeTimestamp, lang)}<div className="text-muted" style={{ fontSize: '.75rem' }}>{new Date(row.changeTimestamp).toLocaleString(isRtl ? 'ar-EG' : 'en-EG')}</div></td><td className="audit-reason">{row.changeReason || '—'}</td></tr>)}</tbody></table>}</div><div className="flex items-center justify-between" style={{ marginTop: '1rem', gap: '1rem', flexWrap: 'wrap' }}><span className="text-muted">{isRtl ? `صفحة ${result?.meta.page ?? page} من ${totalPages}` : `Page ${result?.meta.page ?? page} of ${totalPages}`}</span><div className="flex gap-2"><button className="btn btn-outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>{isRtl ? 'السابق' : 'Previous'}</button><button className="btn btn-outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>{isRtl ? 'التالي' : 'Next'}</button></div></div></>}</section>;
+}
+
+export default function Configuration({ lang = 'en' }: { lang?: Lang }) {
+  const [tab, setTab] = useState<Tab>('overview'); const rtl = lang === 'ar';
+  return <div className="page-container" style={{ direction: rtl ? 'rtl' : 'ltr' }}><div className="flex items-center justify-between mb-6"><div><h1>{rtl ? 'الإعدادات' : 'Configuration'}</h1><p className="text-muted">{rtl ? 'إدارة إعدادات النظام والفروع.' : 'Manage system, branch, and operational settings.'}</p></div></div><div className="flex gap-2 mb-6" style={{ flexWrap: 'wrap', borderBottom: '1px solid var(--border)', paddingBottom: '.75rem' }}>{tabs.map(item => <button key={item.key} className="btn" onClick={() => setTab(item.key)} style={{ background: tab === item.key ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: tab === item.key ? 'white' : 'var(--text-secondary)' }}>{rtl ? item.ar : item.en}</button>)}</div>{tab === 'overview' && <Overview lang={lang} />}{tab === 'system' && <ConfigLevel level="system" />}{tab === 'company' && <ConfigLevel level="company" />}{tab === 'branch' && <BranchTab lang={lang} />}{tab === 'flags' && <FlagsTab />}{tab === 'numbering' && <NumberingTab />}{tab === 'hours' && <HoursTab />}{tab === 'holidays' && <HolidaysTab lang={lang} />}{tab === 'audit' && <AuditTab lang={lang} />}</div>;
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { CreditCard, Search, ChevronRight, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CreditCard, Search, ChevronRight, AlertCircle, Plus } from 'lucide-react';
 import { financingContracts, type FinancingContractStatus } from '../api';
+import CustomerSearch from '../components/CustomerSearch';
+import { useBranch } from '../contexts/BranchContext';
 import Badge from '../components/Badge';
 
 interface Props {
@@ -22,6 +24,9 @@ const t = {
     installments: 'Installments',
     status: 'Status',
     startDate: 'Start Date',
+    paid: 'Paid',
+    remaining: 'Remaining',
+    nextDue: 'Next Due',
     view: 'View',
     all: 'All',
     active: 'Active',
@@ -44,6 +49,9 @@ const t = {
     installments: 'الأقساط',
     status: 'الحالة',
     startDate: 'تاريخ البدء',
+    paid: 'المدفوع',
+    remaining: 'المتبقي',
+    nextDue: 'الاستحقاق التالي',
     view: 'عرض',
     all: 'الكل',
     active: 'نشط',
@@ -67,9 +75,15 @@ const STATUSES: { key: FinancingContractStatus | 'all'; label: { en: string; ar:
 export default function FinancingContracts({ lang }: Props) {
   const i18n = t[lang];
   const isRtl = lang === 'ar';
+  const navigate = useNavigate();
+  const { branches, branchId } = useBranch();
   const [statusFilter, setStatusFilter] = useState<FinancingContractStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [customerId, setCustomerId] = useState<string>();
+  const [customerName, setCustomerName] = useState('');
+  const [startDateFrom, setStartDateFrom] = useState('');
+  const [startDateTo, setStartDateTo] = useState('');
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -78,11 +92,15 @@ export default function FinancingContracts({ lang }: Props) {
   };
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['financing-contracts', statusFilter, debouncedSearch],
+    queryKey: ['financing-contracts', statusFilter, debouncedSearch, customerId, branchId, startDateFrom, startDateTo],
     queryFn: () =>
       financingContracts.list({
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: debouncedSearch || undefined,
+        customerId,
+        branchId: branchId ?? undefined,
+        startDateFrom: startDateFrom || undefined,
+        startDateTo: startDateTo || undefined,
         limit: 50,
       }),
   });
@@ -115,6 +133,17 @@ export default function FinancingContracts({ lang }: Props) {
             {data?.total ?? 0} {i18n.subtitle}
           </p>
         </div>
+          <button className="btn btn-primary" onClick={() => navigate('/financing/new')}>
+            <Plus size={16} /> Create Plan
+          </button>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem', display: 'flex', gap: '.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <CustomerSearch lang={lang} onSelect={customer => { setCustomerId(customer.id); setCustomerName(customer.name); }} trigger={<button type="button" className="btn btn-secondary">{customerName || 'Customer'}</button>} />
+        {customerId && <button className="btn btn-outline" onClick={() => { setCustomerId(undefined); setCustomerName(''); }}>Clear customer</button>}
+        <select className="input" value={branchId ?? ''} disabled><option value="">{branches.find(branch => branch.id === branchId)?.nameEn ?? 'Branch'}</option></select>
+        <input className="input" type="date" value={startDateFrom} onChange={event => setStartDateFrom(event.target.value)} />
+        <input className="input" type="date" value={startDateTo} onChange={event => setStartDateTo(event.target.value)} />
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
@@ -162,14 +191,14 @@ export default function FinancingContracts({ lang }: Props) {
         </div>
       )}
 
-      {!isLoading && !isError && data?.data && data.data.length === 0 && (
+      {!isLoading && !isError && (data?.items ?? []).length === 0 && (
         <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
           <CreditCard size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
           <p className="text-muted">{i18n.noData}</p>
         </div>
       )}
 
-      {!isLoading && !isError && data?.data && data.data.length > 0 && (
+      {!isLoading && !isError && (data?.items ?? []).length > 0 && (
         <div className="table-container">
           <table>
             <thead>
@@ -179,6 +208,9 @@ export default function FinancingContracts({ lang }: Props) {
                 <th>{i18n.order}</th>
                 <th style={{ textAlign: isRtl ? 'left' : 'right' }}>{i18n.totalAmount}</th>
                 <th style={{ textAlign: isRtl ? 'left' : 'right' }}>{i18n.financed}</th>
+                <th style={{ textAlign: isRtl ? 'left' : 'right' }}>{i18n.paid}</th>
+                <th style={{ textAlign: isRtl ? 'left' : 'right' }}>{i18n.remaining}</th>
+                <th>{i18n.nextDue}</th>
                 <th style={{ textAlign: 'center' }}>{i18n.installments}</th>
                 <th>{i18n.startDate}</th>
                 <th>{i18n.status}</th>
@@ -186,8 +218,14 @@ export default function FinancingContracts({ lang }: Props) {
               </tr>
             </thead>
             <tbody>
-              {data.data.map((contract) => (
-                <tr key={contract.id}>
+              {(data?.items ?? []).map((contract) => (
+                <tr key={contract.id} style={{ background: contract.installments?.some(installment => installment.status === 'overdue') ? 'rgba(239,68,68,0.08)' : undefined }}>
+                  {(() => {
+                    const schedule = contract.installments ?? [];
+                    const paid = schedule.reduce((sum, installment) => sum + installment.paidAmount, 0);
+                    const remaining = schedule.reduce((sum, installment) => sum + Math.max(0, installment.amount - installment.paidAmount), 0);
+                    const next = schedule.find(installment => installment.status !== 'paid');
+                    return <>
                   <td>
                     <code style={{ fontSize: '0.875rem', fontWeight: 600 }}>{contract.contractNumber}</code>
                   </td>
@@ -208,6 +246,9 @@ export default function FinancingContracts({ lang }: Props) {
                   <td style={{ textAlign: isRtl ? 'left' : 'right', fontWeight: 600, color: '#3b82f6' }}>
                     {formatCurrency(contract.financingAmount)}
                   </td>
+                  <td>{formatCurrency(paid)}</td>
+                  <td>{formatCurrency(remaining)}</td>
+                  <td>{next ? formatDate(next.dueDate) : '—'}</td>
                   <td style={{ textAlign: 'center' }}>
                     <span style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: '#f1f5f9', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 600 }}>
                       {contract.numberOfInstallments}
@@ -224,6 +265,8 @@ export default function FinancingContracts({ lang }: Props) {
                       {i18n.view} <ChevronRight size={16} />
                     </Link>
                   </td>
+                  </>;
+                  })()}
                 </tr>
               ))}
             </tbody>

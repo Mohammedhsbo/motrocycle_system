@@ -44,17 +44,18 @@ export default function ConfigurationAudit() {
       </h1>
 
       {/* Filters */}
-      <div className="card mb-6">
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Config Type</label>
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="input-group" style={{ flex: '1 1 220px', marginBottom: 0 }}>
+            <label className="input-label">Config Type</label>
             <select
               value={filters.config_type}
               onChange={(e) => {
                 setFilters({ ...filters, config_type: e.target.value });
                 setPage(1);
               }}
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="input"
+              style={{ width: '100%' }}
             >
               <option value="">All Types</option>
               <option value="system">System</option>
@@ -64,8 +65,8 @@ export default function ConfigurationAudit() {
               <option value="document_numbering">Document Numbering</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Config Key</label>
+          <div className="input-group" style={{ flex: '1 1 280px', marginBottom: 0 }}>
+            <label className="input-label">Config Key</label>
             <input
               type="text"
               value={filters.config_key}
@@ -74,16 +75,17 @@ export default function ConfigurationAudit() {
                 setPage(1);
               }}
               placeholder="Filter by key..."
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="input"
+              style={{ width: '100%' }}
             />
           </div>
-          <div className="flex items-end">
+          <div style={{ flex: '0 0 auto' }}>
             <button
               onClick={() => {
                 setFilters({ config_type: '', config_key: '' });
                 setPage(1);
               }}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+              className="btn btn-outline"
             >
               Clear Filters
             </button>

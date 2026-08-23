@@ -297,6 +297,7 @@ export class LettersService {
       customerId,
       motorcycleId,
       orderId,
+      branchId,
       search,
       startDate,
       endDate,
@@ -305,8 +306,9 @@ export class LettersService {
     const skip = (page - 1) * limit;
 
     // Build where clause
+    const effectiveBranchId = branchId ?? user.branchId;
     const where: any = {
-      branchId: user.branchId,
+      ...(effectiveBranchId ? { branchId: effectiveBranchId } : {}),
     };
 
     // Apply filters with proper type conversion

@@ -49,7 +49,7 @@ export class SuppliersController {
     @Query('isActive', new DefaultValuePipe(undefined), new ParseBoolPipe({ optional: true })) isActive?: boolean,
   ) {
     const result = await this.suppliersService.findAll({ page, limit, search, isActive });
-    return { success: true, ...result };
+    return { success: true, data: result.items, meta: result.meta };
   }
 
   @Get(':id')

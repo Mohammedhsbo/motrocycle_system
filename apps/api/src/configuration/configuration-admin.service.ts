@@ -426,22 +426,42 @@ export class ConfigurationAdminService {
     const results = [];
 
     for (const dto of dtos) {
-      const created = await this.prisma.workingHours.create({
-        data: {
+      const isClosed = dto.isClosed ?? false;
+      const data = {
+        branchId,
+        dayOfWeek: dto.dayOfWeek,
+        openTime: isClosed ? null : this.parseWorkingHour(dto.openTime, 'openTime'),
+        closeTime: isClosed ? null : this.parseWorkingHour(dto.closeTime, 'closeTime'),
+        isClosed,
+        effectiveFrom: dto.effectiveFrom,
+        effectiveTo: dto.effectiveTo,
+      };
+      const existing = await this.prisma.workingHours.findFirst({
+        where: {
           branchId,
           dayOfWeek: dto.dayOfWeek,
-          openTime: dto.openTime,
-          closeTime: dto.closeTime,
-          isClosed: dto.isClosed ?? false,
-          effectiveFrom: dto.effectiveFrom,
-          effectiveTo: dto.effectiveTo,
+          isActive: true,
+          effectiveTo: null,
         },
+        orderBy: { effectiveFrom: 'desc' },
       });
 
-      results.push(created);
+      const saved = existing
+        ? await this.prisma.workingHours.update({ where: { id: existing.id }, data })
+        : await this.prisma.workingHours.create({ data });
+
+      results.push(saved);
     }
 
     return { created: results.length, workingHours: results };
+  }
+
+  private parseWorkingHour(value: string | undefined, field: string): Date {
+    if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+      throw new BadRequestException(`${field} must use HH:mm format`);
+    }
+
+    return new Date(`1970-01-01T${value}:00.000Z`);
   }
 
   // Holiday Management
@@ -501,6 +521,11 @@ export class ConfigurationAdminService {
 
   // Configuration Audit
   async getConfigurationAudit(query: ConfigurationAuditQueryDto) {
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 50);
+    const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 50;
+
     const where: any = {};
 
     if (query.config_type) {
@@ -545,8 +570,8 @@ export class ConfigurationAdminService {
           },
         },
         orderBy: { changeTimestamp: 'desc' },
-        skip: ((query.page || 1) - 1) * (query.limit || 50),
-        take: query.limit || 50,
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
       }),
       this.prisma.configurationAudit.count({ where }),
     ]);
@@ -554,10 +579,10 @@ export class ConfigurationAdminService {
     return {
       data: audits,
       meta: {
-        page: query.page || 1,
-        limit: query.limit || 50,
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / (query.limit || 50)),
+        totalPages: Math.ceil(total / safeLimit) || 0,
       },
     };
   }

@@ -44,6 +44,7 @@ export class TransfersController {
 
   @Get()
   @RequirePermission(Resource.TRANSFER, Action.READ)
+  // Follow-up: pagination, dates, and status query values are not fully validated here.
   async findAll(
     @Req() req: AuthenticatedRequest,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -66,6 +67,7 @@ export class TransfersController {
 
   @Get(':id')
   @RequirePermission(Resource.TRANSFER, Action.READ)
+  // Follow-up: route IDs currently rely on downstream UUID handling.
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;
     const transfer = await this.transfersService.findOne(id, req.user.branchId, isSuperAdmin);

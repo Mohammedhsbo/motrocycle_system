@@ -8,6 +8,7 @@ import { verifyToken } from "../../utils/jwt.js";
 
 const userWithRole = {
   include: {
+    branch: true,
     role: {
       include: {
         permissions: true,
@@ -104,6 +105,8 @@ export class JwtAuthGuard implements CanActivate {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
+      branch: user.branch,
       roleId: user.roleId,
       roleName: user.role.name,
       branchId: user.branchId,

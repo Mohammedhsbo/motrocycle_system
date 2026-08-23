@@ -1,5 +1,6 @@
 export * from "./auth.js";
 export * from "./brand.js";
+export * from "./branch.js";
 export * from "./category.js";
 export * from "./enums.js";
 export * from "./motorcycle.js";

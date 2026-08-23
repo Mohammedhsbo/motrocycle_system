@@ -37,12 +37,13 @@ export class InvoicesController {
     @Body(new ZodValidationPipe(createInvoiceSchema)) data: CreateInvoiceRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.invoicesService.create(
+    const invoice = await this.invoicesService.create(
       data,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: invoice };
   }
 
   @Get()
@@ -73,7 +74,7 @@ export class InvoicesController {
       limit: limit ? parseInt(limit) : undefined,
     };
 
-    return this.invoicesService.list(
+    const result = await this.invoicesService.list(
       filters,
       req.user.id,
       req.user.branchId,
@@ -81,12 +82,13 @@ export class InvoicesController {
       req.user.isCustomer,
       req.user.customerId
     );
+    return { success: true, data: result.items, meta: { total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages } };
   }
 
   @Get(":id")
   @RequirePermission(Resource.INVOICES, Action.READ)
   async findOne(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.invoicesService.findById(
+    const invoice = await this.invoicesService.findById(
       id,
       req.user.id,
       req.user.branchId,
@@ -94,6 +96,7 @@ export class InvoicesController {
       req.user.isCustomer,
       req.user.customerId
     );
+    return { success: true, data: invoice };
   }
 
   @Patch(":id")
@@ -103,24 +106,26 @@ export class InvoicesController {
     @Body(new ZodValidationPipe(updateInvoiceSchema)) data: UpdateInvoiceRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.invoicesService.update(
+    const invoice = await this.invoicesService.update(
       id,
       data,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: invoice };
   }
 
   @Post(":id/issue")
   @RequirePermission(Resource.INVOICES, Action.UPDATE)
   async issue(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.invoicesService.issue(
+    const invoice = await this.invoicesService.issue(
       id,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: invoice };
   }
 
   @Post(":id/cancel")
@@ -130,12 +135,13 @@ export class InvoicesController {
     @Body("reason") reason: string,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.invoicesService.cancel(
+    const invoice = await this.invoicesService.cancel(
       id,
       reason,
       req.user.id,
       req.user.branchId,
       req.user.isSuperAdmin
     );
+    return { success: true, data: invoice };
   }
 }
