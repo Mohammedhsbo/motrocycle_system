@@ -239,5 +239,10 @@
     "phoneValue": "+966 11 000 0000",
     "emailLabel": "Email",
     "emailValue": "info@motorcycle.com"
+  },
+  "common": {
+    "optional": "Optional",
+    "loading": "Loading...",
+    "back": "Back"
   }
 }

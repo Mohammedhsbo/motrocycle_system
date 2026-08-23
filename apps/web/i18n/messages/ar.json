@@ -239,5 +239,10 @@
     "phoneValue": "+966 11 000 0000",
     "emailLabel": "بريد إلكتروني",
     "emailValue": "info@motorcycle.com"
+  },
+  "common": {
+    "optional": "اختياري",
+    "loading": "جاري التحميل...",
+    "back": "رجوع"
   }
 }
