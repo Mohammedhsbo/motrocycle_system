@@ -26,6 +26,7 @@ import {
   updateBranchRequestSchema,
 } from "@motorcycle-system/shared-types";
 import { BranchesService } from "./branches.service.js";
+import { ApiDocumentation } from "../common/decorators/api-documentation.decorator.js";
 
 @Controller("branches")
 @UseGuards(JwtAuthGuard)
@@ -35,6 +36,7 @@ export class BranchesController {
   @Post()
   @UseGuards(PermissionsGuard)
   @RequirePermission(Resource.BRANCH, Action.CREATE)
+  @ApiDocumentation({ tags: ['Admin - Branches'], summary: 'Create a branch', description: 'Admin creates a branch for operational management.', protected: true })
   async create(
     @Body(new ZodValidationPipe(createBranchRequestSchema)) body: CreateBranchRequest,
     @Req() request: any,
@@ -48,6 +50,7 @@ export class BranchesController {
   @Get()
   @UseGuards(PermissionsGuard)
   @RequirePermission(Resource.BRANCH, Action.READ)
+  @ApiDocumentation({ tags: ['Admin - Branches'], summary: 'List branches', description: 'Admin lists branches available to the current user.', protected: true })
   async list(@Query(new ZodValidationPipe(listBranchesQuerySchema)) query: ListBranchesQuery) {
     return {
       success: true,
@@ -58,6 +61,7 @@ export class BranchesController {
   @Get(":id")
   @UseGuards(PermissionsGuard)
   @RequirePermission(Resource.BRANCH, Action.READ)
+  @ApiDocumentation({ tags: ['Admin - Branches'], summary: 'Get a branch', description: 'Admin retrieves branch details by ID.', protected: true })
   async getById(@Param("id", ParseUUIDPipe) id: string) {
     return {
       success: true,
@@ -68,6 +72,7 @@ export class BranchesController {
   @Patch(":id")
   @UseGuards(PermissionsGuard)
   @RequirePermission(Resource.BRANCH, Action.UPDATE)
+  @ApiDocumentation({ tags: ['Admin - Branches'], summary: 'Update a branch', description: 'Admin updates branch information.', protected: true })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(updateBranchRequestSchema)) body: UpdateBranchRequest,
@@ -82,6 +87,7 @@ export class BranchesController {
   @Delete(":id")
   @UseGuards(PermissionsGuard)
   @RequirePermission(Resource.BRANCH, Action.DELETE)
+  @ApiDocumentation({ tags: ['Admin - Branches'], summary: 'Remove a branch', description: 'Admin removes a branch.', protected: true })
   async delete(@Param("id", ParseUUIDPipe) id: string, @Req() request: any) {
     await this.branchesService.delete(id, request.user);
 

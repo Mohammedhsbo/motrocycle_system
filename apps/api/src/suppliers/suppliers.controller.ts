@@ -25,6 +25,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+import { ApiDocumentation } from '../common/decorators/api-documentation.decorator.js';
 
 @Controller('suppliers')
 @UseGuards(JwtAuthGuard)
@@ -33,6 +34,7 @@ export class SuppliersController {
 
   @Post()
   @RequirePermission(Resource.SUPPLIER, Action.CREATE)
+  @ApiDocumentation({ tags: ['Admin - Suppliers'], summary: 'Create a supplier', description: 'Admin creates a supplier record.', protected: true })
   async create(
     @Body(new ZodValidationPipe(createSupplierSchema)) data: CreateSupplierRequest
   ) {
@@ -42,6 +44,7 @@ export class SuppliersController {
 
   @Get()
   @RequirePermission(Resource.SUPPLIER, Action.READ)
+  @ApiDocumentation({ tags: ['Admin - Suppliers'], summary: 'List suppliers', description: 'Admin lists suppliers with optional filtering.', protected: true })
   async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
@@ -54,6 +57,7 @@ export class SuppliersController {
 
   @Get(':id')
   @RequirePermission(Resource.SUPPLIER, Action.READ)
+  @ApiDocumentation({ tags: ['Admin - Suppliers'], summary: 'Get a supplier', description: 'Admin retrieves supplier details by ID.', protected: true })
   async findOne(@Param('id') id: string) {
     const supplier = await this.suppliersService.findOne(id);
     return { success: true, data: supplier };
@@ -61,6 +65,7 @@ export class SuppliersController {
 
   @Patch(':id')
   @RequirePermission(Resource.SUPPLIER, Action.UPDATE)
+  @ApiDocumentation({ tags: ['Admin - Suppliers'], summary: 'Update a supplier', description: 'Admin updates supplier information.', protected: true })
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateSupplierSchema)) data: UpdateSupplierRequest
@@ -71,6 +76,7 @@ export class SuppliersController {
 
   @Delete(':id')
   @RequirePermission(Resource.SUPPLIER, Action.DELETE)
+  @ApiDocumentation({ tags: ['Admin - Suppliers'], summary: 'Remove a supplier', description: 'Admin removes a supplier.', protected: true })
   async remove(@Param('id') id: string) {
     await this.suppliersService.remove(id);
     return { success: true, data: null };

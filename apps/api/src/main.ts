@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { RequestMethod } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
 import { AppExceptionFilter } from "./common/filters/app-exception.filter.js";
 import { getAllowedOrigins, validateEnvironment } from "./config/env.js";
@@ -38,6 +39,14 @@ async function bootstrap() {
     credentials: true,
   });
   app.useGlobalFilters(new AppExceptionFilter());
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle("Motorcycle System API")
+    .setDescription("Backend API serving three separate clients: the Web storefront, the Admin dashboard, and the Desktop POS application.")
+    .addBearerAuth({ type: "http", scheme: "bearer", bearerFormat: "JWT" }, "JWT")
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup("api/docs", app, swaggerDocument);
 
   const port = Number(process.env.API_PORT ?? 3000);
   await app.listen(port);

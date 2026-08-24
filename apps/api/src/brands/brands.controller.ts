@@ -27,6 +27,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
 import { PermissionsGuard } from "../auth/guards/permissions.guard.js";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe.js";
 import { BrandsService } from "./brands.service.js";
+import { ApiDocumentation } from "../common/decorators/api-documentation.decorator.js";
 
 @Controller("brands")
 export class BrandsController {
@@ -35,6 +36,7 @@ export class BrandsController {
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.CREATE)
+  @ApiDocumentation({ tags: ['Admin - Brands'], summary: 'Create a brand', description: 'Admin creates a motorcycle brand.', protected: true })
   async create(
     @Body(new ZodValidationPipe(createBrandRequestSchema)) body: CreateBrandRequest,
     @Req() request: any,
@@ -46,6 +48,7 @@ export class BrandsController {
   }
 
   @Get()
+  @ApiDocumentation({ tags: ['Web - Brands', 'POS - Inventory Lookup'], summary: 'List brands', description: 'Web storefront and Desktop POS retrieve motorcycle brands.' })
   async list(
     @Query(new ZodValidationPipe(listBrandsQuerySchema)) query: ListBrandsQuery,
     @Req() request: any,
@@ -59,6 +62,7 @@ export class BrandsController {
   }
 
   @Get(":id")
+  @ApiDocumentation({ tags: ['Web - Brands', 'POS - Inventory Lookup'], summary: 'Get a brand', description: 'Web storefront and Desktop POS retrieve brand details by ID.' })
   async getById(@Param("id", ParseUUIDPipe) id: string, @Req() request: any) {
     // Public endpoint - no authentication required
     const user = request.user || null;
@@ -71,6 +75,7 @@ export class BrandsController {
   @Patch(":id")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.UPDATE)
+  @ApiDocumentation({ tags: ['Admin - Brands'], summary: 'Update a brand', description: 'Admin updates a motorcycle brand.', protected: true })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(updateBrandRequestSchema)) body: UpdateBrandRequest,
@@ -85,6 +90,7 @@ export class BrandsController {
   @Delete(":id")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.DELETE)
+  @ApiDocumentation({ tags: ['Admin - Brands'], summary: 'Remove a brand', description: 'Admin removes a motorcycle brand.', protected: true })
   async delete(@Param("id", ParseUUIDPipe) id: string, @Req() request: any) {
     await this.brandsService.delete(id, request.user);
 

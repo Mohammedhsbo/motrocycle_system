@@ -27,6 +27,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
 import { PermissionsGuard } from "../auth/guards/permissions.guard.js";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe.js";
 import { CategoriesService } from "./categories.service.js";
+import { ApiDocumentation } from "../common/decorators/api-documentation.decorator.js";
 
 @Controller("categories")
 export class CategoriesController {
@@ -35,6 +36,7 @@ export class CategoriesController {
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.CREATE)
+  @ApiDocumentation({ tags: ['Admin - Categories'], summary: 'Create a category', description: 'Admin creates a motorcycle category.', protected: true })
   async create(
     @Body(new ZodValidationPipe(createCategoryRequestSchema)) body: CreateCategoryRequest,
     @Req() request: any,
@@ -46,6 +48,7 @@ export class CategoriesController {
   }
 
   @Get()
+  @ApiDocumentation({ tags: ['Web - Categories', 'POS - Inventory Lookup'], summary: 'List categories', description: 'Web storefront and Desktop POS retrieve motorcycle categories.' })
   async list(
     @Query(new ZodValidationPipe(listCategoriesQuerySchema)) query: ListCategoriesQuery,
     @Req() request: any,
@@ -59,6 +62,7 @@ export class CategoriesController {
   }
 
   @Get(":id")
+  @ApiDocumentation({ tags: ['Web - Categories', 'POS - Inventory Lookup'], summary: 'Get a category', description: 'Web storefront and Desktop POS retrieve category details by ID.' })
   async getById(@Param("id", ParseUUIDPipe) id: string, @Req() request: any) {
     // Public endpoint - no authentication required
     const user = request.user || null;
@@ -71,6 +75,7 @@ export class CategoriesController {
   @Patch(":id")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.UPDATE)
+  @ApiDocumentation({ tags: ['Admin - Categories'], summary: 'Update a category', description: 'Admin updates a motorcycle category.', protected: true })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(updateCategoryRequestSchema)) body: UpdateCategoryRequest,
@@ -85,6 +90,7 @@ export class CategoriesController {
   @Delete(":id")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.DELETE)
+  @ApiDocumentation({ tags: ['Admin - Categories'], summary: 'Remove a category', description: 'Admin removes a motorcycle category.', protected: true })
   async delete(@Param("id", ParseUUIDPipe) id: string, @Req() request: any) {
     await this.categoriesService.delete(id, request.user);
 

@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
+import { ApiDocumentation } from '../common/decorators/api-documentation.decorator.js';
 import { 
   createMotorcycleRequestSchema, 
   updateMotorcycleRequestSchema,
@@ -37,6 +38,7 @@ export class MotorcyclesController {
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.CREATE)
+  @ApiDocumentation({ tags: ['Admin - Motorcycles'], summary: 'Create a motorcycle', description: 'Admin creates a motorcycle record for inventory management.', protected: true })
   async create(
     @Body(new ZodValidationPipe(createMotorcycleRequestSchema)) data: CreateMotorcycleRequest,
     @Req() req: AuthenticatedRequest
@@ -47,6 +49,7 @@ export class MotorcyclesController {
   }
 
   @Get()
+  @ApiDocumentation({ tags: ['Web - Motorcycles', 'POS - Inventory Lookup'], summary: 'List motorcycles', description: 'Web storefront and Desktop POS retrieve motorcycles for browsing or inventory lookup.' })
   // This endpoint might be public for customers (e-commerce) or authenticated for staff
   // Using an optional auth guard would be ideal, but for simplicity we assume it's publicly accessible
   // and we identify the user if token is present, else treat as customer.
@@ -64,6 +67,7 @@ export class MotorcyclesController {
   }
 
   @Get(':id')
+  @ApiDocumentation({ tags: ['Web - Motorcycles', 'POS - Inventory Lookup'], summary: 'Get a motorcycle', description: 'Web storefront and Desktop POS retrieve motorcycle details by ID.' })
   async findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
     const isCustomer = !req.user || req.user.roleName === 'customer';
     const userBranchId = req.user?.branchId ?? null;
@@ -76,6 +80,7 @@ export class MotorcyclesController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.UPDATE)
+  @ApiDocumentation({ tags: ['Admin - Motorcycles'], summary: 'Update a motorcycle', description: 'Admin updates motorcycle inventory data.', protected: true })
   async update(
     @Param('id', ParseUUIDPipe) id: string, 
     @Body(new ZodValidationPipe(updateMotorcycleRequestSchema)) data: UpdateMotorcycleRequest,
@@ -89,6 +94,7 @@ export class MotorcyclesController {
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.UPDATE)
+  @ApiDocumentation({ tags: ['Admin - Motorcycles'], summary: 'Change motorcycle status', description: 'Admin changes the lifecycle status of a motorcycle.', protected: true })
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(statusTransitionRequestSchema)) data: StatusTransitionRequest,
@@ -102,6 +108,7 @@ export class MotorcyclesController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.MOTORCYCLE, Action.DELETE)
+  @ApiDocumentation({ tags: ['Admin - Motorcycles'], summary: 'Remove a motorcycle', description: 'Admin removes a motorcycle from inventory.', protected: true })
   async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
     const isSuperAdmin = req.user.isSuperAdmin;
     await this.motorcyclesService.remove(id, req.user.id, req.user.branchId, isSuperAdmin);
