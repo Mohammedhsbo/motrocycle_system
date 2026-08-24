@@ -218,8 +218,8 @@ export class LettersService {
       throw new NotFoundException(`Letter ${letterId} not found`);
     }
 
-    // Branch isolation
-    if (letter.branchId !== user.branchId) {
+    // Branch isolation; a null branch means the user is not branch-restricted.
+    if (user.branchId !== null && letter.branchId !== user.branchId) {
       throw new ForbiddenException('Cannot access letter from another branch');
     }
 

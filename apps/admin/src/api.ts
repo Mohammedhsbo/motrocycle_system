@@ -113,7 +113,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, canRe
     return { items: json.items, ...json.meta } as T;
   }
 
-  return json.data;
+  return Object.prototype.hasOwnProperty.call(json, 'data') ? json.data : json;
 }
 
 export const integrations = {
@@ -1285,7 +1285,15 @@ export const letters = {
     if (params?.order) q.set('order', params.order);
     return apiFetch<PaginatedResult<LetterListItem>>(`/letters?${q}`);
   },
-  get: (id: string) => apiFetch<LetterDetail>(`/letters/${id}`),
+  get: async (id: string) => {
+    const letter = await apiFetch<LetterDetail & { issuedAt?: string }>(`/letters/${id}`);
+    return {
+      ...letter,
+      issueDate: letter.issueDate ?? letter.issuedAt,
+      subject: letter.subject ?? letter.letterNumber,
+      content: letter.content ?? letter.notes ?? '',
+    };
+  },
   create: (data: CreateLetterInput) =>
     apiFetch<LetterDetail>('/letters', {
       method: 'POST',
@@ -1321,7 +1329,19 @@ export const letters = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
-  getHistory: (id: string) => apiFetch<LetterHistoryEntry[]>(`/letters/${id}/history`),
+  getHistory: async (id: string) => {
+    const history = await apiFetch<Array<LetterHistoryEntry & {
+      actor?: { id: string; name: string };
+      fromStatus?: string;
+      toStatus?: string;
+    }>>(`/letters/${id}/history`);
+    return history.map((entry) => ({
+      ...entry,
+      user: entry.user ?? entry.actor ?? { id: '', name: 'Unknown user' },
+      before: entry.before ?? (entry.fromStatus ? { status: entry.fromStatus as LetterStatus } : undefined),
+      after: entry.after ?? (entry.toStatus ? { status: entry.toStatus as LetterStatus } : {}),
+    }));
+  },
   generateDocument: (id: string, language: 'en' | 'ar') =>
     apiFetch<{ url: string }>(`/letters/${id}/documents/generate`, {
       method: 'POST',
