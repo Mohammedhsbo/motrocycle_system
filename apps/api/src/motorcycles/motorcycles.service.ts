@@ -338,6 +338,14 @@ export class MotorcyclesService {
       }
     }
 
+    const reservationsCount = await this.prisma.reservation.count({
+      where: { motorcycleId: id }
+    });
+
+    if (reservationsCount > 0) {
+      throw new ConflictException({ code: 'MOTORCYCLE_HAS_RESERVATIONS', message: 'Cannot delete a motorcycle with reservation history' });
+    }
+
     await this.prisma.motorcycle.delete({ where: { id } });
     await this.audit.log({
       userId,

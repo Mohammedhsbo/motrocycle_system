@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { ProductGallery } from "@/components/ProductGallery";
 import { displayName, formatCurrency, getMotorcycle, normalizeImages, publicVin } from "@/lib/catalog-api";
@@ -34,6 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function MotorcycleDetailsPage({ params }: PageProps) {
+  const t = await getTranslations("motorcycleDetails");
   const { locale, id } = await params;
   let motorcycle;
   try {
@@ -65,15 +67,15 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section className="bg-zinc-950 py-10 text-white">
         <div className="section-shell">
-          <Link href="/motorcycles" className="text-sm font-bold text-zinc-300 hover:text-white">Back to inventory</Link>
+          <Link href="/motorcycles" className="text-sm font-bold text-zinc-300 hover:text-white">{t("backToInventory")}</Link>
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-400">{displayName(motorcycle.brand, locale)}</p>
               <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">{motorcycle.model}</h1>
-              <p className="mt-3 text-zinc-300">{motorcycle.year} · {motorcycle.engineSize ?? "Engine details available on request"} · {displayName(motorcycle.category, locale)}</p>
+              <p className="mt-3 text-zinc-300">{motorcycle.year} · {motorcycle.engineSize ?? t("engineAvailable")} · {displayName(motorcycle.category, locale)}</p>
             </div>
             <div className="rounded-lg bg-white p-5 text-zinc-950 shadow-xl">
-              <p className="text-sm text-zinc-500">Price</p>
+              <p className="text-sm text-zinc-500">{t("price")}</p>
               <p className="text-3xl font-black">{formatCurrency(motorcycle.price)}</p>
             </div>
           </div>
@@ -87,19 +89,19 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
           <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center gap-2 text-emerald-700">
               <ShieldCheck size={20} />
-              <span className="text-sm font-bold">In Stock</span>
+              <span className="text-sm font-bold">{t("inStock")}</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Spec icon={<Gauge size={18} />} label="Engine" value={motorcycle.engineSize ?? "Available on request"} />
-              <Spec icon={<Calendar size={18} />} label="Year" value={String(motorcycle.year)} />
-              <Spec icon={<Palette size={18} />} label="Color" value={motorcycle.color ?? "Available on request"} />
-              <Spec icon={<MapPin size={18} />} label="Branch" value={displayName(motorcycle.branch, locale)} />
+              <Spec icon={<Gauge size={18} />} label={t("engine")} value={motorcycle.engineSize ?? t("availableOnRequest")} />
+              <Spec icon={<Calendar size={18} />} label={t("year")} value={String(motorcycle.year)} />
+              <Spec icon={<Palette size={18} />} label={t("color")} value={motorcycle.color ?? t("availableOnRequest")} />
+              <Spec icon={<MapPin size={18} />} label={t("branch")} value={displayName(motorcycle.branch, locale)} />
             </div>
             <div className="mt-5 rounded-md bg-zinc-50 p-4 text-sm text-zinc-600">
-              Public VIN reference: <span className="font-mono font-bold text-zinc-950">{publicVin(motorcycle.vin)}</span>
+              {t("vinReference")} <span className="font-mono font-bold text-zinc-950">{publicVin(motorcycle.vin)}</span>
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link href={`/reserve/${motorcycle.id}`} className="rounded-md bg-red-700 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-red-800">Reserve Now</Link>
+              <Link href={`/reserve/${motorcycle.id}`} className="rounded-md bg-red-700 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-red-800">{t("reserveNow")}</Link>
               <AddToCartButton motorcycle={{
                 id: motorcycle.id,
                 vin: motorcycle.vin,
@@ -115,11 +117,11 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
           </div>
 
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-6">
-            <h2 className="text-xl font-black">Dealership support</h2>
+            <h2 className="text-xl font-black">{t("supportTitle")}</h2>
             <ul className="mt-4 space-y-3 text-sm text-zinc-700">
-              <li>Branch-backed availability from live inventory.</li>
-              <li>Secure customer account reservation flow.</li>
-              <li>Payment and financing records remain backend-authoritative.</li>
+              <li>{t("support1")}</li>
+              <li>{t("support2")}</li>
+              <li>{t("support3")}</li>
             </ul>
           </div>
         </aside>
@@ -127,9 +129,9 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
 
       <section className="section-shell pb-14">
         <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-black">Overview</h2>
+          <h2 className="text-2xl font-black">{t("overview")}</h2>
           <p className="mt-4 max-w-3xl leading-7 text-zinc-700">
-            {description || "This motorcycle is part of live dealership inventory. Contact the dealership or reserve online to continue with the purchase process."}
+            {description || t("descriptionFallback")}
           </p>
         </div>
       </section>

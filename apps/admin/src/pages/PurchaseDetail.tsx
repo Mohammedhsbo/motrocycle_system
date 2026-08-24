@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ShoppingCart, PackageCheck, XCircle, ClipboardList } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, PackageCheck, XCircle, ClipboardList, Trash2 } from 'lucide-react';
 import { purchases } from '../api';
 import Badge from '../components/Badge';
 import ReceiveItems from '../components/ReceiveItems';
+import Modal from '../components/Modal';
+import { useToast } from '../components/Toast';
 
 interface Props { lang: 'en' | 'ar' }
 
@@ -17,7 +19,7 @@ const t = {
     btnOrder: 'Mark as Ordered', btnCancel: 'Cancel Purchase',
     confirmOrder: 'Confirm: Mark this purchase as Ordered?',
     confirmCancel: 'Confirm: Cancel this purchase? This cannot be undone.',
-    orderSuccess: 'Purchase ordered!', cancelSuccess: 'Purchase cancelled.',
+    orderSuccess: 'Purchase ordered!', cancelSuccess: 'Purchase cancelled.', deleteSuccess: 'Purchase deleted.', delete: 'Delete', cancel: 'Cancel', confirmDelete: 'Delete purchase {number}? This cannot be undone.',
   },
   ar: {
     back: 'المشتريات', loading: 'جاري التحميل…', error: 'فشل تحميل الطلب.',
@@ -27,7 +29,7 @@ const t = {
     btnOrder: 'تأكيد الطلب', btnCancel: 'إلغاء الطلب',
     confirmOrder: 'هل تريد تأكيد هذا الطلب؟',
     confirmCancel: 'هل تريد إلغاء هذا الطلب؟ لا يمكن التراجع.',
-    orderSuccess: 'تم تأكيد الطلب!', cancelSuccess: 'تم إلغاء الطلب.',
+    orderSuccess: 'تم تأكيد الطلب!', cancelSuccess: 'تم إلغاء الطلب.', deleteSuccess: 'تم حذف طلب الشراء.', delete: 'حذف', cancel: 'إلغاء', confirmDelete: 'حذف طلب الشراء {number}؟ لا يمكن التراجع.',
   },
 };
 
@@ -37,8 +39,10 @@ export default function PurchaseDetail({ lang }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { showToast } = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: purchase, isLoading, isError, refetch } = useQuery({
     queryKey: ['purchase', id],
@@ -66,7 +70,21 @@ export default function PurchaseDetail({ lang }: Props) {
     onError: (e: Error) => setActionError(e.message),
   });
 
-  const isBusy = orderMut.isPending || cancelMut.isPending;
+  const deleteMut = useMutation({
+    mutationFn: () => purchases.delete(id!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['purchases'] });
+      setShowDeleteModal(false);
+      showToast(i18n.deleteSuccess, 'success');
+      navigate('/purchases');
+    },
+    onError: (e: Error) => {
+      setActionError(e.message);
+      showToast(e.message, 'error');
+    },
+  });
+
+  const isBusy = orderMut.isPending || cancelMut.isPending || deleteMut.isPending;
 
   if (isLoading) return (
     <div className="page-container center-content" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
@@ -84,6 +102,7 @@ export default function PurchaseDetail({ lang }: Props) {
 
   const canOrder = purchase.status === 'draft';
   const canCancel = purchase.status === 'draft';
+  const canDelete = purchase.status === 'draft';
   const canReceive = purchase.status === 'ordered' || purchase.status === 'partially_received';
   const total = Number(purchase.totalAmount);
 
@@ -124,6 +143,16 @@ export default function PurchaseDetail({ lang }: Props) {
               disabled={isBusy}
             >
               <XCircle size={16} /> {i18n.btnCancel}
+            </button>
+          )}
+          {canDelete && (
+            <button
+              className="btn"
+              style={{ background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.2)' }}
+              onClick={() => setShowDeleteModal(true)}
+              disabled={isBusy}
+            >
+              <Trash2 size={16} /> {i18n.delete}
             </button>
           )}
         </div>
@@ -210,6 +239,23 @@ export default function PurchaseDetail({ lang }: Props) {
             onSuccess={() => refetch()}
           />
         </div>
+      )}
+      {showDeleteModal && (
+        <Modal
+          title={i18n.delete}
+          onClose={() => !deleteMut.isPending && setShowDeleteModal(false)}
+          footer={
+            <>
+              <button className="btn btn-outline" onClick={() => setShowDeleteModal(false)} disabled={deleteMut.isPending}>{i18n.cancel}</button>
+              <button className="btn" style={{ background: 'var(--error)', color: 'white' }} onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending}>
+                {deleteMut.isPending ? <span className="spinner" style={{ width: 16, height: 16 }} /> : <Trash2 size={16} />}
+                {i18n.delete}
+              </button>
+            </>
+          }
+        >
+          <p>{i18n.confirmDelete.replace('{number}', purchase.purchaseNumber)}</p>
+        </Modal>
       )}
     </div>
   );

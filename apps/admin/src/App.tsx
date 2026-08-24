@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { Activity, Banknote, Bike, Building2, CircleDollarSign, CreditCard, FileText, KeyRound, LayoutGrid, Package, Receipt, Settings, ShoppingBag, Store, Users, WalletCards, ArrowRightLeft, Plug } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Suppliers from './pages/Suppliers';
+import Brands from './pages/Brands';
+import Categories from './pages/Categories';
+import Motorcycles from './pages/Motorcycles';
+import MotorcycleForm from './pages/MotorcycleForm';
 import Purchases from './pages/Purchases';
 import PurchaseForm from './pages/PurchaseForm';
 import PurchaseDetail from './pages/PurchaseDetail';
@@ -36,6 +40,7 @@ import Login from './pages/Login';
 import { clearToken, getToken, auth, reports } from './api';
 import Badge from './components/Badge';
 import { BranchGate, BranchProvider, useBranch } from './contexts/BranchContext';
+import { ToastProvider } from './components/Toast';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -67,6 +72,7 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
   const quickLinks = [
     { label: 'Suppliers', path: '/suppliers', icon: Package, tone: 'blue' },
+    { label: 'Brands', path: '/brands', icon: Bike, tone: 'neutral' },
     { label: 'Purchases', path: '/purchases', icon: ShoppingBag, tone: 'warning' },
     { label: 'Customers', path: '/customers', icon: Users, tone: 'success' },
     { label: 'Orders', path: '/orders', icon: Store, tone: 'blue' },
@@ -124,7 +130,7 @@ export default function App() {
   const [authenticated, setAuthenticated] = useState(() => Boolean(getToken()));
 
   if (!authenticated) {
-    return <Login onLogin={() => setAuthenticated(true)} />;
+    return <ToastProvider direction={lang === 'ar' ? 'rtl' : 'ltr'}><Login onLogin={() => setAuthenticated(true)} /></ToastProvider>;
   }
 
   const handleLogout = async () => {
@@ -137,16 +143,22 @@ export default function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <BranchProvider>
-          <BranchGate lang={lang}>
-            <div className="app-container">
+    <ToastProvider direction={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <BranchProvider>
+            <BranchGate lang={lang}>
+              <div className="app-container">
               <Sidebar lang={lang} onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')} onLogout={handleLogout} />
               <div className="main-content">
             <Routes>
               <Route path="/" element={<Dashboard lang={lang} />} />
               <Route path="/suppliers" element={<Suppliers lang={lang} />} />
+              <Route path="/brands" element={<Brands lang={lang} />} />
+              <Route path="/categories" element={<Categories lang={lang} />} />
+              <Route path="/motorcycles" element={<Motorcycles lang={lang} />} />
+              <Route path="/motorcycles/new" element={<MotorcycleForm lang={lang} />} />
+              <Route path="/motorcycles/:id/edit" element={<MotorcycleForm lang={lang} />} />
               <Route path="/purchases" element={<Purchases lang={lang} />} />
               <Route path="/purchases/new" element={<PurchaseForm lang={lang} />} />
               <Route path="/purchases/:id" element={<PurchaseDetail lang={lang} />} />
@@ -179,10 +191,11 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
               </div>
-            </div>
-          </BranchGate>
-        </BranchProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+              </div>
+            </BranchGate>
+          </BranchProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ToastProvider>
   );
 }

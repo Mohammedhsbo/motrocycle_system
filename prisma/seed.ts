@@ -213,10 +213,20 @@ export async function seedDatabase() {
   ];
 
   for (const brand of brands) {
-    await prisma.brand.upsert({
-      where: { nameEn: brand.nameEn },
-      update: { nameAr: brand.nameAr, logo: brand.logo, sortOrder: brand.sortOrder },
-      create: brand,
+    const existingByName = await prisma.brand.findUnique({ where: { nameEn: brand.nameEn } })
+      ?? await prisma.brand.findUnique({ where: { nameAr: brand.nameAr } });
+
+    if (existingByName) {
+      await prisma.brand.update({
+        where: { id: existingByName.id },
+        data: { nameAr: brand.nameAr, nameEn: brand.nameEn, logo: brand.logo, sortOrder: brand.sortOrder },
+      });
+      continue;
+    }
+
+    const existingById = await prisma.brand.findUnique({ where: { id: brand.id } });
+    await prisma.brand.create({
+      data: existingById ? { ...brand, id: undefined } : brand,
     });
   }
 

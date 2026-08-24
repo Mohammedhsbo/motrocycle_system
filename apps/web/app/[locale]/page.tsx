@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { MotorcycleCard } from "@/components/MotorcycleCard";
 import { MotorcycleVisual } from "@/components/MotorcycleVisual";
@@ -7,6 +8,7 @@ import { ArrowRight, BadgeCheck, CreditCard, MapPin, ShieldCheck, Sparkles, Wren
 export const dynamic = "force-dynamic";
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const t = await getTranslations("home");
   const { locale } = await params;
   const [{ items: featured }, { items: latest }, brands, categories] = await Promise.all([
     listMotorcycles({ limit: 6, sort: "price", order: "desc" }).catch(() => ({ items: [], meta: { total: 0, page: 1, limit: 6, totalPages: 0 } })),
@@ -27,39 +29,39 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <div className="section-shell grid min-h-[calc(100vh-72px)] items-center gap-10 py-12 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="relative z-10 max-w-2xl">
             <p className="mb-5 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-200">
-              Premium verified inventory
+              {t("badge")}
             </p>
-            <h1 className="text-5xl font-black leading-[0.96] tracking-tight sm:text-6xl lg:text-7xl">Find Your Next Ride.</h1>
+            <h1 className="text-5xl font-black leading-[0.96] tracking-tight sm:text-6xl lg:text-7xl">{t("title")}</h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-300">
-              Explore branch-backed motorcycles with real availability, secure reservations, and a polished buying experience connected to the Motrocycle System backend.
+              {t("description")}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/motorcycles" className="inline-flex items-center justify-center rounded-md bg-red-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-red-700">
-                Explore Motorcycles <ArrowRight className="ml-2" size={18} />
+                {t("explore")} <ArrowRight className="ml-2" size={18} />
               </Link>
               {heroBike && (
                 <Link href={`/reserve/${heroBike.id}`} className="inline-flex items-center justify-center rounded-md border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-zinc-950">
-                  Book a Reservation
+                  {t("reserve")}
                 </Link>
               )}
             </div>
             <div className="mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-white/10 pt-6 text-sm text-zinc-300">
-              <div><strong className="block text-2xl text-white">{featured.length + latest.length}+</strong>Featured bikes</div>
-              <div><strong className="block text-2xl text-white">{brands.length}</strong>Brands</div>
-              <div><strong className="block text-2xl text-white">{categories.length}</strong>Categories</div>
+              <div><strong className="block text-2xl text-white">{featured.length + latest.length}+</strong>{t("featuredBikes")}</div>
+              <div><strong className="block text-2xl text-white">{brands.length}</strong>{t("brands")}</div>
+              <div><strong className="block text-2xl text-white">{categories.length}</strong>{t("categories")}</div>
             </div>
           </div>
 
           <div className="relative z-10">
             <div className="relative aspect-[16/11] overflow-hidden rounded-lg border border-white/10 bg-zinc-900 shadow-2xl">
-              <MotorcycleVisual src={heroImages[0]} alt={heroBike ? `${displayName(heroBike.brand, locale)} ${heroBike.model}` : "Premium motorcycle"} priority />
+              <MotorcycleVisual src={heroImages[0]} alt={heroBike ? `${displayName(heroBike.brand, locale)} ${heroBike.model}` : t("premiumMotorcycleAlt")} priority />
               {heroBike && (
                 <div className="absolute inset-x-4 bottom-4 rounded-lg bg-white/92 p-4 text-zinc-950 shadow-xl backdrop-blur">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-700">{displayName(heroBike.brand, locale)}</p>
                   <div className="mt-1 flex items-end justify-between gap-3">
                     <div>
                       <h2 className="text-2xl font-black">{heroBike.model}</h2>
-                      <p className="text-sm text-zinc-600">{heroBike.year} · {heroBike.engineSize ?? "Engine available"} · {displayName(heroBike.branch, locale)}</p>
+                      <p className="text-sm text-zinc-600">{heroBike.year} · {heroBike.engineSize ?? t("engineAvailable")} · {displayName(heroBike.branch, locale)}</p>
                     </div>
                     <p className="text-xl font-black">{formatCurrency(heroBike.price)}</p>
                   </div>
@@ -73,10 +75,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <section className="section-shell py-16">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-700">Featured motorcycles</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-zinc-950">Ready for the road</h2>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-700">{t("featuredLabel")}</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-zinc-950">{t("featuredSubtitle")}</h2>
           </div>
-          <Link href="/motorcycles" className="hidden text-sm font-bold text-zinc-900 hover:text-red-700 sm:inline-flex">View all inventory</Link>
+          <Link href="/motorcycles" className="hidden text-sm font-bold text-zinc-900 hover:text-red-700 sm:inline-flex">{t("viewAll")}</Link>
         </div>
         {featured.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -84,8 +86,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center">
-            <h3 className="text-lg font-bold">{inventoryUnavailable ? "Inventory is temporarily unavailable." : "No motorcycles are available right now."}</h3>
-            <p className="mt-2 text-zinc-600">{inventoryUnavailable ? "Please try again shortly while we reconnect to the inventory service." : "Check back after inventory is added through the admin dashboard."}</p>
+            <h3 className="text-lg font-bold">{inventoryUnavailable ? t("emptyUnavailable") : t("emptyNoneAvailable")}</h3>
+            <p className="mt-2 text-zinc-600">{inventoryUnavailable ? t("emptyUnavailableDescription") : t("emptyNoneAvailableDescription")}</p>
           </div>
         )}
       </section>
@@ -93,23 +95,23 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <section className="bg-zinc-100 py-16">
         <div className="section-shell grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-700">Brands and categories</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight">Shop by the way you ride</h2>
-            <p className="mt-4 text-zinc-600">The website reads the same brands, categories, and inventory that the admin team manages.</p>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-700">{t("brandsCategoriesLabel")}</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight">{t("brandsCategoriesTitle")}</h2>
+            <p className="mt-4 text-zinc-600">{t("brandsCategoriesDescription")}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {brands.slice(0, 6).map((brand) => (
               <Link key={brand.id} href={`/motorcycles?brandId=${brand.id}`} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Brand</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">{t("brandLabel")}</p>
                 <h3 className="mt-2 text-xl font-black">{displayName(brand, locale)}</h3>
-                <p className="mt-1 text-sm text-zinc-500">{brandCounts.get(brand.id) ?? 0} available in featured stock</p>
+                <p className="mt-1 text-sm text-zinc-500">{t("brandCount", { count: brandCounts.get(brand.id) ?? 0 })}</p>
               </Link>
             ))}
             {categories.slice(0, 6).map((category) => (
               <Link key={category.id} href={`/motorcycles?categoryId=${category.id}`} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Category</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">{t("categoryLabel")}</p>
                 <h3 className="mt-2 text-xl font-black">{displayName(category, locale)}</h3>
-                <p className="mt-1 text-sm text-zinc-500">Browse matching motorcycles</p>
+                <p className="mt-1 text-sm text-zinc-500">{t("categoryPrompt")}</p>
               </Link>
             ))}
           </div>

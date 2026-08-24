@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PackageSearch, ShoppingCart, Users, ArrowLeftRight, ShoppingBag, X, FileText, CreditCard, Wallet, Mail, BarChart2, Settings, Flag, Building2, History, Key } from 'lucide-react';
+import { LayoutDashboard, PackageSearch, ShoppingCart, Users, ArrowLeftRight, ShoppingBag, X, FileText, CreditCard, Wallet, Mail, BarChart2, Settings, Flag, Building2, History, Key, Tag, Bike, ListTree } from 'lucide-react';
 import { useBranch } from '../contexts/BranchContext';
 
 interface SidebarProps {
@@ -12,6 +12,9 @@ const nav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', labelAr: 'لوحة التحكم', exact: true },
   { to: '/reports', icon: BarChart2, label: 'Reports', labelAr: 'التقارير' },
   { to: '/suppliers', icon: PackageSearch, label: 'Suppliers', labelAr: 'الموردون' },
+  { to: '/brands', icon: Tag, label: 'Brands', labelAr: 'العلامات التجارية' },
+  { to: '/categories', icon: ListTree, label: 'Categories', labelAr: 'الفئات' },
+  { to: '/motorcycles', icon: Bike, label: 'Motorcycles', labelAr: 'الدراجات النارية' },
   { to: '/purchases', icon: ShoppingCart, label: 'Purchases', labelAr: 'المشتريات' },
   { to: '/customers', icon: Users, label: 'Customers', labelAr: 'العملاء' },
   { to: '/orders', icon: ShoppingBag, label: 'Orders', labelAr: 'الطلبات' },

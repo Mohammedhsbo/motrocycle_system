@@ -7,7 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./Button";
 
 export function Header() {
-  const t = useTranslations();
+  const t = useTranslations("header");
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const { isAuthenticated, user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -18,6 +20,8 @@ export function Header() {
     const newLocale = locale === "ar" ? "en" : "ar";
     window.location.href = `/${newLocale}`;
   };
+
+  const localeToggleLabel = locale === "ar" ? t("switchToEnglish") : t("switchToArabic");
 
   useEffect(() => {
     function handleMouseDown(event: MouseEvent) {
@@ -35,36 +39,36 @@ export function Header() {
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 text-xl font-black tracking-tight text-zinc-950">
             <span className="grid h-9 w-9 place-items-center rounded-md bg-zinc-950 text-white">M</span>
-            <span>MotorCycle</span>
+            <span>{t("brandName")}</span>
           </Link>
 
           <nav className="hidden md:flex">
             <ul className="flex items-center gap-7">
-              <li><Link href="/" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">Home</Link></li>
-              <li><Link href="/motorcycles" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{t("nav.motorcycles")}</Link></li>
-              <li><Link href="/account/financing" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">Financing</Link></li>
-              <li><Link href="/contact" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{t("nav.contact")}</Link></li>
+              <li><Link href="/" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{tCommon("home")}</Link></li>
+              <li><Link href="/motorcycles" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{tNav("motorcycles")}</Link></li>
+              <li><Link href="/account/financing" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{t("financing")}</Link></li>
+              <li><Link href="/contact" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{tNav("contact")}</Link></li>
               {isAuthenticated && (
-                <li><Link href="/account" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{t("nav.account")}</Link></li>
+                <li><Link href="/account" className="text-sm font-medium text-zinc-700 transition hover:text-red-700">{tNav("account")}</Link></li>
               )}
             </ul>
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/motorcycles" aria-label="Search inventory" className="hidden rounded-full border border-zinc-200 p-2 text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-950 sm:block">
+            <Link href="/motorcycles" aria-label={t("searchInventory")} className="hidden rounded-full border border-zinc-200 p-2 text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-950 sm:block">
               <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
               </svg>
             </Link>
 
-            <Link href="/cart" aria-label="View cart" className="hidden rounded-full border border-zinc-200 p-2 text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-950 sm:block">
+            <Link href="/cart" aria-label={t("viewCart")} className="hidden rounded-full border border-zinc-200 p-2 text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-950 sm:block">
               <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
               </svg>
             </Link>
 
-            <button onClick={toggleLocale} className="text-sm font-semibold text-zinc-700 transition hover:text-red-700">
-              {locale === "ar" ? "EN" : "العربية"}
+            <button onClick={toggleLocale} className="text-sm font-semibold text-zinc-700 transition hover:text-red-700" aria-label={localeToggleLabel}>
+              {localeToggleLabel}
             </button>
 
             {isAuthenticated ? (
@@ -72,7 +76,7 @@ export function Header() {
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
                   className="flex items-center rounded-full border border-zinc-200 p-2 text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-950"
-                  aria-label="User menu"
+                  aria-label={t("userMenu")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -85,25 +89,25 @@ export function Header() {
                       onClick={() => setUserMenuOpen(false)}
                       className="block px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                     >
-                      {t("nav.account")}
+                      {tNav("account")}
                     </Link>
                     <button
                       onClick={() => { setUserMenuOpen(false); logout(); }}
                       className="block w-full px-4 py-2 text-left text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                     >
-                      {t("nav.logout")}
+                      {tNav("logout")}
                     </button>
                   </div>
                 )}
               </div>
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
-                <Link href="/login"><Button variant="outline" size="sm">{t("nav.login")}</Button></Link>
-                <Link href="/register"><Button size="sm">{t("nav.register")}</Button></Link>
+                <Link href="/login"><Button variant="outline" size="sm">{tNav("login")}</Button></Link>
+                <Link href="/register"><Button size="sm">{tNav("register")}</Button></Link>
               </div>
             )}
 
-            <button className="rounded-md border border-zinc-200 p-2 md:hidden" onClick={() => setOpen((value) => !value)} aria-label="Toggle menu">
+            <button className="rounded-md border border-zinc-200 p-2 md:hidden" onClick={() => setOpen((value) => !value)} aria-label={t("toggleMenu")}>
               {open ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
@@ -119,16 +123,16 @@ export function Header() {
 
         {open && (
           <div className="mt-4 grid gap-2 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg md:hidden">
-            <Link onClick={() => setOpen(false)} href="/" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">Home</Link>
-            <Link onClick={() => setOpen(false)} href="/motorcycles" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{t("nav.motorcycles")}</Link>
-            <Link onClick={() => setOpen(false)} href="/account/financing" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">Financing</Link>
-            <Link onClick={() => setOpen(false)} href="/contact" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{t("nav.contact")}</Link>
+            <Link onClick={() => setOpen(false)} href="/" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{tCommon("home")}</Link>
+            <Link onClick={() => setOpen(false)} href="/motorcycles" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{tNav("motorcycles")}</Link>
+            <Link onClick={() => setOpen(false)} href="/account/financing" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{t("financing")}</Link>
+            <Link onClick={() => setOpen(false)} href="/contact" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{tNav("contact")}</Link>
             {isAuthenticated ? (
-              <Link onClick={() => setOpen(false)} href="/account" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{t("nav.account")}</Link>
+              <Link onClick={() => setOpen(false)} href="/account" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{tNav("account")}</Link>
             ) : (
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <Link href="/login"><Button variant="outline" size="sm" className="w-full">{t("nav.login")}</Button></Link>
-                <Link href="/register"><Button size="sm" className="w-full">{t("nav.register")}</Button></Link>
+                <Link href="/login"><Button variant="outline" size="sm" className="w-full">{tNav("login")}</Button></Link>
+                <Link href="/register"><Button size="sm" className="w-full">{tNav("register")}</Button></Link>
               </div>
             )}
           </div>

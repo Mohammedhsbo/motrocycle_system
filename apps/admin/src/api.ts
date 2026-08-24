@@ -70,8 +70,9 @@ async function refreshAccessToken() {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh = true): Promise<T> {
+  const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(options.headers as Record<string, string> ?? {}),
   };
@@ -227,6 +228,119 @@ export const suppliers = {
     apiFetch<Supplier>(`/suppliers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) =>
     apiFetch<null>(`/suppliers/${id}`, { method: 'DELETE' }),
+};
+
+// ─────────────────────────────────────────────────────────
+// Brands & Categories
+// ─────────────────────────────────────────────────────────
+export interface BrandCreate {
+  nameAr: string;
+  nameEn: string;
+  logo?: string;
+  sortOrder?: number;
+}
+
+export interface BrandUpdate {
+  nameAr?: string;
+  nameEn?: string;
+  logo?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface BrandResponse {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  logo: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { motorcycles: number };
+}
+
+export interface CategoryCreate {
+  nameAr: string;
+  nameEn: string;
+  parentId?: string;
+  sortOrder?: number;
+}
+
+export interface CategoryUpdate {
+  nameAr?: string;
+  nameEn?: string;
+  parentId?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface CategoryResponse {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  parentId: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryWithRelations extends CategoryResponse {
+  parent: { id: string; nameAr: string; nameEn: string } | null;
+  children: { id: string; nameAr: string; nameEn: string; sortOrder: number }[];
+  _count: { motorcycles: number };
+}
+
+export interface CategoryTreeItem extends CategoryResponse {
+  children?: CategoryTreeItem[];
+  _count?: { motorcycles: number };
+}
+
+export interface CategoryFlatItem extends CategoryResponse {
+  depth: number;
+  path: string;
+  _count?: { motorcycles: number };
+}
+
+export const brands = {
+  create: (data: BrandCreate) =>
+    apiFetch<BrandResponse>('/brands', { method: 'POST', body: JSON.stringify(data) }),
+  list: (params?: { isActive?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.isActive !== undefined) q.set('isActive', String(params.isActive));
+    return apiFetch<BrandResponse[]>(`/brands?${q}`);
+  },
+  getById: (id: string) => apiFetch<BrandResponse>(`/brands/${id}`),
+  update: (id: string, data: BrandUpdate) =>
+    apiFetch<BrandResponse>(`/brands/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch<null>(`/brands/${id}`, { method: 'DELETE' }),
+};
+
+export const categories = {
+  create: (data: CategoryCreate) =>
+    apiFetch<CategoryResponse>('/categories', { method: 'POST', body: JSON.stringify(data) }),
+  list: (params?: { isActive?: boolean; flat?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.isActive !== undefined) q.set('isActive', String(params.isActive));
+    if (params?.flat !== undefined) q.set('flat', String(params.flat));
+    return apiFetch<CategoryTreeItem[] | CategoryFlatItem[]>(`/categories?${q}`);
+  },
+  getById: (id: string) => apiFetch<CategoryWithRelations>(`/categories/${id}`),
+  update: (id: string, data: CategoryUpdate) =>
+    apiFetch<CategoryResponse>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch<null>(`/categories/${id}`, { method: 'DELETE' }),
+};
+
+export const upload = {
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiFetch<{ url: string; filename: string; size: number; mimeType: string }>('/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };
 
 // ─────────────────────────────────────────────────────────
@@ -523,6 +637,7 @@ export const purchases = {
     apiFetch<Purchase>(`/purchases/${id}/order`, { method: 'POST' }),
   cancel: (id: string) =>
     apiFetch<Purchase>(`/purchases/${id}/cancel`, { method: 'POST' }),
+  delete: (id: string): Promise<void> => apiFetch<void>(`/purchases/${id}`, { method: 'DELETE' }),
   receive: (id: string, items: ReceiveItemInput[]) =>
     apiFetch<Purchase>(`/purchases/${id}/receive`, {
       method: 'POST',
@@ -568,14 +683,90 @@ export interface CreateTransferInput {
   notes?: string;
 }
 
+export type MotorcycleStatus = 'in_transit' | 'available' | 'reserved' | 'sold' | 'in_transfer' | 'maintenance' | 'returned';
+
+export interface MotorcycleInput {
+  vin: string;
+  model: string;
+  year: number;
+  color?: string;
+  engineSize?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  price: number;
+  costPrice: number;
+  brandId: string;
+  categoryId: string;
+  branchId: string;
+  images?: string[];
+  status?: MotorcycleStatus;
+}
+
+export interface MotorcycleUpdate {
+  model?: string;
+  year?: number;
+  color?: string;
+  engineSize?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  price?: number;
+  costPrice?: number;
+  brandId?: string;
+  categoryId?: string;
+  images?: string[];
+}
+
+export interface MotorcycleListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  brandId?: string;
+  categoryId?: string;
+  branchId?: string;
+  status?: MotorcycleStatus;
+  minPrice?: number;
+  maxPrice?: number;
+  minYear?: number;
+  maxYear?: number;
+  color?: string;
+  sort?: 'price' | 'year' | 'createdAt' | 'model';
+  order?: 'asc' | 'desc';
+}
+
+export interface MotorcycleResponse {
+  id: string;
+  vin: string;
+  model: string;
+  year: number;
+  color: string | null;
+  engineSize: string | null;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  price: number;
+  costPrice: number;
+  status: MotorcycleStatus;
+  images: string[];
+  branchId: string;
+  brandId: string;
+  categoryId: string;
+  createdAt: string;
+  updatedAt: string;
+  brand?: { id: string; nameAr: string; nameEn: string; logo?: string | null };
+  category?: { id: string; nameAr: string; nameEn: string; sortOrder?: number };
+  branch?: Branch;
+}
+
 export interface MotorcycleListItem {
   id: string;
   vin: string;
   model: string;
   year: number;
-  status: string;
+  price: number;
+  status: MotorcycleStatus;
   branchId: string;
   brand: { nameEn: string; nameAr: string };
+  category: { nameEn: string; nameAr: string };
+  branch: { nameEn: string; nameAr: string };
 }
 
 export const transfers = {
@@ -599,15 +790,35 @@ export const transfers = {
 };
 
 export const motorcycles = {
-  list: (params?: { page?: number; limit?: number; search?: string; branchId?: string; status?: string }) => {
+  create: (data: MotorcycleInput) =>
+    apiFetch<MotorcycleResponse>('/motorcycles', { method: 'POST', body: JSON.stringify(data) }),
+  list: (params?: MotorcycleListQuery) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.search) q.set('search', params.search);
+    if (params?.brandId) q.set('brandId', params.brandId);
+    if (params?.categoryId) q.set('categoryId', params.categoryId);
     if (params?.branchId) q.set('branchId', params.branchId);
     if (params?.status) q.set('status', params.status);
+    if (params?.minPrice !== undefined) q.set('minPrice', String(params.minPrice));
+    if (params?.maxPrice !== undefined) q.set('maxPrice', String(params.maxPrice));
+    if (params?.minYear !== undefined) q.set('minYear', String(params.minYear));
+    if (params?.maxYear !== undefined) q.set('maxYear', String(params.maxYear));
+    if (params?.color) q.set('color', params.color);
+    if (params?.sort) q.set('sort', params.sort);
+    if (params?.order) q.set('order', params.order);
     return apiFetch<PaginatedResult<MotorcycleListItem>>(`/motorcycles?${q}`);
   },
+  getById: (id: string) => apiFetch<MotorcycleResponse>(`/motorcycles/${id}`),
+  update: (id: string, data: MotorcycleUpdate) =>
+    apiFetch<MotorcycleResponse>(`/motorcycles/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateStatus: (id: string, status: MotorcycleStatus, reason?: string) =>
+    apiFetch<{ id: string; vin: string; model: string; status: MotorcycleStatus; previousStatus: MotorcycleStatus; updatedAt: string }>(`/motorcycles/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, reason }),
+    }),
+  delete: (id: string) => apiFetch<null>(`/motorcycles/${id}`, { method: 'DELETE' }),
 };
 
 // ─────────────────────────────────────────────────────────

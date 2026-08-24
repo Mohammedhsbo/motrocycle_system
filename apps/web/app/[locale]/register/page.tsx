@@ -15,12 +15,14 @@ import Link from "next/link";
 
 export default function RegisterPage() {
   const t = useTranslations("customer.register");
+  const tAddressForm = useTranslations("customer.addressForm");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const { login } = useAuth();
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const addressToggleLabel = showAddressForm ? t("hideAddressForm") : t("showAddressForm");
 
   const {
     register,
@@ -118,8 +120,11 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => setShowAddressForm(!showAddressForm)}
                 className="text-primary hover:underline text-sm font-medium"
+                aria-label={addressToggleLabel}
+                title={addressToggleLabel}
               >
-                {showAddressForm ? "− " : "+ "}
+                <span aria-hidden="true">{showAddressForm ? "−" : "+"}</span>
+                {" "}
                 {t("addAddress")}
               </button>
 
@@ -127,37 +132,37 @@ export default function RegisterPage() {
                 <div className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg">
                   <Input
                     {...register("address.label")}
-                    label={t("label") || "Label"}
-                    placeholder="e.g., Home"
+                    label={tAddressForm("label")}
+                    placeholder={tAddressForm("labelPlaceholder")}
                   />
 
                   <Input
                     {...register("address.addressLine")}
-                    label={t("addressLine") || "Address Line"}
+                    label={tAddressForm("addressLine")}
                     error={errors.address?.addressLine?.message}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       {...register("address.city")}
-                      label={t("city") || "City"}
+                      label={tAddressForm("city")}
                     />
 
                     <Input
                       {...register("address.region")}
-                      label={t("region") || "Region"}
+                      label={tAddressForm("region")}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       {...register("address.postalCode")}
-                      label={t("postalCode") || "Postal Code"}
+                      label={tAddressForm("postalCode")}
                     />
 
                     <Input
                       {...register("address.country")}
-                      label={t("country") || "Country"}
+                      label={tAddressForm("country")}
                     />
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { MotorcycleVisual } from "./MotorcycleVisual";
 import { X } from "lucide-react";
 
@@ -10,6 +11,7 @@ interface ProductGalleryProps {
 }
 
 export function ProductGallery({ images, title }: ProductGalleryProps) {
+  const t = useTranslations("productGallery");
   const [active, setActive] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const activeImage = images[active];
@@ -30,8 +32,8 @@ export function ProductGallery({ images, title }: ProductGalleryProps) {
       </div>
 
       {fullscreen && (
-        <div className="fixed inset-0 z-[100] bg-black/90 p-4" role="dialog" aria-modal="true" aria-label={`${title} gallery`}>
-          <button onClick={() => setFullscreen(false)} className="absolute right-4 top-4 rounded-full bg-white p-2 text-zinc-950" aria-label="Close gallery">
+        <div className="fixed inset-0 z-[100] bg-black/90 p-4" role="dialog" aria-modal="true" aria-label={t("galleryLabel", { title })}>
+          <button onClick={() => setFullscreen(false)} className="absolute right-4 top-4 rounded-full bg-white p-2 text-zinc-950" aria-label={t("closeGallery")}>
             <X size={20} />
           </button>
           <div className="mx-auto grid h-full max-w-6xl place-items-center">
