@@ -222,7 +222,7 @@ export class ReservationsService {
               customerId: data.customerId,
               motorcycleId: data.motorcycleId,
               branchId,
-              userId,
+              userId: isCustomer ? undefined : userId,
               status: 'active',
               totalPrice,
               paidAmount,
@@ -241,6 +241,7 @@ export class ReservationsService {
           // 16. Audit log
           await this.audit.log({
             userId,
+            isCustomerActor: isCustomer,
             action: 'reservation:created',
             entityType: 'reservation',
             entityId: reservation.id,

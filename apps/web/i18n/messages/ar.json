@@ -12,7 +12,8 @@
     "add": "إضافة",
     "confirm": "تأكيد",
     "setDefault": "تعيين كافتراضي",
-    "default": "افتراضي"
+    "default": "افتراضي",
+    "optional": "اختياري"
   },
   "nav": {
     "motorcycles": "الدراجات النارية",
@@ -239,10 +240,5 @@
     "phoneValue": "+966 11 000 0000",
     "emailLabel": "بريد إلكتروني",
     "emailValue": "info@motorcycle.com"
-  },
-  "common": {
-    "optional": "اختياري",
-    "loading": "جاري التحميل...",
-    "back": "رجوع"
   }
 }

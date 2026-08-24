@@ -38,6 +38,10 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
     @Query('branches') branches?: string,
   ) {
+    if (!preset && (!startDate || !endDate)) {
+      preset = DateRangePreset.THIS_MONTH;
+    }
+
     const dateRange = preset
       ? ReportUtils.getDateRangeFromPreset(
           preset,

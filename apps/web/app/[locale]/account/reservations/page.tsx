@@ -62,12 +62,11 @@ export default function ReservationsPage() {
       const customerId = user?.id;
       if (!customerId) return;
 
-      const response = await apiClient.get<{
-        data: ReservationListItem[];
-        meta: any;
-      }>(`/customers/${customerId}/reservations?sort=createdAt&order=desc`);
+      const response = await apiClient.get<ReservationListItem[]>(
+        `/customers/${customerId}/reservations?sort=createdAt&order=desc`
+      );
 
-      setReservations(response.data || []);
+      setReservations(response || []);
     } catch (err) {
       console.error("Error fetching reservations:", err);
       setError(

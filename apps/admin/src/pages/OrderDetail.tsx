@@ -322,7 +322,7 @@ export default function OrderDetail({ lang }: Props) {
             <User size={18} style={{ color: 'var(--accent-primary)' }} />
             <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{i18n.createdBy}</h2>
           </div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{order.user.name}</div>
+         <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{order.user?.name || '—'}</div>
         </div>
       </div>
 

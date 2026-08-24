@@ -482,7 +482,7 @@ export default function ReservationDetailPage() {
                         </p>
                       )}
                       <p className="text-xs text-gray-500 mt-1">
-                        {t("by")}: {history.changedBy.name}
+                        {t("by")}: {history.changedBy?.name ?? "غير متوفر"}
                       </p>
                     </div>
                   </div>

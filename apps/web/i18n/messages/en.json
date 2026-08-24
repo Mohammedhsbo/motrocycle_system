@@ -12,7 +12,8 @@
     "add": "Add",
     "confirm": "Confirm",
     "setDefault": "Set as Default",
-    "default": "Default"
+    "default": "Default",
+    "optional": "Optional"
   },
   "nav": {
     "motorcycles": "Motorcycles",
@@ -239,10 +240,5 @@
     "phoneValue": "+966 11 000 0000",
     "emailLabel": "Email",
     "emailValue": "info@motorcycle.com"
-  },
-  "common": {
-    "optional": "Optional",
-    "loading": "Loading...",
-    "back": "Back"
   }
 }

@@ -60,11 +60,11 @@ export default function OrdersPage() {
       const customerId = user?.id;
       if (!customerId) return;
 
-      const response = await apiClient.get<{ data: OrderListItem[]; meta: any }>(
+      const response = await apiClient.get<OrderListItem[]>(
         `/customers/${customerId}/orders?sort=createdAt&order=desc`
       );
 
-      setOrders(response.data || []);
+      setOrders(response || []);
     } catch (err) {
       console.error("Error fetching orders:", err);
       setError(err instanceof ApiError ? err.message : "Failed to load orders");

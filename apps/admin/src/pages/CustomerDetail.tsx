@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, User, Mail, Phone, IdCard, MapPin, Pencil, XCircle, CheckCircle, StickyNote } from 'lucide-react';
 import { customers } from '../api';
@@ -55,7 +55,7 @@ export default function CustomerDetail({ lang }: Props) {
   const { data: customer, isLoading, isError, refetch } = useQuery({
     queryKey: ['customer', id],
     queryFn: () => customers.get(id!),
-    enabled: !!id,
+    enabled: !!id && id !== 'new',
   });
 
   const deactivateMut = useMutation({
@@ -82,6 +82,11 @@ export default function CustomerDetail({ lang }: Props) {
   });
 
   const isBusy = deactivateMut.isPending || reactivateMut.isPending;
+  const isNew = id === 'new';
+
+  if (isNew) {
+    return <Navigate to="/customers/new/edit" replace />;
+  }
 
   if (isLoading) return (
     <div className="page-container center-content" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
