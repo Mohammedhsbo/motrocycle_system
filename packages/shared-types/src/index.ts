@@ -16,3 +16,4 @@ export * from "./reservation.js";
 export * from "./pos.js";
 export * from "./financial.js";
 export * from "./letter.js";
+export * from "./customer-inquiry.js";

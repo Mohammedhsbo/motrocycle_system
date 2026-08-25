@@ -6,7 +6,7 @@ import { branches, roles, users } from '../api';
 export default function AccountManagement({ lang }: { lang: 'en' | 'ar' }) {
   const isRtl = lang === 'ar';
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ name: '', email: '', password: '', roleId: '', branchId: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', whatsappSenderNumber: '', roleId: '', branchId: '' });
   const [error, setError] = useState('');
   const userQuery = useQuery({ queryKey: ['account-users'], queryFn: users.list });
   const branchQuery = useQuery({ queryKey: ['active-branches'], queryFn: branches.list });
@@ -17,11 +17,12 @@ export default function AccountManagement({ lang }: { lang: 'en' | 'ar' }) {
       name: form.name,
       email: form.email,
       password: form.password,
+      whatsappSenderNumber: form.whatsappSenderNumber || undefined,
       roleId: form.roleId,
       ...(selectedRole?.name === 'super_admin' ? {} : { branchId: form.branchId }),
     }),
     onSuccess: () => {
-      setForm({ name: '', email: '', password: '', roleId: '', branchId: '' });
+      setForm({ name: '', email: '', password: '', whatsappSenderNumber: '', roleId: '', branchId: '' });
       setError('');
       void queryClient.invalidateQueries({ queryKey: ['account-users'] });
     },
@@ -48,6 +49,7 @@ export default function AccountManagement({ lang }: { lang: 'en' | 'ar' }) {
         <label className="input-label">{isRtl ? 'الاسم' : 'Name'}<input className="pos-input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label>
         <label className="input-label">{isRtl ? 'البريد الإلكتروني' : 'Email'}<input className="pos-input" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></label>
         <label className="input-label">{isRtl ? 'كلمة المرور' : 'Password'}<input className="pos-input" type="password" minLength={8} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required /></label>
+        <label className="input-label">{isRtl ? 'رقم واتساب الإرسال' : 'WhatsApp sender number'}<input className="pos-input" value={form.whatsappSenderNumber} onChange={(event) => setForm({ ...form, whatsappSenderNumber: event.target.value })} /></label>
         <label className="input-label">{isRtl ? 'الدور' : 'Role'}<select className="pos-input" value={form.roleId} onChange={(event) => setForm({ ...form, roleId: event.target.value, branchId: '' })} required><option value="">{isRtl ? 'اختر الدور' : 'Select role'}</option>{roleQuery.data?.filter((role) => role.name !== 'customer').map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
         {selectedRole?.name !== 'super_admin' && <label className="input-label">{isRtl ? 'الفرع' : 'Branch'}<select className="pos-input" value={form.branchId} onChange={(event) => setForm({ ...form, branchId: event.target.value })} required><option value="">{isRtl ? 'اختر الفرع' : 'Select branch'}</option>{branchQuery.data?.items.map((branch) => <option key={branch.id} value={branch.id}>{branchName(branch)}</option>)}</select></label>}
         {error && <div className="form-error" role="alert">{error}</div>}

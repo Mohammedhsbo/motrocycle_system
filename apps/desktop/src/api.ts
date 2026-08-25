@@ -29,6 +29,7 @@ export interface DesktopUser {
   };
   branchId?: string | null;
   branch?: { id: string; nameAr: string; nameEn: string } | null;
+  whatsappSenderNumber?: string | null;
   lang: 'ar' | 'en';
 }
 
@@ -52,6 +53,7 @@ export interface UserListItem {
   email: string;
   role: { id: string; name: string };
   branch?: BranchSummary | null;
+  whatsappSenderNumber?: string | null;
   isActive: boolean;
 }
 
@@ -61,6 +63,14 @@ export interface CreateUserInput {
   password: string;
   roleId: string;
   branchId?: string;
+  whatsappSenderNumber?: string;
+}
+
+export interface SelfUpdateUserInput {
+  name?: string;
+  whatsappSenderNumber?: string;
+  currentPassword?: string;
+  newPassword?: string;
 }
 
 export function setToken(token: string) {
@@ -147,6 +157,8 @@ export const roles = {
 export const users = {
   list: () => apiFetch<{ items: UserListItem[]; total: number }>('/users?limit=100'),
   create: (data: CreateUserInput) => apiFetch<UserListItem>('/users', { method: 'POST', body: JSON.stringify(data) }),
+  me: () => apiFetch<UserListItem>('/users/me'),
+  updateMe: (data: SelfUpdateUserInput) => apiFetch<UserListItem>('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // ─── Types ───────────────────────────────────────────────
@@ -256,6 +268,47 @@ export const customers = {
     apiFetch<CustomerDetail>(`/customers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
+export interface CustomerInquiry {
+  id: string;
+  customerId: string;
+  customer: { id: string; name: string; phone: string };
+  address: string;
+  phone: string;
+  occupation: string;
+  occupationAddress: string;
+  idCardFrontImage: string;
+  idCardBackImage: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CustomerInquiryInput {
+  customerId: string;
+  address: string;
+  phone: string;
+  occupation: string;
+  occupationAddress: string;
+  idCardFrontImage: File;
+  idCardBackImage: File;
+}
+
+export const customerInquiries = {
+  list: () => apiFetch<CustomerInquiry[]>('/customer-inquiries'),
+  get: (id: string) => apiFetch<CustomerInquiry>(`/customer-inquiries/${id}`),
+  create: (input: CustomerInquiryInput) => {
+    const form = new FormData();
+    form.set('customerId', input.customerId);
+    form.set('address', input.address);
+    form.set('phone', input.phone);
+    form.set('occupation', input.occupation);
+    form.set('occupationAddress', input.occupationAddress);
+    form.set('idCardFrontImage', input.idCardFrontImage);
+    form.set('idCardBackImage', input.idCardBackImage);
+    return apiFetch<CustomerInquiry>('/customer-inquiries', { method: 'POST', body: form });
+  },
+  sendWhatsApp: (id: string) => apiFetch<{ mediaSupported: boolean; limitation?: string }>(`/customer-inquiries/${id}/send-whatsapp`, { method: 'POST' }),
+};
+
 // ─── Motorcycles API (POS) ───────────────────────────────
 export interface MotorcycleSearchResult {
   id: string;
@@ -280,6 +333,20 @@ export const motorcycles = {
     if (params.limit) q.set('limit', String(params.limit));
     return apiFetch<{ items: MotorcycleSearchResult[]; total: number }>(`/motorcycles?${q}`);
   },
+};
+
+// ─── Transfers API ──────────────────────────────────────
+export type TransferStatus = 'initiated' | 'in_transit' | 'received' | 'cancelled';
+export interface TransferListItem { id: string; transferNumber: string; fromBranch: BranchSummary; toBranch: BranchSummary; motorcycleCount: number; status: TransferStatus; createdAt: string; completedAt?: string | null; }
+export interface TransferDetail extends TransferListItem { notes?: string | null; motorcycles: Array<{ id: string; vin: string; model: string; brand: { nameEn: string; nameAr: string }; currentStatus: string; currentBranchId: string; }>; }
+export interface CreateTransferInput { fromBranchId?: string; toBranchId: string; motorcycleIds: string[]; notes?: string; }
+export const transfers = {
+  list: (params?: { status?: TransferStatus; search?: string; fromBranchId?: string; toBranchId?: string; limit?: number }) => { const query = new URLSearchParams({ page: '1', limit: String(params?.limit ?? 50) }); if (params?.status) query.set('status', params.status); if (params?.search) query.set('search', params.search); if (params?.fromBranchId) query.set('fromBranchId', params.fromBranchId); if (params?.toBranchId) query.set('toBranchId', params.toBranchId); return apiFetch<{ items: TransferListItem[]; total: number; page: number; limit: number; totalPages: number }>(`/transfers?${query}`); },
+  get: (id: string) => apiFetch<TransferDetail>(`/transfers/${id}`),
+  create: (data: CreateTransferInput) => apiFetch<TransferDetail>('/transfers', { method: 'POST', body: JSON.stringify(data) }),
+  ship: (id: string) => apiFetch<TransferListItem>(`/transfers/${id}/ship`, { method: 'POST' }),
+  receive: (id: string) => apiFetch<TransferListItem>(`/transfers/${id}/receive`, { method: 'POST' }),
+  cancel: (id: string) => apiFetch<TransferListItem>(`/transfers/${id}/cancel`, { method: 'POST' }),
 };
 
 // ─── Orders API (POS) ────────────────────────────────────
@@ -345,6 +412,7 @@ export interface CreateOrderInput {
   customerId: string;
   motorcycleIds: string[];
   discount?: number;
+  address?: string;
   notes?: string;
   isDraft?: boolean;
 }
@@ -413,6 +481,7 @@ export interface ReservationDetail extends Omit<ReservationListItem, 'customer'>
     };
   };
   user: { id: string; name: string };
+  address?: string | null;
   notes?: string;
   cancelReason?: string;
   convertedOrder?: { id: string; orderNumber: string; status: string };
@@ -428,6 +497,7 @@ export interface CreateReservationInput {
   customerId: string;
   motorcycleId: string;
   paidAmount: number;
+  address?: string;
   notes?: string;
 }
 

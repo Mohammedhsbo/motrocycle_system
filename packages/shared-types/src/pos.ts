@@ -254,6 +254,7 @@ export const createPOSTransactionSchema = z.object({
       expirationDays: z.number().min(1).max(90).optional(),
     })
     .optional(),
+  address: z.string().max(1000).optional(),
   idempotencyKey: idempotencyKeySchema,
   notes: z.string().max(1000).optional(),
 });

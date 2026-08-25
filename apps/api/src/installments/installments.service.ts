@@ -198,6 +198,7 @@ export class InstallmentsService {
           data: {
             paymentId: payment.id,
             invoiceId: null, // No invoice for installment payments
+            installmentId: installmentId,
             amount: data.amount,
           },
         });

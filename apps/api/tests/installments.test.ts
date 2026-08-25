@@ -124,12 +124,12 @@ describe('Installments - TASK-006 & TASK-007', () => {
 
   afterAll(async () => {
     // Cleanup
+    // Delete payments and allocations created during tests before installments
+    await prisma.paymentAllocation.deleteMany();
+    await prisma.payment.deleteMany();
     await prisma.installment.deleteMany({
       where: { contractId: testContractId },
     });
-    // Delete payments and allocations created during tests
-    await prisma.paymentAllocation.deleteMany();
-    await prisma.payment.deleteMany();
     await prisma.financingContract.delete({
       where: { id: testContractId },
     });
@@ -158,6 +158,11 @@ describe('Installments - TASK-006 & TASK-007', () => {
       expect(Number(payment.amount)).toBe(4000);
       expect(payment.status).toBe('completed');
       expect(payment.method).toBe(PaymentMethod.CASH);
+
+      const allocation = await prisma.paymentAllocation.findFirst({
+        where: { paymentId: payment.id },
+      });
+      expect(allocation?.installmentId).toBe(testInstallment1Id);
 
       // Check installment updated
       const installment = await prisma.installment.findUnique({

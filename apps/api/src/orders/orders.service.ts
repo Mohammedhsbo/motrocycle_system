@@ -10,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { Prisma } from '@prisma/client';
 import { CreateOrderDto, CreateOrderResponse } from '@motorcycle-system/shared-types';
-import { generateOrderNumber, withUniqueRetry } from '../utils/number-generator.js';
+import { generateInvoiceNumber, generateOrderNumber, withUniqueRetry } from '../utils/number-generator.js';
 import { SocketGateway } from '../socket/index.js';
 
 type AuditActorRow = {
@@ -268,6 +268,15 @@ export class OrdersService {
 
           const netAmount = totalAmount - discount;
 
+          // Capture address at order time (use provided address or customer's default)
+          let orderAddress: string | null = null;
+          if (data.address) {
+            orderAddress = data.address;
+          } else if (customer.addresses && customer.addresses.length > 0) {
+            const addr = customer.addresses[0];
+            orderAddress = `${addr.addressLine}${addr.city ? `, ${addr.city}` : ''}`;
+          }
+
           // Create order
           const order = await tx.order.create({
             data: {
@@ -279,6 +288,7 @@ export class OrdersService {
               totalAmount,
               discount,
               netAmount,
+              address: orderAddress,
               notes: data.notes,
             },
           });
@@ -893,6 +903,58 @@ export class OrdersService {
               updatedAt: new Date(),
             },
           });
+
+          if (newStatus === OrderStatus.COMPLETED) {
+            const existingInvoice = await tx.invoice.findUnique({ where: { orderId } });
+            if (!existingInvoice) {
+              const orderItems = await tx.orderItem.findMany({
+                where: { orderId },
+                include: { motorcycle: { select: { vin: true, model: true, year: true } } },
+              });
+              const branch = await tx.branch.findUnique({
+                where: { id: order.branchId },
+                select: { nameEn: true },
+              });
+              if (!branch) {
+                throw new NotFoundException({ code: 'BRANCH_NOT_FOUND', message: 'Branch not found' });
+              }
+              const invoiceNumber = await generateInvoiceNumber(
+                tx,
+                branch.nameEn.substring(0, 3).toUpperCase(),
+                new Date().getFullYear(),
+              );
+              const orderDiscount = Number(order.discount);
+              await tx.invoice.create({
+                data: {
+                  invoiceNumber,
+                  customerId: order.customerId,
+                  orderId,
+                  branchId: order.branchId,
+                  userId,
+                  status: 'issued',
+                  totalAmount: Number(order.netAmount),
+                  paidAmount: 0,
+                  remainingAmount: Number(order.netAmount),
+                  address: order.address,
+                  issueDate: new Date(),
+                  items: {
+                    create: orderItems.map((item, index) => {
+                      const discount = index === 0 ? orderDiscount : 0;
+                      const unitPrice = Number(item.unitPrice);
+                      return {
+                        motorcycleId: item.motorcycleId,
+                        description: `${item.motorcycle.year} ${item.motorcycle.model} (VIN: ${item.motorcycle.vin})`,
+                        quantity: 1,
+                        unitPrice,
+                        discount,
+                        totalPrice: unitPrice - discount,
+                      };
+                    }),
+                  },
+                },
+              });
+            }
+          }
 
           // Audit log
           await this.audit.log({

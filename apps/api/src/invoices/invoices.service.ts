@@ -176,6 +176,7 @@ export class InvoicesService {
             totalAmount,
             paidAmount: 0,
             remainingAmount,
+            address: data.address || null,
             issueDate: null,
             dueDate: data.dueDate || null,
             notes: data.notes || null,

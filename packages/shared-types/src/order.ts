@@ -64,6 +64,7 @@ export interface Order {
   totalAmount: number;
   discount: number;
   netAmount: number;
+  address?: string | null;
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -79,6 +80,7 @@ export const orderSchema = z.object({
   totalAmount: z.number().min(0),
   discount: z.number().min(0).default(0),
   netAmount: z.number().min(0),
+  address: z.string().max(1000).optional().nullable(),
   notes: z.string().max(2000, "Notes are too long").optional().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
@@ -158,6 +160,7 @@ export const createOrderSchema = z
       .number()
       .min(0, "Discount cannot be negative")
       .default(0),
+    address: z.string().max(1000, "Address is too long").optional(), // Delivery/billing address snapshot
     notes: z.string().max(2000, "Notes are too long").optional(),
     isDraft: z.boolean().default(false), // POS only
   })
@@ -177,6 +180,7 @@ export const updateOrderSchema = z
       .max(50, "Cannot order more than 50 motorcycles at once")
       .optional(),
     discount: z.number().min(0, "Discount cannot be negative").optional(),
+    address: z.string().max(1000, "Address is too long").optional(),
     notes: z.string().max(2000, "Notes are too long").optional(),
   })
   .strict()

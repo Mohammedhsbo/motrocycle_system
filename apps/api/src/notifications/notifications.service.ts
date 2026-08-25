@@ -9,6 +9,8 @@ import {
 } from './notifications.types.js';
 import { DeliveryTrackerService } from './delivery-tracker.service.js';
 import { NotificationPreferenceService } from './notification-preference.service.js';
+import { NOTIFICATION_CHANNEL_PROVIDERS } from './notification-provider.tokens.js';
+import { NotificationChannelProvider } from './providers/notification-channel.provider.js';
 
 @Injectable()
 export class NotificationsService {
@@ -18,6 +20,7 @@ export class NotificationsService {
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(DeliveryTrackerService) private deliveryTracker: DeliveryTrackerService,
     @Inject(NotificationPreferenceService) private preferenceService: NotificationPreferenceService,
+    @Inject(NOTIFICATION_CHANNEL_PROVIDERS) private channelProviders: NotificationChannelProvider[],
   ) {}
 
   /**
@@ -238,6 +241,47 @@ export class NotificationsService {
     this.logger.debug(
       `Direct notification sent via ${payload.channel} to ${payload.recipient}`,
     );
+  }
+
+  async sendDirectWhatsApp(payload: {
+    customerId: string;
+    recipient: string;
+    body: string;
+    attachments: string[];
+  }) {
+    const provider = this.channelProviders.find((item) => item.supportsChannel(NotificationChannel.WHATSAPP));
+    if (!provider) throw new Error('WHATSAPP_PROVIDER_UNAVAILABLE');
+
+    const messages = [payload.body, ...payload.attachments.map((ref) => `مرفق بطاقة الهوية / ${ref}`)];
+    const results = [];
+    for (const message of messages) {
+      const result = await provider.send({
+        recipient: payload.recipient,
+        title: 'Customer inquiry',
+        body: message,
+        data: { customerId: payload.customerId, attachment: message !== payload.body },
+      });
+      results.push(result);
+      await this.prisma.communicationLog.create({
+        data: {
+          userId: null,
+          customerId: payload.customerId,
+          channel: NotificationChannel.WHATSAPP,
+          direction: 'outbound',
+          subject: 'Customer inquiry',
+          content: message,
+          metadata: { attachment: message !== payload.body, providerExternalId: result.externalId } as any,
+          sentAt: new Date(),
+        },
+      });
+    }
+
+    return {
+      provider: 'whatsapp',
+      results,
+      mediaSupported: false,
+      limitation: 'The configured WhatsApp provider does not support media messages; image storage references were sent as separate text messages.',
+    };
   }
 
   /**

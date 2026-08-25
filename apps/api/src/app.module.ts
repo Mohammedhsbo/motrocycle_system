@@ -32,6 +32,7 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
 import { ConfigurationModule } from "./configuration/configuration.module.js";
 import { IntegrationsModule } from "./integrations/integrations.module.js";
 import { HealthModule } from "./health/health.module.js";
+import { CustomerInquiriesModule } from "./customer-inquiries/customer-inquiries.module.js";
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { HealthModule } from "./health/health.module.js";
     ConfigurationModule,
     IntegrationsModule,
     HealthModule,
+    CustomerInquiriesModule,
   ],
   providers: [RequestLoggerMiddleware],
 })

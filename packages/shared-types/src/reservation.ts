@@ -32,6 +32,7 @@ export const reservationSchema = z.object({
   totalPrice: z.number().min(0),
   paidAmount: z.number().min(0),
   remainingAmount: z.number().min(0),
+  address: z.string().max(1000).optional().nullable(),
   expiresAt: z.coerce.date().optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   convertedOrderId: z.string().uuid().optional().nullable(),
@@ -54,6 +55,7 @@ export const createReservationSchema = z.object({
     .positive("Deposit must be greater than 0")
     .multipleOf(0.01, "Amount cannot have more than 2 decimal places"),
   paymentReference: z.string().max(200).optional(),
+  address: z.string().max(1000, "Address is too long").optional(), // Delivery/billing address snapshot
   expirationDays: z.number().int().min(1).max(90).optional(),
   notes: z.string().max(2000).optional(),
 });
@@ -63,6 +65,7 @@ export type CreateReservationRequest = z.infer<typeof createReservationSchema>;
 export const updateReservationSchema = z
   .object({
     expiresAt: z.coerce.date().optional(),
+    address: z.string().max(1000, "Address is too long").optional(),
     notes: z.string().max(2000).optional().nullable(),
   })
   .strict();

@@ -22,6 +22,7 @@ const nav = [
   { to: '/invoices', icon: FileText, label: 'Invoices', labelAr: 'الفواتير' },
   { to: '/payments', icon: CreditCard, label: 'Payments', labelAr: 'الدفعات' },
   { to: '/financing', icon: Wallet, label: 'Financing', labelAr: 'التمويل' },
+  { to: '/installments', icon: Wallet, label: 'Installments', labelAr: 'التقسيط' },
   { to: '/transfers', icon: ArrowLeftRight, label: 'Transfers', labelAr: 'التحويلات' },
   { to: '/configuration', icon: Settings, label: 'Configuration', labelAr: 'الإعدادات' },
   { to: '/feature-flags', icon: Flag, label: 'Feature Flags', labelAr: 'الميزات' },

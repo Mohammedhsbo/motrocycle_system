@@ -86,6 +86,7 @@ export interface Invoice {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  address?: string | null;
   issueDate?: Date | null;
   dueDate?: Date | null;
   notes?: string | null;
@@ -105,6 +106,7 @@ export const invoiceSchema = z.object({
   totalAmount: z.number().min(0),
   paidAmount: z.number().min(0),
   remainingAmount: z.number().min(0),
+  address: z.string().max(1000).optional().nullable(),
   issueDate: z.coerce.date().optional().nullable(),
   dueDate: z.coerce.date().optional().nullable(),
   notes: z.string().max(5000).optional().nullable(),
@@ -265,6 +267,7 @@ export const createInvoiceSchema = z.object({
   orderId: z.string().uuid().optional(),
   reservationId: z.string().uuid().optional(),
   branchId: z.string().uuid("Invalid branch ID").optional(),
+  address: z.string().max(1000).optional(),
   totalAmount: z.number().positive("Total amount must be positive"),
   items: z
     .array(

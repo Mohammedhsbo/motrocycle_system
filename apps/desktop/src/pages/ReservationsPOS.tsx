@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, Clock } from 'lucide-react';
 import { reservations, type ReservationListItem, type ReservationStatus } from '../api';
+import { DataTableState } from '../components/DataTable';
 
 type Lang = 'en' | 'ar';
 
@@ -183,23 +184,8 @@ export default function ReservationsPOS({ lang }: Props) {
 
         {/* Reservation list */}
         <div className="pos-list">
-          {isLoading && (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-3)' }}>
-              {t.loading}
-            </div>
-          )}
-          {!isLoading && reservationsList.length === 0 && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '3rem 1rem',
-                color: 'var(--text-3)',
-              }}
-            >
-              <Bookmark size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-              <div>{t.noReservations}</div>
-            </div>
-          )}
+          {isLoading && <DataTableState kind="loading" lang={lang} />}
+          {!isLoading && reservationsList.length === 0 && <DataTableState kind="empty" lang={lang} />}
           {reservationsList.map((reservation) => {
             const expirationDisplay = getExpirationDisplay(reservation.expiresAt);
             return (

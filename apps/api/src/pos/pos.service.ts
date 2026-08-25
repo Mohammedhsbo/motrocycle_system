@@ -661,6 +661,7 @@ export class POSService {
           motorcycleId: dto.motorcycleId,
           paidAmount: dto.reservationData!.depositAmount,
           expirationDays: dto.reservationData?.expirationDays,
+          address: dto.address,
           notes: dto.notes,
         };
 

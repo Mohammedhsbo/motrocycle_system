@@ -5,6 +5,7 @@ import type {
   Language,
   ListUsersQuery,
   ResetPasswordRequest,
+  SelfUpdateUserRequest,
   UpdateUserRequest,
   UserListItem,
   UserResponse,
@@ -14,7 +15,7 @@ import { AppError } from "../common/errors/app-error.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { TokenStoreService } from "../token-store/token-store.service.js";
-import { hashPassword } from "../utils/password.js";
+import { hashPassword, verifyPassword } from "../utils/password.js";
 
 const userListInclude = {
   include: {
@@ -51,6 +52,8 @@ export class UsersService {
 
     const email = input.email.toLowerCase();
     await this.assertEmailAvailable(email);
+    const whatsappSenderNumber = this.normalizeWhatsappNumber(input.whatsappSenderNumber);
+    await this.assertWhatsappNumberAvailable(whatsappSenderNumber);
 
     const role = await this.prisma.role.findUnique({ where: { id: input.roleId } });
     if (!role || role.name === "customer") {
@@ -67,6 +70,7 @@ export class UsersService {
         email,
         passwordHash: await hashPassword(input.password),
         phone: input.phone,
+        whatsappSenderNumber,
         roleId: role.id,
         branchId,
         lang: input.lang ?? "ar",
@@ -173,6 +177,9 @@ export class UsersService {
     if (input.email && input.email.toLowerCase() !== current.email.toLowerCase()) {
       await this.assertEmailAvailable(input.email.toLowerCase(), id);
     }
+    if (input.whatsappSenderNumber !== undefined) {
+      await this.assertWhatsappNumberAvailable(this.normalizeWhatsappNumber(input.whatsappSenderNumber), id);
+    }
 
     const nextRole = input.roleId
       ? await this.prisma.role.findUnique({ where: { id: input.roleId } })
@@ -195,6 +202,9 @@ export class UsersService {
         name: input.name,
         email: input.email?.toLowerCase(),
         phone: input.phone,
+        whatsappSenderNumber: input.whatsappSenderNumber === undefined
+          ? undefined
+          : this.normalizeWhatsappNumber(input.whatsappSenderNumber),
         roleId: input.roleId,
         branchId: input.branchId,
         isActive: input.isActive,
@@ -290,6 +300,54 @@ export class UsersService {
     });
   }
 
+  async getMe(id: string): Promise<UserListItem> {
+    const user = await this.prisma.user.findUnique({ where: { id }, ...userListInclude });
+    if (!user) {
+      throw new AppError("USER_NOT_FOUND", 404, "User not found");
+    }
+    return this.toUserListItem(user);
+  }
+
+  async updateMe(id: string, input: SelfUpdateUserRequest): Promise<UserListItem> {
+    const current = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, passwordHash: true, whatsappSenderNumber: true },
+    });
+
+    if (!current) {
+      throw new AppError("USER_NOT_FOUND", 404, "User not found");
+    }
+
+    const whatsappSenderNumber = input.whatsappSenderNumber === undefined
+      ? undefined
+      : this.normalizeWhatsappNumber(input.whatsappSenderNumber);
+    if (whatsappSenderNumber !== undefined) {
+      await this.assertWhatsappNumberAvailable(whatsappSenderNumber, id);
+    }
+
+    if (input.newPassword) {
+      const passwordMatches = await verifyPassword(input.currentPassword!, current.passwordHash);
+      if (!passwordMatches) {
+        throw new AppError("INVALID_CURRENT_PASSWORD", 422, "Current password is incorrect");
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        name: input.name,
+        whatsappSenderNumber,
+        ...(input.newPassword ? { passwordHash: await hashPassword(input.newPassword) } : {}),
+      },
+    });
+
+    if (input.newPassword) {
+      await this.tokenStore.deleteRefreshTokensForUser(id);
+    }
+
+    return this.getMe(id);
+  }
+
   private assertActorCanAccessUser(actor: AuthenticatedUser, user: { branchId: string | null }) {
     if (actor.branchId && user.branchId !== actor.branchId) {
       throw new AppError("BRANCH_SCOPE_VIOLATION", 403, "Branch scope violation");
@@ -335,6 +393,27 @@ export class UsersService {
     }
   }
 
+  private normalizeWhatsappNumber(value: string | undefined) {
+    const normalized = value?.trim();
+    return normalized || null;
+  }
+
+  private async assertWhatsappNumberAvailable(number: string | null, excludeUserId?: string) {
+    if (!number) return;
+
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        whatsappSenderNumber: number,
+        id: excludeUserId ? { not: excludeUserId } : undefined,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new AppError("WHATSAPP_NUMBER_TAKEN", 409, "WhatsApp sender number is already in use");
+    }
+  }
+
   private async assertNotLastActiveSuperAdmin(userId: string) {
     const count = await this.prisma.user.count({
       where: {
@@ -365,6 +444,7 @@ export class UsersService {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      whatsappSenderNumber: user.whatsappSenderNumber,
       role: user.role,
       branch: user.branch,
       isActive: user.isActive,
@@ -378,6 +458,7 @@ export class UsersService {
     name: string;
     email: string;
     phone: string | null;
+    whatsappSenderNumber: string | null;
     roleId: string;
     branchId: string | null;
     lang: string;
@@ -389,6 +470,7 @@ export class UsersService {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      whatsappSenderNumber: user.whatsappSenderNumber,
       roleId: user.roleId,
       branchId: user.branchId,
       lang: user.lang as Language,
@@ -402,6 +484,7 @@ export class UsersService {
     name: string;
     email: string;
     phone: string | null;
+    whatsappSenderNumber: string | null;
     roleId: string;
     branchId: string | null;
     lang: string;

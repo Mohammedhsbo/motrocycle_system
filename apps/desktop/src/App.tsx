@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { BrowserRouter, NavLink, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Bell, Bike, Building2, CircleDollarSign, ClipboardList, LogOut, Menu, Package, Plus, Printer, RefreshCw, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
+import { ArrowRightLeft, BarChart3, Bell, Bike, Building2, CircleDollarSign, ClipboardList, FileImage, LogOut, Menu, Package, Plus, Printer, RefreshCw, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
 import { auth, branches, getToken, getUser, setUser, clearToken, clearUser, notifications, pos, type DesktopUser } from './api';
 import { useViewingBranch, ViewingBranchProvider } from './contexts/ViewingBranchContext';
 import LoginScreen from './LoginScreen';
@@ -26,6 +26,10 @@ import ActiveReservations from './pages/ActiveReservations';
 import OfflineSync from './pages/OfflineSync';
 import TransactionHistory from './pages/TransactionHistory';
 import AccountManagement from './pages/AccountManagement';
+import MyAccount from './pages/MyAccount';
+import CustomerInquiries from './pages/CustomerInquiries';
+import Transfers from './pages/Transfers';
+import TransferCreate from './pages/TransferCreate';
 
 const qc = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
@@ -43,13 +47,16 @@ const navItems = [
   { path: '/history', icon: ClipboardList, en: 'Transaction history', ar: 'سجل المعاملات' },
   { path: '/receive', icon: Package, en: 'Receiving', ar: 'الاستلام' },
   { path: '/inventory', icon: Bike, en: 'Inventory', ar: 'المخزون' },
+  { path: '/transfers', icon: ArrowRightLeft, en: 'Transfers', ar: 'التحويلات' },
   { path: '/customers', icon: Users, en: 'Customers', ar: 'العملاء' },
+  { path: '/inquiries', icon: FileImage, en: 'Inquiries', ar: 'استعلامات' },
   { path: '/installments', icon: WalletCards, en: 'Installments', ar: 'الأقساط' },
   { path: '/reports', icon: BarChart3, en: 'Reports', ar: 'التقارير' },
   { path: '/notifications', icon: Bell, en: 'Notifications', ar: 'الإشعارات' },
   { path: '/suppliers', icon: Building2, en: 'Suppliers', ar: 'الموردون' },
   { path: '/printers', icon: Printer, en: 'Printers', ar: 'الطابعات' },
   { path: '/accounts', icon: Users, en: 'Account management', ar: 'إدارة الحسابات', adminOnly: true },
+  { path: '/my-account', icon: Users, en: 'My account', ar: 'حسابي' },
 ];
 
 const permissionForPath: Record<string, [string, string]> = {
@@ -57,11 +64,13 @@ const permissionForPath: Record<string, [string, string]> = {
   '/installments': ['financing_contract', 'read'],
   '/reports': ['report', 'read'],
   '/suppliers': ['supplier', 'read'],
+  '/transfers': ['transfer', 'read'],
 };
 
 function canAccessPath(user: DesktopUser | null, path: string) {
   const required = permissionForPath[path];
   if (!required) return true;
+  if (user?.role.name === 'super_admin') return true;
   return user?.role.permissions.some((permission) => permission.resource === required[0] && permission.action === required[1]) ?? false;
 }
 
@@ -135,6 +144,7 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
     installments: gatedRoute(user, lang, '/installments', <Installments lang={lang} />),
     reports: gatedRoute(user, lang, '/reports', <Reports lang={lang} />),
     suppliers: gatedRoute(user, lang, '/suppliers', <Suppliers lang={lang} />),
+    transfers: gatedRoute(user, lang, '/transfers', <Transfers lang={lang} />),
   };
   return <div className={`desktop-shell ${collapsed ? 'sidebar-collapsed' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
     <aside className="desktop-sidebar">
@@ -159,12 +169,16 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
         <Route path="/history" element={<TransactionHistory lang={lang} />} />
         <Route path="/receive" element={restrictedPages.receive} />
         <Route path="/inventory" element={<Inventory lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/transfers" element={restrictedPages.transfers} />
+        <Route path="/transfers/new" element={<TransferCreate lang={lang} />} />
         <Route path="/customers" element={<Customers lang={lang} />} />
+        <Route path="/inquiries" element={<CustomerInquiries lang={lang} />} />
         <Route path="/installments" element={restrictedPages.installments} />
         <Route path="/reports" element={isSuperAdmin ? <Reports lang={lang} branchId={viewingBranchId ?? undefined} /> : restrictedPages.reports} />
         <Route path="/notifications" element={<Notifications lang={lang} />} />
         <Route path="/suppliers" element={restrictedPages.suppliers} />
         {isSuperAdmin && <Route path="/accounts" element={<AccountManagement lang={lang} />} />}
+        <Route path="/my-account" element={<MyAccount lang={lang} />} />
         <Route path="*" element={<Dashboard lang={lang} />} />
       </Routes></main>
     </div>

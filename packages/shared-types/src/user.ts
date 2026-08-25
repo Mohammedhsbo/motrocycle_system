@@ -14,6 +14,7 @@ export const createUserRequestSchema = z
     email: emailSchema,
     password: passwordSchema,
     phone: phoneSchema.optional(),
+    whatsappSenderNumber: phoneSchema.optional(),
     roleId: uuidSchema,
     branchId: uuidSchema.optional(),
     lang: languageSchema.default(Language.AR),
@@ -25,6 +26,7 @@ export const updateUserRequestSchema = z
     name: nameSchema.optional(),
     email: emailSchema.optional(),
     phone: phoneSchema.optional(),
+    whatsappSenderNumber: phoneSchema.optional(),
     roleId: uuidSchema.optional(),
     branchId: uuidSchema.optional(),
     isActive: z.boolean().optional(),
@@ -33,6 +35,22 @@ export const updateUserRequestSchema = z
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field is required",
+  });
+
+export const selfUpdateUserRequestSchema = z
+  .object({
+    name: nameSchema.optional(),
+    whatsappSenderNumber: phoneSchema.optional(),
+    currentPassword: passwordSchema.optional(),
+    newPassword: passwordSchema.optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field is required",
+  })
+  .refine((data) => Boolean(data.currentPassword) === Boolean(data.newPassword), {
+    message: "Current and new password are required together",
+    path: ["newPassword"],
   });
 
 export const resetPasswordRequestSchema = z
@@ -75,6 +93,7 @@ export interface User {
   email: string;
   passwordHash: string;
   phone?: string | null;
+  whatsappSenderNumber?: string | null;
   branchId?: string | null;
   roleId: string;
   lang: Language;
@@ -89,6 +108,7 @@ export interface UserListItem {
   name: string;
   email: string;
   phone?: string | null;
+  whatsappSenderNumber?: string | null;
   role: Pick<RoleListItem, "id" | "name">;
   branch?: BranchSummary | null;
   isActive: boolean;
@@ -101,6 +121,7 @@ export interface UserResponse {
   name: string;
   email: string;
   phone?: string | null;
+  whatsappSenderNumber?: string | null;
   roleId: string;
   branchId?: string | null;
   lang: Language;
@@ -112,3 +133,4 @@ export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
 export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
+export type SelfUpdateUserRequest = z.infer<typeof selfUpdateUserRequestSchema>;

@@ -20,12 +20,14 @@ import {
   createUserRequestSchema,
   listUsersQuerySchema,
   resetPasswordRequestSchema,
+  selfUpdateUserRequestSchema,
   Resource,
   updateUserRequestSchema,
   type CreateUserRequest,
   type ListUsersQuery,
   type ResetPasswordRequest,
   type UpdateUserRequest,
+  type SelfUpdateUserRequest,
 } from "@motorcycle-system/shared-types";
 import { RequirePermission } from "../auth/decorators/permissions.decorator.js";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
@@ -65,6 +67,27 @@ export class UsersController {
       success: true,
       data: result.data,
       meta: result.meta,
+    };
+  }
+
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  async getMe(@Req() request: AuthenticatedRequest) {
+    return {
+      success: true,
+      data: await this.usersService.getMe(request.user.id),
+    };
+  }
+
+  @Patch("me")
+  @UseGuards(JwtAuthGuard)
+  async updateMe(
+    @Body(new ZodValidationPipe(selfUpdateUserRequestSchema)) body: SelfUpdateUserRequest,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return {
+      success: true,
+      data: await this.usersService.updateMe(request.user.id, body),
     };
   }
 

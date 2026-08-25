@@ -209,13 +209,22 @@ export class ReservationsService {
           // 12. Calculate remaining amount
           const remainingAmount = totalPrice - paidAmount;
 
-          // 13. Update motorcycle status to 'reserved'
+          // 13. Capture address at reservation time (use provided address or customer's default)
+          let reservationAddress: string | null = null;
+          if (data.address) {
+            reservationAddress = data.address;
+          } else if (customer.addresses && customer.addresses.length > 0) {
+            const addr = customer.addresses[0];
+            reservationAddress = `${addr.addressLine}${addr.city ? `, ${addr.city}` : ''}`;
+          }
+
+          // 14. Update motorcycle status to 'reserved'
           await tx.motorcycle.update({
             where: { id: data.motorcycleId },
             data: { status: 'reserved' },
           });
 
-          // 14. Create reservation
+          // 15. Create reservation
           const reservation = await tx.reservation.create({
             data: {
               reservationNumber,
@@ -227,6 +236,7 @@ export class ReservationsService {
               totalPrice,
               paidAmount,
               remainingAmount,
+              address: reservationAddress,
               expiresAt,
               notes: data.notes,
             },
@@ -1118,7 +1128,7 @@ export class ReservationsService {
         async (tx) => {
           // Lock reservation
           const resRaw = await tx.$queryRaw<Array<any>>`
-            SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId", r."totalPrice", r."paidAmount", r."convertedOrderId", r."expiresAt"
+            SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId", r."totalPrice", r."paidAmount", r."convertedOrderId", r."expiresAt", r.address
             FROM "Reservation" r
             WHERE r.id = ${id}::uuid
             FOR UPDATE
@@ -1194,6 +1204,7 @@ export class ReservationsService {
               branchId: reservation.branchId,
               motorcycleIds: [reservation.motorcycleId],
               discount: 0,
+              address: reservation.address,
               notes: data.notes ?? `Converted from reservation ${reservation.reservationNumber}`,
               isDraft: false, // create as confirmed
             },

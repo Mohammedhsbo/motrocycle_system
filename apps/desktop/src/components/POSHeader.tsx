@@ -20,7 +20,7 @@ export default function POSHeader({ lang, title, onBack }: POSHeaderProps) {
   const branch = user?.branch;
 
   return (
-    <header className="bg-blue-600 text-white shadow-md">
+    <header className="pos-header-bar bg-blue-600 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -33,7 +33,7 @@ export default function POSHeader({ lang, title, onBack }: POSHeaderProps) {
                 {isRtl ? '→' : '←'}
               </button>
             )}
-            <h1 className="text-xl font-bold">{title}</h1>
+            <h1 className="pos-header-title text-xl font-bold">{title}</h1>
           </div>
 
           <div className="flex items-center gap-6">
@@ -41,14 +41,14 @@ export default function POSHeader({ lang, title, onBack }: POSHeaderProps) {
               <>
                 <div className="text-sm">
                   <div className="font-semibold">{user.name}</div>
-                  <div className="text-blue-200 text-xs">
+                  <div className="pos-header-muted text-blue-200 text-xs">
                     {user.role}
                   </div>
                 </div>
 
                 {branch && (
                   <div className="text-sm border-l border-blue-500 pl-4">
-                    <div className="text-blue-200 text-xs">
+                    <div className="pos-header-muted text-blue-200 text-xs">
                       {isRtl ? 'الفرع' : 'Branch'}
                     </div>
                     <div className="font-semibold">

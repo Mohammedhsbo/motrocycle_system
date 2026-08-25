@@ -859,6 +859,7 @@ export interface Invoice {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  address?: string | null;
   issueDate?: string;
   dueDate?: string;
   notes?: string;

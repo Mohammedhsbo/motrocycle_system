@@ -14,7 +14,7 @@ export default function POSLayout({ lang, title, children, onBack }: POSLayoutPr
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gray-50"
+      className="pos-workspace min-h-screen flex flex-col bg-gray-50"
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       <POSHeader lang={lang} title={title} onBack={onBack} />

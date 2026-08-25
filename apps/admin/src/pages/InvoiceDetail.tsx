@@ -11,10 +11,12 @@ import {
   XCircle,
   CreditCard,
   AlertCircle,
+  Printer,
 } from 'lucide-react';
 import { invoices, payments, type InvoiceStatus, type PaymentMethod } from '../api';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import PrintableInvoice from '../components/PrintableInvoice';
 
 interface Props {
   lang: 'en' | 'ar';
@@ -51,6 +53,7 @@ const t = {
     issueInvoice: 'Issue Invoice',
     recordPayment: 'Record Payment',
     cancelInvoice: 'Cancel Invoice',
+    print: 'Print Invoice',
     loading: 'Loading…',
     error: 'Failed to load invoice.',
     notFound: 'Invoice not found.',
@@ -107,6 +110,7 @@ const t = {
     issueInvoice: 'إصدار الفاتورة',
     recordPayment: 'تسجيل دفعة',
     cancelInvoice: 'إلغاء الفاتورة',
+    print: 'طباعة الفاتورة',
     loading: 'جاري التحميل…',
     error: 'فشل تحميل الفاتورة.',
     notFound: 'الفاتورة غير موجودة.',
@@ -144,6 +148,7 @@ export default function InvoiceDetail({ lang }: Props) {
 
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showPrintView, setShowPrintView] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
   const { data: invoice, isLoading, isError } = useQuery({
@@ -245,6 +250,13 @@ export default function InvoiceDetail({ lang }: Props) {
             <Badge status={invoice.status} lang={lang} />
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowPrintView(true)}
+              className="btn btn-outline"
+              style={{ color: 'var(--primary)' }}
+            >
+              <Printer size={16} /> {i18n.print}
+            </button>
             {canIssue && (
               <button
                 onClick={() => setShowIssueModal(true)}
@@ -297,6 +309,12 @@ export default function InvoiceDetail({ lang }: Props) {
                   {lang === 'ar' ? invoice.branch.nameAr : invoice.branch.nameEn}
                 </span>
               </div>
+              {invoice.address && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{lang === 'ar' ? 'العنوان' : 'Address'}:</span>
+                  <span style={{ fontWeight: 500, textAlign: isRtl ? 'left' : 'right' }}>{invoice.address}</span>
+                </div>
+              )}
               {invoice.issueDate && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>{i18n.issueDate}:</span>
@@ -488,6 +506,20 @@ export default function InvoiceDetail({ lang }: Props) {
           </div>
         </div>
       </div>
+
+      {showPrintView && (
+        <Modal isOpen={showPrintView} onClose={() => setShowPrintView(false)} title={i18n.print}>
+          <PrintableInvoice invoice={invoice} lang={lang} />
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+            <button onClick={() => setShowPrintView(false)} className="btn btn-outline">
+              {i18n.cancel}
+            </button>
+            <button onClick={() => window.print()} className="btn btn-primary">
+              <Printer size={16} /> {i18n.print}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Issue Modal */}
       <Modal isOpen={showIssueModal} onClose={() => setShowIssueModal(false)} title={i18n.issueConfirm}>

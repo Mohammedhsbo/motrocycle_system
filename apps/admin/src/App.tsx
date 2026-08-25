@@ -24,6 +24,7 @@ import OrderDetail from './pages/OrderDetail';
 import FinancingContracts from './pages/FinancingContracts';
 import FinancingContractDetail from './pages/FinancingContractDetail';
 import FinancingContractCreate from './pages/FinancingContractCreate';
+import Installments from './pages/Installments';
 import Transfers from './pages/Transfers';
 import TransferCreate from './pages/TransferCreate';
 import Letters from './pages/Letters';
@@ -182,6 +183,7 @@ export default function App() {
               <Route path="/financing" element={<FinancingContracts lang={lang} />} />
               <Route path="/financing/new" element={<FinancingContractCreate lang={lang} />} />
               <Route path="/financing/:id" element={<FinancingContractDetail lang={lang} />} />
+              <Route path="/installments" element={<Installments lang={lang} />} />
               <Route path="/letters" element={<Letters lang={lang} />} />
               <Route path="/letters/new" element={<LetterCreate lang={lang} />} />
               <Route path="/letters/:id" element={<LetterDetail lang={lang} />} />

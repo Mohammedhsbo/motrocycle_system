@@ -62,6 +62,8 @@ interface Props {
   motorcycle: MotorcycleSearchResult;
   depositAmount: number;
   notes: string;
+  address?: string;
+  onAddressChange: (address: string) => void;
   onNotesChange: (notes: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
@@ -74,6 +76,8 @@ export default function ReservationReview({
   motorcycle,
   depositAmount,
   notes,
+  address,
+  onAddressChange,
   onNotesChange,
   onCancel,
   onConfirm,
@@ -124,6 +128,10 @@ export default function ReservationReview({
         >
           {/* Customer card */}
           <div className="pos-card">
+            <label style={{ display: 'block', marginBottom: '1rem' }}>
+              <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>{t.address}</span>
+              <input className="pos-input" value={address ?? ''} onChange={(event) => onAddressChange(event.target.value)} />
+            </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <User size={18} style={{ color: 'var(--blue-light)' }} />
               <h3 style={{ margin: 0, fontSize: '0.9375rem' }}>{t.customer}</h3>

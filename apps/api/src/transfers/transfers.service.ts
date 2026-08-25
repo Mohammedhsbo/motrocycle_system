@@ -327,6 +327,9 @@ export class TransfersService {
         if (m.status !== 'available') {
            throw new ConflictException({ code: 'MOTORCYCLE_STATUS_CHANGED', message: `Motorcycle ${m.vin} is no longer available (${m.status})` });
         }
+        if (m.branchId !== transfer.fromBranchId) {
+          throw new ConflictException({ code: 'MOTORCYCLE_WRONG_BRANCH', message: `Motorcycle ${m.vin} no longer belongs to the source branch` });
+        }
       }
 
       // 4. Update states

@@ -112,6 +112,7 @@ export default function CreateReservation({ lang }: Props) {
   const [motorcycleSearch, setMotorcycleSearch] = useState('');
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [depositError, setDepositError] = useState<string>('');
+  const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [createdReservation, setCreatedReservation] = useState<{
@@ -147,6 +148,7 @@ export default function CreateReservation({ lang }: Props) {
         customerId: selectedCustomer!.id,
         motorcycleId: selectedMotorcycle!.id,
         reservationData: { depositAmount: parseFloat(depositAmount), expirationDays: 7 },
+        address: address || undefined,
         idempotencyKey: idempotencyKey || `pos-${crypto.randomUUID()}`,
         notes: notes || undefined,
       };
@@ -169,6 +171,7 @@ export default function CreateReservation({ lang }: Props) {
 
   const handleCustomerSelect = (customer: CustomerSearchResult) => {
     setSelectedCustomer(customer);
+    setAddress(customer.defaultAddress ? `${customer.defaultAddress.addressLine}${customer.defaultAddress.city ? `, ${customer.defaultAddress.city}` : ''}` : '');
     setShowCustomerSearch(false);
     setStep('motorcycle');
   };
@@ -182,6 +185,7 @@ export default function CreateReservation({ lang }: Props) {
       nationalId: customer.nationalId,
       defaultAddress: customer.addresses?.find((a: any) => a.isDefault) ?? null,
     });
+    setAddress(customer.addresses?.find((a: any) => a.isDefault)?.addressLine ?? '');
     setShowCustomerForm(false);
     setStep('motorcycle');
   };
@@ -221,6 +225,7 @@ export default function CreateReservation({ lang }: Props) {
     setMotorcycleSearch('');
     setDepositAmount('');
     setDepositError('');
+    setAddress('');
     setNotes('');
     setIdempotencyKey('');
     setCreatedReservation(null);
@@ -283,6 +288,8 @@ export default function CreateReservation({ lang }: Props) {
         motorcycle={selectedMotorcycle}
         depositAmount={parseFloat(depositAmount)}
         notes={notes}
+        address={address}
+        onAddressChange={setAddress}
         onNotesChange={setNotes}
         onCancel={() => setStep('deposit')}
         onConfirm={() => createReservationMutation.mutate()}
