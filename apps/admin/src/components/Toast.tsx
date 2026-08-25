@@ -16,11 +16,12 @@ interface ToastContextValue {
 interface ToastProviderProps {
   children: ReactNode;
   direction?: 'ltr' | 'rtl';
+  lang?: 'en' | 'ar';
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-function ToastMessage({ toast, onClose }: { toast: ToastItem; onClose: () => void }) {
+function ToastMessage({ toast, onClose, lang }: { toast: ToastItem; onClose: () => void; lang: 'en' | 'ar' }) {
   useEffect(() => {
     const timer = window.setTimeout(onClose, 4000);
     return () => window.clearTimeout(timer);
@@ -52,8 +53,8 @@ function ToastMessage({ toast, onClose }: { toast: ToastItem; onClose: () => voi
         type="button"
         className="btn btn-outline"
         onClick={onClose}
-        aria-label="Close notification"
-        title="Close notification"
+        aria-label={lang === 'ar' ? 'إغلاق الإشعار' : 'Close notification'}
+        title={lang === 'ar' ? 'إغلاق الإشعار' : 'Close notification'}
         style={{ padding: '0.2rem', color, borderColor: 'transparent' }}
       >
         <X size={16} />
@@ -62,7 +63,7 @@ function ToastMessage({ toast, onClose }: { toast: ToastItem; onClose: () => voi
   );
 }
 
-export function ToastProvider({ children, direction = 'ltr' }: ToastProviderProps) {
+export function ToastProvider({ children, direction = 'ltr', lang = 'en' }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const showToast = (message: string, type: ToastType) => {
@@ -92,7 +93,7 @@ export function ToastProvider({ children, direction = 'ltr' }: ToastProviderProp
       >
         {toasts.map(toast => (
           <div key={toast.id} style={{ pointerEvents: 'auto' }}>
-            <ToastMessage toast={toast} onClose={() => dismissToast(toast.id)} />
+            <ToastMessage toast={toast} lang={lang} onClose={() => dismissToast(toast.id)} />
           </div>
         ))}
       </div>

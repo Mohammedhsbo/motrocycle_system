@@ -8,9 +8,10 @@ interface ModalProps {
   isOpen?: boolean;
   footer?: ReactNode;
   wide?: boolean;
+  lang?: 'en' | 'ar';
 }
 
-export default function Modal({ title, onClose, children, isOpen = true, footer, wide }: ModalProps) {
+export default function Modal({ title, onClose, children, isOpen = true, footer, wide, lang = 'en' }: ModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -19,7 +20,10 @@ export default function Modal({ title, onClose, children, isOpen = true, footer,
         <div className="modal-header">
           <h2 style={{ margin: 0, fontSize: '1.125rem' }}>{title}</h2>
           <button
+            type="button"
             onClick={onClose}
+            aria-label={lang === 'ar' ? 'إغلاق النافذة' : 'Close dialog'}
+            title={lang === 'ar' ? 'إغلاق النافذة' : 'Close dialog'}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--text-muted)', padding: '0.25rem',

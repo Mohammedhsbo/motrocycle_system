@@ -5,7 +5,8 @@ import { Settings, Activity, AlertTriangle, CheckCircle, XCircle, RefreshCw } fr
 import { apiFetch, integrations as integrationsApi, type Integration } from '../api';
 import Badge from '../components/Badge';
 
-export default function Integrations() {
+export default function Integrations({ lang = 'en' }: { lang?: 'en' | 'ar' }) {
+  const isRtl = lang === 'ar';
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

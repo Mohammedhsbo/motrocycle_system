@@ -9,6 +9,9 @@ interface Props { lang: 'en' | 'ar' }
 
 export default function TransferCreate({ lang }: Props) {
   const isRtl = lang === 'ar';
+  const loadingMotorcyclesLabel = isRtl ? 'جاري تحميل الدراجات المتاحة...' : 'Loading available motorcycles...';
+  const motorcycleErrorLabel = isRtl ? 'فشل تحميل الدراجات.' : 'Failed to load motorcycles.';
+  const motorcycleEmptyLabel = isRtl ? 'لا توجد دراجات متاحة في فرع المصدر هذا.' : 'No available motorcycles in this source branch.';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { branches, branchId } = useBranch();

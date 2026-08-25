@@ -32,7 +32,7 @@ export default function InventoryTab({ preset, startDate, endDate, branchId, lan
     });
   };
 
-  if (isInvLoading || isMovLoading) return <div>Loading inventory data...</div>;
+  if (isInvLoading || isMovLoading) return <div>{isRtl ? 'جاري تحميل بيانات المخزون...' : 'Loading inventory data...'}</div>;
 
   return (
     <div>
@@ -73,7 +73,7 @@ export default function InventoryTab({ preset, startDate, endDate, branchId, lan
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Inventory by Status</h3>
+          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>{isRtl ? 'المخزون حسب الحالة' : 'Inventory by Status'}</h3>
           <table style={{ width: '100%', textAlign: isRtl ? 'right' : 'left' }}>
             <thead>
               <tr>
@@ -91,14 +91,14 @@ export default function InventoryTab({ preset, startDate, endDate, branchId, lan
                 </tr>
               ))}
               {(!inventory?.byStatus || inventory.byStatus.length === 0) && (
-                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>No data</td></tr>
+                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>{isRtl ? 'لا توجد بيانات' : 'No data'}</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Inventory by Brand</h3>
+          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>{isRtl ? 'المخزون حسب العلامة التجارية' : 'Inventory by Brand'}</h3>
           <table style={{ width: '100%', textAlign: isRtl ? 'right' : 'left' }}>
             <thead>
               <tr>
@@ -116,7 +116,7 @@ export default function InventoryTab({ preset, startDate, endDate, branchId, lan
                 </tr>
               ))}
               {(!inventory?.byBrand || inventory.byBrand.length === 0) && (
-                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>No data</td></tr>
+                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>{isRtl ? 'لا توجد بيانات' : 'No data'}</td></tr>
               )}
             </tbody>
           </table>

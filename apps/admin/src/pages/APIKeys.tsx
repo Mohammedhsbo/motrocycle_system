@@ -11,16 +11,17 @@ type Expiration = 'never' | '30' | '90' | '365' | 'custom';
 
 const environmentLabels: Record<string, string> = { production: 'Production', test: 'Test' };
 
-function formatDate(value: string | null) {
-  if (!value) return 'Never';
-  return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+function formatDate(value: string | null, lang: 'en' | 'ar') {
+  if (!value) return lang === 'ar' ? 'أبداً' : 'Never';
+  return new Date(value).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-EG', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function relativeDate(value: string | null, future = false) {
-  if (!value) return future ? 'No expiration' : 'Never used';
+function relativeDate(value: string | null, lang: 'en' | 'ar', future = false) {
+  if (!value) return future ? (lang === 'ar' ? 'بلا انتهاء' : 'No expiration') : (lang === 'ar' ? 'لم يُستخدم' : 'Never used');
   const difference = new Date(value).getTime() - Date.now();
   const days = Math.round(Math.abs(difference) / 86400000);
-  if (days === 0) return future ? (difference < 0 ? 'Expired today' : 'Expires today') : 'Today';
+  if (days === 0) return future ? (difference < 0 ? (lang === 'ar' ? 'انتهى اليوم' : 'Expired today') : (lang === 'ar' ? 'ينتهي اليوم' : 'Expires today')) : (lang === 'ar' ? 'اليوم' : 'Today');
+  if (lang === 'ar') return future ? (difference < 0 ? `انتهى منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}` : `ينتهي خلال ${days} ${days === 1 ? 'يوم' : 'أيام'}`) : (difference < 0 ? `منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}` : 'منذ قليل');
   const unit = days === 1 ? 'day' : 'days';
   if (future) return difference < 0 ? `Expired ${days} ${unit} ago` : `Expires in ${days} ${unit}`;
   return difference < 0 ? `${days} ${unit} ago` : 'Just now';
@@ -34,7 +35,8 @@ function expirationDate(expiration: Expiration, customDate: string) {
   return date.toISOString();
 }
 
-export default function APIKeys() {
+export default function APIKeys({ lang = 'en' }: { lang?: 'en' | 'ar' }) {
+  const isRtl = lang === 'ar';
   const [apiKeys, setAPIKeys] = useState<APIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -74,7 +76,7 @@ export default function APIKeys() {
   async function createAPIKey() {
     setFormError(null);
     if (formData.expiration === 'custom' && !formData.customDate) {
-      setFormError('Choose an expiration date or select Never.');
+      setFormError(isRtl ? 'اختر تاريخ انتهاء أو حدد أبداً.' : 'Choose an expiration date or select Never.');
       return;
     }
     setIsSubmitting(true);
@@ -95,7 +97,7 @@ export default function APIKeys() {
       await loadAPIKeys();
     } catch (error) {
       console.error('Failed to create API key:', error);
-      setFormError(error instanceof Error ? error.message : 'Failed to create API key.');
+      setFormError(error instanceof Error ? error.message : (isRtl ? 'تعذر إنشاء مفتاح API.' : 'Failed to create API key.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -125,18 +127,18 @@ export default function APIKeys() {
   const trackedRequests = apiKeys.reduce((total, key) => total + key.usageCount, 0);
 
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       <div className="flex items-center justify-between mb-6" style={{ gap: '1rem', flexWrap: 'wrap' }}>
         <div className="flex items-center gap-2">
           <div style={{ display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 'var(--radius-md)', background: 'var(--accent-primary)', color: 'white' }}><Key size={22} /></div>
-          <div><h1 style={{ margin: 0 }}>API Keys</h1><p className="text-muted" style={{ margin: '.25rem 0 0' }}>Manage secure access for external integrations</p></div>
+          <div><h1 style={{ margin: 0 }}>{isRtl ? 'مفاتيح API' : 'API Keys'}</h1><p className="text-muted" style={{ margin: '.25rem 0 0' }}>{isRtl ? 'إدارة الوصول الآمن للتكاملات الخارجية' : 'Manage secure access for external integrations'}</p></div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}><Plus size={17} /> Create API Key</button>
+        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}><Plus size={17} /> {isRtl ? 'إنشاء مفتاح API' : 'Create API Key'}</button>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}><ShieldCheck size={22} style={{ color: 'var(--success)' }} /><div><div className="text-muted" style={{ fontSize: '.75rem' }}>Active keys</div><strong style={{ fontSize: '1.4rem' }}>{apiKeys.length}</strong></div></div>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}><Clock3 size={22} style={{ color: 'var(--warning)' }} /><div><div className="text-muted" style={{ fontSize: '.75rem' }}>Tracked requests</div><strong style={{ fontSize: '1.4rem' }}>{trackedRequests.toLocaleString()}</strong></div></div>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}><ShieldCheck size={22} style={{ color: 'var(--success)' }} /><div><div className="text-muted" style={{ fontSize: '.75rem' }}>{isRtl ? 'المفاتيح النشطة' : 'Active keys'}</div><strong style={{ fontSize: '1.4rem' }}>{apiKeys.length}</strong></div></div>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}><Clock3 size={22} style={{ color: 'var(--warning)' }} /><div><div className="text-muted" style={{ fontSize: '.75rem' }}>{isRtl ? 'الطلبات المتتبعة' : 'Tracked requests'}</div><strong style={{ fontSize: '1.4rem' }}>{trackedRequests.toLocaleString()}</strong></div></div>
       </div>
 
       <div className="table-container">
@@ -150,7 +152,7 @@ export default function APIKeys() {
                 <td><strong>{key.description || 'Untitled key'}</strong><div className="text-muted" style={{ fontSize: '.75rem', marginTop: '.25rem' }}>{key.branchId ? branches.find(branch => branch.id === key.branchId)?.nameEn ?? 'Branch scoped' : 'All branches'}</div></td>
                 <td><Badge status={key.environment === 'production' ? 'cancelled' : 'initiated'} label={environmentLabels[key.environment] ?? key.environment} /></td>
                 <td><strong>{key.usageCount.toLocaleString()}</strong><div className="text-muted" style={{ fontSize: '.75rem' }}>requests</div></td>
-                <td title={key.lastUsedAt ? formatDate(key.lastUsedAt) : undefined}><span>{relativeDate(key.lastUsedAt)}</span><div className="text-muted" style={{ fontSize: '.75rem' }}>{formatDate(key.lastUsedAt)}</div></td>
+                <td title={key.lastUsedAt ? formatDate(key.lastUsedAt, lang) : undefined}><span>{relativeDate(key.lastUsedAt, lang)}</span><div className="text-muted" style={{ fontSize: '.75rem' }}>{formatDate(key.lastUsedAt, lang)}</div></td>
                 <td style={{ textAlign: 'right' }}><button className="btn" style={{ padding: '.35rem', color: 'var(--error)', background: 'var(--error-bg)', border: '1px solid rgba(239,68,68,.2)' }} title="Revoke API key" aria-label={`Revoke ${key.description || 'API key'}`} onClick={() => setRevokeTarget(key)}><Trash2 size={16} /></button></td>
               </tr>
             ))}

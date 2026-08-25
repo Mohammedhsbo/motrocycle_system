@@ -36,7 +36,7 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
     return (
       <div className="center-content">
         <div className="spinner" />
-        <span style={{ marginTop: '0.75rem' }}>Loading...</span>
+        <span style={{ marginTop: '0.75rem' }}>{isRtl ? 'جاري التحميل...' : 'Loading...'}</span>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
   if (isError || !dashboard) {
     return (
       <div className="center-content" style={{ color: 'var(--error)' }}>
-        <span>Failed to load dashboard</span>
+        <span>{isRtl ? 'فشل تحميل لوحة التحكم' : 'Failed to load dashboard'}</span>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
             exportToCsv('top_motorcycles', data);
           }}
         >
-          <Download size={16} /> Export Top Models
+          <Download size={16} /> {isRtl ? 'تصدير أبرز الطرازات' : 'Export Top Models'}
         </button>
       </div>
 
@@ -72,11 +72,11 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
       <div style={{ marginBottom: '2rem' }}>
         <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <TrendingUp size={20} style={{ color: 'var(--accent-primary)' }} />
-          Sales
+          {isRtl ? 'المبيعات' : 'Sales'}
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div className="card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Total Revenue</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRtl ? 'إجمالي الإيرادات' : 'Total Revenue'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
               {formatCurrency(dashboard.sales.totalRevenue)}
             </div>
@@ -89,7 +89,7 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{dashboard.sales.orderCount}</div>
           </div>
           <div className="card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Avg Order Value</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRtl ? 'متوسط قيمة الطلب' : 'Avg Order Value'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{formatCurrency(dashboard.sales.averageOrderValue)}</div>
           </div>
         </div>
@@ -99,11 +99,11 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
       <div style={{ marginBottom: '2rem' }}>
         <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <DollarSign size={20} style={{ color: '#10b981' }} />
-          Revenue
+          {isRtl ? 'الإيرادات' : 'Revenue'}
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div className="card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Gross Revenue</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRtl ? 'إجمالي الإيرادات' : 'Gross Revenue'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{formatCurrency(dashboard.revenue.grossRevenue)}</div>
           </div>
           <div className="card">
@@ -111,11 +111,11 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>{formatCurrency(dashboard.revenue.collectedAmount)}</div>
           </div>
           <div className="card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Outstanding</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRtl ? 'المبلغ المستحق' : 'Outstanding'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{formatCurrency(dashboard.revenue.outstandingAmount)}</div>
           </div>
           <div className="card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Net Revenue</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRtl ? 'صافي الإيرادات' : 'Net Revenue'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{formatCurrency(dashboard.revenue.netRevenue)}</div>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function ExecutiveTab({ preset, startDate, endDate, branchId, lan
         <div style={{ marginTop: '2rem' }}>
           <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BarChart3 size={20} style={{ color: 'var(--accent-primary)' }} />
-            Top Motorcycles
+            {isRtl ? 'أبرز الدراجات' : 'Top Motorcycles'}
           </h3>
           <div className="card">
             <table style={{ width: '100%', textAlign: isRtl ? 'right' : 'left' }}>

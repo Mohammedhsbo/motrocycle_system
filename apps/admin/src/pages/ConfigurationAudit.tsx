@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { configuration } from '../api';
 import type { ConfigurationAuditEntry } from '../api';
 
-export default function ConfigurationAudit() {
+export default function ConfigurationAudit({ lang = 'en' }: { lang?: 'en' | 'ar' }) {
+  const isRtl = lang === 'ar';
   const [audits, setAudits] = useState<ConfigurationAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

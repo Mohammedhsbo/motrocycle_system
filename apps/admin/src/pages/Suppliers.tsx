@@ -175,13 +175,13 @@ export default function Suppliers({ lang }: Props) {
                   <td><Badge status={s.isActive ? 'active' : 'inactive'} lang={lang} /></td>
                   <td>
                     <div className="flex gap-2">
-                      <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem' }} onClick={() => openEdit(s)} title="Edit">
+                      <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem' }} onClick={() => openEdit(s)} title={isRtl ? 'تعديل' : 'Edit'}>
                         <Pencil size={14} />
                       </button>
                       <button
                         className="btn"
                         style={{ padding: '0.375rem 0.625rem', background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.2)' }}
-                        onClick={() => openDelete(s)} title="Delete"
+                        onClick={() => openDelete(s)} title={isRtl ? 'حذف' : 'Delete'}
                       >
                         <Trash2 size={14} />
                       </button>

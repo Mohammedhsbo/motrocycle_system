@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { configuration } from '../api';
 import type { FeatureFlag } from '../api';
 
-export default function FeatureFlags() {
+export default function FeatureFlags({ lang = 'en' }: { lang?: 'en' | 'ar' }) {
+  const isRtl = lang === 'ar';
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

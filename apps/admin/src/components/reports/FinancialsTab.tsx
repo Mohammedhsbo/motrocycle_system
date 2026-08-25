@@ -32,7 +32,7 @@ export default function FinancialsTab({ preset, startDate, endDate, branchId, la
     });
   };
 
-  if (isRevLoading || isAgingLoading) return <div>Loading financials...</div>;
+  if (isRevLoading || isAgingLoading) return <div>{isRtl ? 'جاري تحميل البيانات المالية...' : 'Loading financials...'}</div>;
 
   return (
     <div>
@@ -75,7 +75,7 @@ export default function FinancialsTab({ preset, startDate, endDate, branchId, la
 
       {aging && (
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Accounts Receivable Aging</h3>
+          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>{isRtl ? 'تقادم الذمم المدينة' : 'Accounts Receivable Aging'}</h3>
           <table style={{ width: '100%', textAlign: isRtl ? 'right' : 'left' }}>
             <thead>
               <tr>

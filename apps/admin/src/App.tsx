@@ -54,6 +54,13 @@ const queryClient = new QueryClient({
 
 function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
   const isRtl = lang === 'ar';
+  const labels = isRtl ? {
+    brand: 'لوحة إدارة MotoSystem', overview: 'نظرة عامة', keyStats: 'الإحصاءات الرئيسية', thisMonth: 'هذا الشهر', navigate: 'تنقل', quickLinks: 'روابط سريعة', last24: 'آخر 24 ساعة', recent: 'النشاط الأخير', viewReports: 'عرض التقارير', noActivity: 'لا يوجد نشاط حديث', currentBranch: 'الفرع الحالي', egp: 'جنيه مصري',
+    activeBranches: 'الفروع النشطة', availableMotorcycles: 'الدراجات المتاحة', ordersMonth: 'الطلبات هذا الشهر', activeFinancing: 'التمويل النشط', overdue: 'الأقساط المتأخرة', collected: 'المحصّل هذا الشهر',
+  } : {
+    brand: 'MotoSystem Admin Panel', overview: 'Overview', keyStats: 'Key stats', thisMonth: 'This month', navigate: 'Navigate', quickLinks: 'Quick links', last24: 'Last 24 hours', recent: 'Recent activity', viewReports: 'View reports', noActivity: 'No recent activity', currentBranch: 'Current branch', egp: 'EGP',
+    activeBranches: 'Active branches', availableMotorcycles: 'Available motorcycles', ordersMonth: 'Orders this month', activeFinancing: 'Active financing', overdue: 'Overdue installments', collected: 'Collected this month',
+  };
   const { branchId, branches } = useBranch();
   const executive = useQuery({
     queryKey: ['dashboard-executive', branchId],
@@ -88,37 +95,37 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
     { label: 'Reports', path: '/reports', icon: LayoutGrid, tone: 'blue' },
   ];
   const statCards = stats ? [
-    { label: 'Active branches', value: branches.filter(branch => branch.isActive).length, icon: Building2, tone: 'blue' },
-    { label: 'Available motorcycles', value: stats.inventory.available, icon: Bike, tone: 'success' },
-    { label: 'Orders this month', value: stats.sales.orderCount, icon: ShoppingBag, tone: 'blue' },
-    { label: 'Active financing', value: stats.financing.activeContracts, icon: CreditCard, tone: 'success' },
-    { label: 'Overdue installments', value: stats.financing.overdueCount, icon: Activity, tone: stats.financing.overdueCount ? 'error' : 'neutral' },
-    { label: 'Collected this month', value: `${stats.revenue.collectedAmount.toLocaleString('en-EG')} EGP`, icon: CircleDollarSign, tone: 'success' },
+    { label: labels.activeBranches, value: branches.filter(branch => branch.isActive).length, icon: Building2, tone: 'blue' },
+    { label: labels.availableMotorcycles, value: stats.inventory.available, icon: Bike, tone: 'success' },
+    { label: labels.ordersMonth, value: stats.sales.orderCount, icon: ShoppingBag, tone: 'blue' },
+    { label: labels.activeFinancing, value: stats.financing.activeContracts, icon: CreditCard, tone: 'success' },
+    { label: labels.overdue, value: stats.financing.overdueCount, icon: Activity, tone: stats.financing.overdueCount ? 'error' : 'neutral' },
+    { label: labels.collected, value: `${stats.revenue.collectedAmount.toLocaleString(isRtl ? 'ar-EG' : 'en-EG')} ${labels.egp}`, icon: CircleDollarSign, tone: 'success' },
   ] : [];
 
   return (
     <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       <div className="dashboard-header">
         <div>
-          <p className="eyebrow">MotoSystem Admin Panel</p>
+          <p className="eyebrow">{labels.brand}</p>
           <h1>{isRtl ? 'لوحة التحكم' : 'Dashboard'}</h1>
           <p className="text-muted">{isRtl ? 'نظرة سريعة على عمليات الفرع' : 'A clear view of today’s operations and this month’s performance.'}</p>
         </div>
-        <span className="dashboard-scope">{branches.find(branch => branch.id === branchId)?.nameEn ?? 'Current branch'}</span>
+        <span className="dashboard-scope">{branches.find(branch => branch.id === branchId)?.[isRtl ? 'nameAr' : 'nameEn'] ?? labels.currentBranch}</span>
       </div>
 
       <section className="dashboard-section">
-        <div className="section-heading"><div><p className="eyebrow">Overview</p><h2>Key stats</h2></div><span className="text-muted">This month</span></div>
+        <div className="section-heading"><div><p className="eyebrow">{labels.overview}</p><h2>{labels.keyStats}</h2></div><span className="text-muted">{labels.thisMonth}</span></div>
         <div className="dashboard-stats">{executive.isLoading ? Array.from({ length: 6 }, (_, index) => <div className="card dashboard-stat skeleton" key={index} />) : statCards.map(stat => { const Icon = stat.icon; return <div className={`card dashboard-stat dashboard-tone-${stat.tone}`} key={stat.label}><div className="dashboard-stat-icon"><Icon size={18} /></div><span>{stat.label}</span><strong>{stat.value}</strong></div>; })}</div>
       </section>
 
       <section className="dashboard-section">
-        <div className="section-heading"><div><p className="eyebrow">Navigate</p><h2>Quick links</h2></div></div>
+        <div className="section-heading"><div><p className="eyebrow">{labels.navigate}</p><h2>{labels.quickLinks}</h2></div></div>
         <div className="dashboard-links">{quickLinks.map(link => { const Icon = link.icon; return <Link to={link.path} className="card dashboard-link" key={link.path}><span className={`dashboard-link-icon dashboard-tone-${link.tone}`}><Icon size={19} /></span><span>{isRtl ? ({ Suppliers: 'الموردون', Purchases: 'المشتريات', Customers: 'العملاء', Orders: 'الطلبات', Transfers: 'التحويلات', Financing: 'التمويل', Invoices: 'الفواتير', Payments: 'المدفوعات', Branches: 'الفروع', Letters: 'الخطابات', Configuration: 'الإعدادات', Integrations: 'التكاملات', 'API Keys': 'مفاتيح API', Reports: 'التقارير' } as Record<string, string>)[link.label] : link.label}</span></Link>; })}</div>
       </section>
 
       <section className="dashboard-section">
-        <div className="section-heading"><div><p className="eyebrow">Last 24 hours</p><h2>Recent activity</h2></div><Link to="/reports" className="text-link">View reports</Link></div>
+        <div className="section-heading"><div><p className="eyebrow">{labels.last24}</p><h2>{labels.recent}</h2></div><Link to="/reports" className="text-link">{labels.viewReports}</Link></div>
         <div className="card activity-panel">{operational.isLoading ? Array.from({ length: 5 }, (_, index) => <div className="activity-skeleton" key={index} />) : activity.length === 0 ? <div className="empty-state"><Activity size={28} /><p>No recent activity</p></div> : activity.map(item => <div className="activity-item" key={`${item.type}-${item.id}`}><span className={`dashboard-link-icon dashboard-tone-${item.type === 'order' ? 'blue' : 'success'}`}>{item.type === 'order' ? <ShoppingBag size={17} /> : <Banknote size={17} />}</span><div><strong>{item.label}</strong><span>{item.detail} · {new Date(item.createdAt).toLocaleString(isRtl ? 'ar-EG' : 'en-EG', { dateStyle: 'medium', timeStyle: 'short' })}</span></div><div className="activity-meta">{item.type === 'order' && <Badge status={item.status} lang={lang} />}<strong>{item.value.toLocaleString('en-EG')} EGP</strong></div></div>)}</div>
       </section>
     </div>
@@ -130,7 +137,7 @@ export default function App() {
   const [authenticated, setAuthenticated] = useState(() => Boolean(getToken()));
 
   if (!authenticated) {
-    return <ToastProvider direction={lang === 'ar' ? 'rtl' : 'ltr'}><Login onLogin={() => setAuthenticated(true)} /></ToastProvider>;
+    return <ToastProvider lang={lang} direction={lang === 'ar' ? 'rtl' : 'ltr'}><Login lang={lang} onLogin={() => setAuthenticated(true)} /></ToastProvider>;
   }
 
   const handleLogout = async () => {
@@ -143,7 +150,7 @@ export default function App() {
   };
 
   return (
-    <ToastProvider direction={lang === 'ar' ? 'rtl' : 'ltr'}>
+    <ToastProvider lang={lang} direction={lang === 'ar' ? 'rtl' : 'ltr'}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <BranchProvider>
@@ -180,11 +187,11 @@ export default function App() {
               <Route path="/letters/:id" element={<LetterDetail lang={lang} />} />
               <Route path="/reports" element={<Reports lang={lang} />} />
               <Route path="/configuration" element={<Configuration lang={lang} />} />
-              <Route path="/feature-flags" element={<FeatureFlags />} />
-              <Route path="/branches" element={<Branches />} />
-              <Route path="/configuration-audit" element={<ConfigurationAudit />} />
-              <Route path="/integrations" element={<Integrations />} />
-              <Route path="/api-keys" element={<APIKeys />} />
+              <Route path="/feature-flags" element={<FeatureFlags lang={lang} />} />
+              <Route path="/branches" element={<Branches lang={lang} />} />
+              <Route path="/configuration-audit" element={<ConfigurationAudit lang={lang} />} />
+              <Route path="/integrations" element={<Integrations lang={lang} />} />
+              <Route path="/api-keys" element={<APIKeys lang={lang} />} />
               <Route path="/transfers" element={<Transfers lang={lang} />} />
               <Route path="/transfers/new" element={<TransferCreate lang={lang} />} />
               <Route path="/transfers/:id" element={<Transfers lang={lang} />} />

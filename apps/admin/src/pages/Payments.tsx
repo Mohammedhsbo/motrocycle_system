@@ -205,7 +205,7 @@ export default function Payments({ lang }: Props) {
           onClick={() => refetch()}
           className="btn btn-outline"
           style={{ padding: '0.375rem' }}
-          title="Refresh"
+          title={isRtl ? 'تحديث' : 'Refresh'}
         >
           <RefreshCw size={14} />
         </button>

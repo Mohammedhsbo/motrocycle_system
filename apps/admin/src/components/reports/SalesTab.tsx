@@ -27,8 +27,8 @@ export default function SalesTab({ preset, startDate, endDate, branchId, lang }:
     });
   };
 
-  if (isLoading) return <div>Loading sales data...</div>;
-  if (isError || !sales) return <div style={{ color: 'var(--error)' }}>Failed to load sales data.</div>;
+  if (isLoading) return <div>{isRtl ? 'جاري تحميل بيانات المبيعات...' : 'Loading sales data...'}</div>;
+  if (isError || !sales) return <div style={{ color: 'var(--error)' }}>{isRtl ? 'فشل تحميل بيانات المبيعات.' : 'Failed to load sales data.'}</div>;
 
   return (
     <div>
@@ -69,7 +69,7 @@ export default function SalesTab({ preset, startDate, endDate, branchId, lang }:
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Sales by Payment Method</h3>
+          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>{isRtl ? 'المبيعات حسب طريقة الدفع' : 'Sales by Payment Method'}</h3>
           <table style={{ width: '100%', textAlign: isRtl ? 'right' : 'left' }}>
             <thead>
               <tr>
@@ -87,14 +87,14 @@ export default function SalesTab({ preset, startDate, endDate, branchId, lang }:
                 </tr>
               ))}
               {(!sales.byPaymentMethod || sales.byPaymentMethod.length === 0) && (
-                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>No data</td></tr>
+                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>{isRtl ? 'لا توجد بيانات' : 'No data'}</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Sales by Branch</h3>
+          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>{isRtl ? 'المبيعات حسب الفرع' : 'Sales by Branch'}</h3>
           <table style={{ width: '100%', textAlign: isRtl ? 'right' : 'left' }}>
             <thead>
               <tr>
@@ -112,7 +112,7 @@ export default function SalesTab({ preset, startDate, endDate, branchId, lang }:
                 </tr>
               ))}
               {(!sales.byBranch || sales.byBranch.length === 0) && (
-                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>No data</td></tr>
+                <tr><td colSpan={3} style={{ textAlign: 'center', paddingTop: '1rem', color: 'var(--text-muted)' }}>{isRtl ? 'لا توجد بيانات' : 'No data'}</td></tr>
               )}
             </tbody>
           </table>
