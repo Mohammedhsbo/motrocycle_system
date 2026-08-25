@@ -16,6 +16,7 @@ import { generateIdempotencyKey } from '@motorcycle-system/shared-types';
 describe('POS API - Integration Tests', () => {
   let app: INestApplication;
   let cashierToken: string;
+  let superAdminToken: string;
   let managerToken: string;
   let branchId: string;
   let customerId: string;
@@ -30,6 +31,14 @@ describe('POS API - Integration Tests', () => {
     await resetDatabase();
     const data = await seedBaseData();
     branchId = data.branch.id;
+
+    await prisma.rolePermission.create({
+      data: {
+        roleId: data.superAdminRole.id,
+        resource: 'order',
+        action: 'read',
+      },
+    });
 
     // Create roles
     const cashierRole = await createRole('pos_cashier', [
@@ -83,6 +92,11 @@ describe('POS API - Integration Tests', () => {
       .send({ email: 'manager@pos.test', password: 'password123' });
     managerToken = managerLogin.body.data.accessToken;
 
+    const superAdminLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: 'admin@example.com', password: 'admin123' });
+    superAdminToken = superAdminLogin.body.data.accessToken;
+
     // Create test data
     const customer = await createCustomer({ name: 'POS Test Customer', phone: '+966501234567' });
     customerId = customer.id;
@@ -132,6 +146,16 @@ describe('POS API - Integration Tests', () => {
       expect(res.body.data).toHaveProperty('recentTransactions');
       expect(res.body.data.currentUser).toHaveProperty('permissions');
       expect(res.body.data.todayStats).toHaveProperty('availableMotorcycles');
+    });
+
+    it('should get an all-branches dashboard for a super-admin without a branch', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/pos/dashboard')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .expect(200);
+
+      expect(res.body.data.currentUser.branch).toBeNull();
+      expect(res.body.data.currentUser.permissions.canSwitchBranch).toBe(true);
     });
   });
 

@@ -6,11 +6,13 @@ import DiscountInput from './DiscountInput';
 import DepositInput from './DepositInput';
 import TransactionConfirmation from './TransactionConfirmation';
 import PaymentPOS from './PaymentPOS';
+import type { CustomerSearchResult, MotorcycleSearchResult } from '../api';
+import { POSTransactionType, type CreatePOSTransactionDto, type ValidatePOSTransactionDto } from '../../../../packages/shared-types/src/pos';
 
 interface TransactionReviewProps {
   lang: 'en' | 'ar';
-  customer: any;
-  motorcycle: any;
+  customer: CustomerSearchResult;
+  motorcycle: MotorcycleSearchResult;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -27,7 +29,8 @@ export default function TransactionReview({
   const [discountReason, setDiscountReason] = useState('');
   const [depositAmount, setDepositAmount] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [completedTransaction, setCompletedTransaction] = useState<any>(null);
+  const [completedTransaction, setCompletedTransaction] = useState<Awaited<ReturnType<typeof create>>['data']>(null);
+  const [error, setError] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const isRtl = lang === 'ar';
 
@@ -47,8 +50,9 @@ export default function TransactionReview({
   const remainingAmount = transactionType === 'reservation' ? netAmount - depositAmount : 0;
 
   const handleSubmit = async () => {
-    const data: any = {
-      type: transactionType,
+    setError(null);
+    const data: Omit<CreatePOSTransactionDto, 'idempotencyKey'> = {
+      type: transactionType === 'order' ? POSTransactionType.ORDER : POSTransactionType.RESERVATION,
       customerId: customer.id,
       motorcycleId: motorcycle.id,
     };
@@ -64,9 +68,16 @@ export default function TransactionReview({
       };
     }
 
-    const validation = await validate(data);
+    const validationData: ValidatePOSTransactionDto = {
+      customerId: data.customerId,
+      motorcycleId: data.motorcycleId,
+      type: data.type,
+      discount: discount > 0 ? discount : undefined,
+      depositAmount: transactionType === 'reservation' ? depositAmount : undefined,
+    };
+    const validation = await validate(validationData);
     if (!validation.valid) {
-      alert(validation.error || (isRtl ? 'تعذر التحقق من العملية' : 'Transaction validation failed'));
+      setError(validation.error || (isRtl ? 'تعذر التحقق من العملية' : 'Transaction validation failed'));
       return;
     }
 
@@ -92,14 +103,14 @@ export default function TransactionReview({
           await invoices.issue(invoice.id);
           setShowPayment(true);
         } catch (error: any) {
-          alert(error.message || (isRtl ? 'تم البيع ولكن تعذر إنشاء الفاتورة' : 'Sale created, but invoice creation failed'));
+          setError(error instanceof Error ? error.message : (isRtl ? 'تم البيع ولكن تعذر إنشاء الفاتورة' : 'Sale created, but invoice creation failed'));
           setShowConfirmation(true);
         }
       } else {
         setShowConfirmation(true);
       }
     } else {
-      alert(result.error || 'Transaction failed');
+      setError(result.error || (isRtl ? 'فشلت العملية' : 'Transaction failed'));
     }
   };
 
@@ -148,6 +159,7 @@ export default function TransactionReview({
 
   return (
     <div className="space-y-6">
+      {error && <div className="state-panel" role="alert">{error}</div>}
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <h2 className="text-xl font-bold">
           {isRtl ? 'مراجعة العملية' : 'Transaction Review'}

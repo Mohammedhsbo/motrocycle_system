@@ -6,11 +6,14 @@ import CustomerSearchPOS from '../components/CustomerSearchPOS';
 import CustomerFormPOS from '../components/CustomerFormPOS';
 import ReservationReview from '../components/ReservationReview';
 import {
+  pos,
   reservations,
   motorcycles,
   type CustomerSearchResult,
   type MotorcycleSearchResult,
 } from '../api';
+import { POSTransactionType, type CreatePOSTransactionDto } from '../../../../packages/shared-types/src/pos';
+import { useViewingBranch } from '../contexts/ViewingBranchContext';
 
 type Lang = 'en' | 'ar';
 
@@ -97,6 +100,8 @@ export default function CreateReservation({ lang }: Props) {
   const t = T[lang];
   const isRtl = lang === 'ar';
   const navigate = useNavigate();
+  const { viewingBranchId, isSuperAdmin } = useViewingBranch();
+  const branchId = isSuperAdmin ? viewingBranchId ?? undefined : undefined;
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<'customer' | 'motorcycle' | 'deposit' | 'review'>('customer');
@@ -108,6 +113,7 @@ export default function CreateReservation({ lang }: Props) {
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [depositError, setDepositError] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [createdReservation, setCreatedReservation] = useState<{
     id: string;
     reservationNumber: string;
@@ -121,10 +127,11 @@ export default function CreateReservation({ lang }: Props) {
 
   // Search available motorcycles
   const { data: motorcyclesData, isLoading: motorcyclesLoading } = useQuery({
-    queryKey: ['motorcycles', motorcycleSearch],
+    queryKey: ['motorcycles', motorcycleSearch, branchId],
     queryFn: () =>
       motorcycles.search({
         search: motorcycleSearch,
+        branchId,
         status: 'available',
         limit: 50,
       }),
@@ -134,17 +141,29 @@ export default function CreateReservation({ lang }: Props) {
   const availableMotorcycles = motorcyclesData?.items ?? [];
 
   const createReservationMutation = useMutation({
-    mutationFn: () =>
-      reservations.create({
+    mutationFn: async () => {
+      const data: CreatePOSTransactionDto = {
+        type: POSTransactionType.RESERVATION,
         customerId: selectedCustomer!.id,
         motorcycleId: selectedMotorcycle!.id,
-        paidAmount: parseFloat(depositAmount),
+        reservationData: { depositAmount: parseFloat(depositAmount), expirationDays: 7 },
+        idempotencyKey: idempotencyKey || `pos-${crypto.randomUUID()}`,
         notes: notes || undefined,
-      }),
+      };
+      if (!idempotencyKey) setIdempotencyKey(data.idempotencyKey);
+      const validation = await pos.validateTransaction({
+        customerId: data.customerId,
+        motorcycleId: data.motorcycleId,
+        type: data.type,
+        depositAmount: data.reservationData?.depositAmount,
+      });
+      if (!validation.valid) throw new Error(validation.warnings.join(', ') || t.errorCreating);
+      return pos.createTransaction(data);
+    },
     onSuccess: (reservation) => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['motorcycles'] });
-      setCreatedReservation({ id: reservation.id, reservationNumber: reservation.reservationNumber });
+      setCreatedReservation({ id: reservation.id, reservationNumber: reservation.number });
     },
   });
 
@@ -203,6 +222,7 @@ export default function CreateReservation({ lang }: Props) {
     setDepositAmount('');
     setDepositError('');
     setNotes('');
+    setIdempotencyKey('');
     setCreatedReservation(null);
   };
 

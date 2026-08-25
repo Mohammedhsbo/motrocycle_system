@@ -77,6 +77,15 @@ export default function PaymentPOS({ orderId, orderAmount, lang, onSuccess, onCa
   const [reference, setReference] = useState('');
   const [error, setError] = useState('');
 
+  const paymentAttemptKey = `pos_payment_${orderId}`;
+  const [idempotencyKey] = useState(() =>
+    localStorage.getItem(paymentAttemptKey) || `pos_payment_${orderId}_${crypto.randomUUID()}`,
+  );
+
+  useEffect(() => {
+    localStorage.setItem(paymentAttemptKey, idempotencyKey);
+  }, [idempotencyKey, paymentAttemptKey]);
+
   // Load invoice for the order
   useEffect(() => {
     invoices
@@ -102,6 +111,7 @@ export default function PaymentPOS({ orderId, orderAmount, lang, onSuccess, onCa
   const createPaymentMutation = useMutation({
     mutationFn: (data: any) => payments.create(data),
     onSuccess: (payment) => {
+      localStorage.removeItem(paymentAttemptKey);
       onSuccess(payment.id);
     },
     onError: (err: any) => {
@@ -157,8 +167,6 @@ export default function PaymentPOS({ orderId, orderAmount, lang, onSuccess, onCa
 
   const handleSubmit = () => {
     if (!validate()) return;
-
-    const idempotencyKey = `pos_payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     const paymentData: any = {
       idempotencyKey,

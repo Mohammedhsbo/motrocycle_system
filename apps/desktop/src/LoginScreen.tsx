@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { auth, setToken } from './api';
+import { auth, setToken, setUser, type DesktopUser } from './api';
 import { Loader2 } from 'lucide-react';
 
 type LangType = 'en' | 'ar';
@@ -19,7 +19,7 @@ const T = {
   },
 };
 
-interface Props { onLogin: () => void; lang: LangType }
+interface Props { onLogin: (user: DesktopUser) => void; lang: LangType }
 
 export default function LoginScreen({ onLogin, lang }: Props) {
   const t = T[lang];
@@ -34,9 +34,10 @@ export default function LoginScreen({ onLogin, lang }: Props) {
     setError('');
     setLoading(true);
     try {
-      const { accessToken } = await auth.login(email, password);
+      const { accessToken, user } = await auth.login(email, password);
       setToken(accessToken);
-      onLogin();
+      setUser(user);
+      onLogin(user);
     } catch {
       setError(t.error);
     } finally {

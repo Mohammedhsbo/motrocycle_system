@@ -156,7 +156,7 @@ export class POSController {
   }
 
   @Post('offline/queue')
-  @RequirePermission(Resource.CUSTOMER, Action.CREATE)
+  @RequirePermission(Resource.POS, Action.CREATE)
   @ApiDocumentation({ tags: ['POS - Shifts'], summary: 'Queue an offline operation', description: 'Desktop POS queues an operation while offline.', protected: true })
   async queueOfflineOperation(
     @Body(new ZodValidationPipe(queueOfflineOperationSchema)) dto: QueueOfflineOperationDto,

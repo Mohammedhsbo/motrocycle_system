@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { BrowserRouter, NavLink, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Bell, Bike, Building2, CircleDollarSign, ClipboardList, LogOut, Menu, Package, Plus, Printer, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
-import { auth, getToken, clearToken, notifications, pos } from './api';
+import { BarChart3, Bell, Bike, Building2, CircleDollarSign, ClipboardList, LogOut, Menu, Package, Plus, Printer, RefreshCw, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
+import { auth, branches, getToken, getUser, setUser, clearToken, clearUser, notifications, pos, type DesktopUser } from './api';
+import { useViewingBranch, ViewingBranchProvider } from './contexts/ViewingBranchContext';
 import LoginScreen from './LoginScreen';
 import ReceivePurchase from './pages/ReceivePurchase';
 import CreateOrder from './pages/CreateOrder';
@@ -21,6 +22,10 @@ import Reports from './pages/Reports';
 import Notifications from './pages/Notifications';
 import Suppliers from './pages/Suppliers';
 import PrinterSettings from './pages/PrinterSettings';
+import ActiveReservations from './pages/ActiveReservations';
+import OfflineSync from './pages/OfflineSync';
+import TransactionHistory from './pages/TransactionHistory';
+import AccountManagement from './pages/AccountManagement';
 
 const qc = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
@@ -33,6 +38,9 @@ const navItems = [
   { path: '/dashboard', icon: BarChart3, en: 'Dashboard', ar: 'لوحة التحكم' },
   { path: '/orders', icon: ClipboardList, en: 'Sales', ar: 'المبيعات' },
   { path: '/reservations', icon: ClipboardList, en: 'Reservations', ar: 'الحجوزات' },
+  { path: '/active-reservations', icon: ClipboardList, en: 'Active lookup', ar: 'الحجوزات النشطة' },
+  { path: '/offline-sync', icon: RefreshCw, en: 'Offline sync', ar: 'المزامنة' },
+  { path: '/history', icon: ClipboardList, en: 'Transaction history', ar: 'سجل المعاملات' },
   { path: '/receive', icon: Package, en: 'Receiving', ar: 'الاستلام' },
   { path: '/inventory', icon: Bike, en: 'Inventory', ar: 'المخزون' },
   { path: '/customers', icon: Users, en: 'Customers', ar: 'العملاء' },
@@ -41,7 +49,29 @@ const navItems = [
   { path: '/notifications', icon: Bell, en: 'Notifications', ar: 'الإشعارات' },
   { path: '/suppliers', icon: Building2, en: 'Suppliers', ar: 'الموردون' },
   { path: '/printers', icon: Printer, en: 'Printers', ar: 'الطابعات' },
+  { path: '/accounts', icon: Users, en: 'Account management', ar: 'إدارة الحسابات', adminOnly: true },
 ];
+
+const permissionForPath: Record<string, [string, string]> = {
+  '/receive': ['purchase', 'update'],
+  '/installments': ['financing_contract', 'read'],
+  '/reports': ['report', 'read'],
+  '/suppliers': ['supplier', 'read'],
+};
+
+function canAccessPath(user: DesktopUser | null, path: string) {
+  const required = permissionForPath[path];
+  if (!required) return true;
+  return user?.role.permissions.some((permission) => permission.resource === required[0] && permission.action === required[1]) ?? false;
+}
+
+function AccessDenied({ lang }: { lang: Lang }) {
+  return <section className="desktop-page" dir={lang === 'ar' ? 'rtl' : 'ltr'}><div className="state-panel">{lang === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذه الصفحة.' : 'You do not have permission to access this page.'}</div></section>;
+}
+
+function gatedRoute(user: DesktopUser, lang: Lang, path: string, element: ReactElement) {
+  return canAccessPath(user, path) ? element : <AccessDenied lang={lang} />;
+}
 
 function Dashboard({ lang }: { lang: Lang }) {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -83,44 +113,85 @@ function Dashboard({ lang }: { lang: Lang }) {
             <div className="panel-heading"><div><span className="eyebrow">{isRtl ? 'آخر العمليات' : 'Activity'}</span><h2>{isRtl ? 'آخر العمليات' : 'Recent transactions'}</h2></div><NavLink to="/orders">{isRtl ? 'عرض الكل' : 'View all'}</NavLink></div>
             {data.recentTransactions.length === 0 ? <div className="empty-state">{isRtl ? 'لا توجد عمليات حتى الآن.' : 'No transactions yet.'}</div> : <div className="activity-list">{data.recentTransactions.map(item => <div className="activity-row" key={item.id}><div className="activity-mark"><Bike size={16} /></div><div><strong>{item.customerName}</strong><span>{item.motorcycleModel} · {item.number}</span></div><b>{money(item.amount)} {isRtl ? 'ج.م' : 'EGP'}</b></div>)}</div>}
           </div>
-          <div className="surface-panel branch-panel"><span className="eyebrow">{isRtl ? 'الفرع والموظف' : 'Branch & employee'}</span><h2>{isRtl ? data.currentUser.branch.nameAr : data.currentUser.branch.nameEn}</h2><p>{data.currentUser.name}</p><span className="role-pill">{data.currentUser.role}</span><div className="branch-rule" /><small>{isRtl ? 'الصلاحيات تطبق من الخادم على كل عملية.' : 'Permissions are enforced by the server for every action.'}</small></div>
+          <div className="surface-panel branch-panel"><span className="eyebrow">{isRtl ? 'الفرع والموظف' : 'Branch & employee'}</span><h2>{data.currentUser.branch ? (isRtl ? data.currentUser.branch.nameAr : data.currentUser.branch.nameEn) : (isRtl ? 'كل الفروع' : 'All branches')}</h2><p>{data.currentUser.name}</p><span className="role-pill">{data.currentUser.role}</span><div className="branch-rule" /><small>{isRtl ? 'الصلاحيات تطبق من الخادم على كل عملية.' : 'Permissions are enforced by the server for every action.'}</small></div>
         </div>
       </>}
     </section>
   );
 }
 
-function DesktopShell({ lang, setLang, onLogout }: { lang: Lang; setLang: (lang: Lang) => void; onLogout: () => void }) {
+function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: (lang: Lang) => void; user: DesktopUser; onLogout: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const isRtl = lang === 'ar';
+  const isSuperAdmin = user.role.name === 'super_admin';
+  const { viewingBranchId, setViewingBranchId } = useViewingBranch();
+  const branchQuery = useQuery({ queryKey: ['active-branches'], queryFn: branches.list, enabled: isSuperAdmin });
+  const selectedBranchId = isSuperAdmin ? viewingBranchId ?? undefined : user.branchId ?? undefined;
   const activeLabel = navItems.find(item => location.pathname.startsWith(item.path));
   const unread = useQuery({ queryKey: ['desktop-notification-count'], queryFn: notifications.unreadCount, refetchInterval: 30_000 });
+  const restrictedPages = {
+    receive: gatedRoute(user, lang, '/receive', <ReceivePurchase lang={lang} />),
+    installments: gatedRoute(user, lang, '/installments', <Installments lang={lang} />),
+    reports: gatedRoute(user, lang, '/reports', <Reports lang={lang} />),
+    suppliers: gatedRoute(user, lang, '/suppliers', <Suppliers lang={lang} />),
+  };
   return <div className={`desktop-shell ${collapsed ? 'sidebar-collapsed' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
     <aside className="desktop-sidebar">
       <div className="brand-lockup"><button className="brand-emblem" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? (isRtl ? 'فتح القائمة' : 'Open dashboard menu') : (isRtl ? 'إغلاق القائمة' : 'Close dashboard menu')} title={collapsed ? (isRtl ? 'فتح القائمة' : 'Open menu') : (isRtl ? 'إغلاق القائمة' : 'Close menu')}><Bike size={20} /></button>{!collapsed && <div><strong>Moto<span>System</span></strong><small>{isRtl ? 'نظام الوكالة' : 'Dealership POS'}</small></div>}</div>
-      <nav className="desktop-nav">{navItems.map(({ path, icon: Icon, en, ar }) => <NavLink key={path} to={path} className={({ isActive }) => `desktop-nav-link ${isActive ? 'active' : ''}`} title={collapsed ? (isRtl ? ar : en) : undefined}><Icon size={18} /><span>{isRtl ? ar : en}</span></NavLink>)}</nav>
-        <div className="sidebar-footer"><button className="desktop-nav-link logout-link" onClick={onLogout}><LogOut size={18} /><span>{isRtl ? 'تسجيل الخروج' : 'Sign out'}</span></button></div>
+      <nav className="desktop-nav">{navItems.filter(({ path, adminOnly }) => (!adminOnly || isSuperAdmin) && canAccessPath(user, path)).map(({ path, icon: Icon, en, ar }) => <NavLink key={path} to={path} className={({ isActive }) => `desktop-nav-link ${isActive ? 'active' : ''}`} title={collapsed ? (isRtl ? ar : en) : undefined}><Icon size={18} /><span>{isRtl ? ar : en}</span></NavLink>)}</nav>
+      <div className="sidebar-footer"><button className="desktop-nav-link logout-link" onClick={onLogout}><LogOut size={18} /><span>{isRtl ? 'تسجيل الخروج' : 'Sign out'}</span></button></div>
     </aside>
-    <div className="desktop-main"><header className="desktop-topbar"><button className="icon-button" onClick={() => setCollapsed(!collapsed)} title={isRtl ? 'القائمة' : 'Menu'}>{collapsed ? <Menu size={19} /> : <X size={19} />}</button><div className="topbar-context"><strong>{isRtl ? activeLabel?.ar : activeLabel?.en}</strong><span>{new Date().toLocaleDateString(isRtl ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div><div className="topbar-actions"><NavLink className="notification-button" to="/notifications" title={isRtl ? 'الإشعارات' : 'Notifications'}><Bell size={18} />{(unread.data?.count || 0) > 0 && <b>{unread.data?.count}</b>}</NavLink><span className="connection-dot"><i />{isRtl ? 'متصل' : 'Connected'}</span><button className="language-button" onClick={() => setLang(isRtl ? 'en' : 'ar')}>{isRtl ? 'English' : 'العربية'}</button></div></header><main className="desktop-content"><Routes><Route path="/" element={<Dashboard lang={lang} />} /><Route path="/dashboard" element={<Dashboard lang={lang} />} /><Route path="/pos" element={<POSMain lang={lang} onBack={() => undefined} />} /><Route path="/orders" element={<OrdersPOS lang={lang} />} /><Route path="/orders/new" element={<CreateOrder lang={lang} />} /><Route path="/orders/:id" element={<OrderDetailPOS lang={lang} />} /><Route path="/reservations" element={<ReservationsPOS lang={lang} />} /><Route path="/reservations/new" element={<CreateReservation lang={lang} />} /><Route path="/reservations/:id" element={<ReservationDetailPOS lang={lang} />} /><Route path="/receive" element={<ReceivePurchase lang={lang} />} /><Route path="/inventory" element={<Inventory lang={lang} />} /><Route path="/customers" element={<Customers lang={lang} />} /><Route path="/installments" element={<Installments lang={lang} />} /><Route path="/reports" element={<Reports lang={lang} />} /><Route path="/notifications" element={<Notifications lang={lang} />} /><Route path="/suppliers" element={<Suppliers lang={lang} />} /><Route path="*" element={<Dashboard lang={lang} />} /></Routes></main></div>
+    <div className="desktop-main">
+      <header className="desktop-topbar"><button className="icon-button" onClick={() => setCollapsed(!collapsed)} title={isRtl ? 'القائمة' : 'Menu'}>{collapsed ? <Menu size={19} /> : <X size={19} />}</button><div className="topbar-context"><strong>{isRtl ? activeLabel?.ar : activeLabel?.en}</strong><span>{new Date().toLocaleDateString(isRtl ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div><div className="topbar-actions">{isSuperAdmin && <label className="branch-switcher"><span>{isRtl ? 'الفرع' : 'Branch'}</span><select value={viewingBranchId ?? ''} onChange={(event) => setViewingBranchId(event.target.value || null)}><option value="">{isRtl ? 'كل الفروع' : 'All branches'}</option>{branchQuery.data?.items.map((branch) => <option key={branch.id} value={branch.id}>{isRtl ? branch.nameAr : branch.nameEn}</option>)}</select></label>}<NavLink className="notification-button" to="/notifications" title={isRtl ? 'الإشعارات' : 'Notifications'}><Bell size={18} />{(unread.data?.count || 0) > 0 && <b>{unread.data?.count}</b>}</NavLink><span className="connection-dot"><i />{isRtl ? 'متصل' : 'Connected'}</span><button className="language-button" onClick={() => setLang(isRtl ? 'en' : 'ar')}>{isRtl ? 'English' : 'العربية'}</button></div></header>
+      <main className="desktop-content"><Routes>
+        <Route path="/" element={<Dashboard lang={lang} />} />
+        <Route path="/dashboard" element={<Dashboard lang={lang} />} />
+        <Route path="/pos" element={<POSMain lang={lang} onBack={() => undefined} />} />
+        <Route path="/orders" element={<OrdersPOS lang={lang} />} />
+        <Route path="/orders/new" element={<CreateOrder lang={lang} />} />
+        <Route path="/orders/:id" element={<OrderDetailPOS lang={lang} />} />
+        <Route path="/reservations" element={<ReservationsPOS lang={lang} />} />
+        <Route path="/reservations/new" element={<CreateReservation lang={lang} />} />
+        <Route path="/reservations/:id" element={<ReservationDetailPOS lang={lang} />} />
+        <Route path="/active-reservations" element={<ActiveReservations lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/offline-sync" element={<OfflineSync lang={lang} />} />
+        <Route path="/history" element={<TransactionHistory lang={lang} />} />
+        <Route path="/receive" element={restrictedPages.receive} />
+        <Route path="/inventory" element={<Inventory lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/customers" element={<Customers lang={lang} />} />
+        <Route path="/installments" element={restrictedPages.installments} />
+        <Route path="/reports" element={isSuperAdmin ? <Reports lang={lang} branchId={viewingBranchId ?? undefined} /> : restrictedPages.reports} />
+        <Route path="/notifications" element={<Notifications lang={lang} />} />
+        <Route path="/suppliers" element={restrictedPages.suppliers} />
+        {isSuperAdmin && <Route path="/accounts" element={<AccountManagement lang={lang} />} />}
+        <Route path="*" element={<Dashboard lang={lang} />} />
+      </Routes></main>
+    </div>
   </div>;
 }
 
 export default function App() {
-  const [authed, setAuthed] = useState(!!getToken());
+  const [user, setUserState] = useState<DesktopUser | null>(() => getUser());
+  const [authed, setAuthed] = useState(!!getToken() && !!getUser());
   const [lang, setLangState] = useState<Lang>(() => (localStorage.getItem('pos_language') as Lang) || 'ar');
   const setLang = (next: Lang) => { setLangState(next); localStorage.setItem('pos_language', next); };
 
   useEffect(() => {
-    const handleExpired = () => setAuthed(false);
+    const handleExpired = () => { clearUser(); setUserState(null); setAuthed(false); };
     window.addEventListener('pos-auth-expired', handleExpired);
     return () => window.removeEventListener('pos-auth-expired', handleExpired);
+  }, []);
+
+  useEffect(() => {
+    if (!getToken()) return;
+    auth.me().then((currentUser) => { setUser(currentUser); setUserState(currentUser); setAuthed(true); }).catch(() => { clearToken(); clearUser(); setUserState(null); setAuthed(false); });
   }, []);
 
   if (!authed) {
     return (
       <QueryClientProvider client={qc}>
-        <LoginScreen lang={lang} onLogin={() => setAuthed(true)} />
+        <LoginScreen lang={lang} onLogin={(currentUser) => { setUserState(currentUser); setAuthed(true); }} />
       </QueryClientProvider>
     );
   }
@@ -128,7 +199,7 @@ export default function App() {
   return (
     <QueryClientProvider client={qc}>
       <BrowserRouter>
-        <DesktopShell lang={lang} setLang={setLang} onLogout={async () => { try { await auth.logout(); } finally { clearToken(); setAuthed(false); } }} />
+        {user && <ViewingBranchProvider user={user}><DesktopShell lang={lang} setLang={setLang} user={user} onLogout={async () => { try { await auth.logout(); } finally { sessionStorage.removeItem(`pos_viewing_branch_${user.id}`); clearToken(); clearUser(); setUserState(null); setAuthed(false); } }} /></ViewingBranchProvider>}
       </BrowserRouter>
     </QueryClientProvider>
   );

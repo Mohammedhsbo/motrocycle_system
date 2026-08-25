@@ -1,34 +1,21 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { pos } from '../api';
-
-export interface TransactionData {
-  type: 'order' | 'reservation';
-  customerId: string;
-  motorcycleId: string;
-  discount?: {
-    amount: number;
-    reason: string;
-  };
-  reservationData?: {
-    depositAmount: number;
-    expirationDays: number;
-  };
-}
+import type { CreatePOSTransactionDto, ValidatePOSTransactionDto } from '../../../../packages/shared-types/src/pos';
 
 export function useTransaction() {
   const [idempotencyKey, setIdempotencyKey] = useState<string>('');
 
   const validateMutation = useMutation({
-    mutationFn: (data: TransactionData) => pos.validateTransaction(data),
+    mutationFn: (data: ValidatePOSTransactionDto) => pos.validateTransaction(data),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: TransactionData & { idempotencyKey: string }) =>
+    mutationFn: (data: CreatePOSTransactionDto) =>
       pos.createTransaction(data),
   });
 
-  const validate = async (data: TransactionData) => {
+  const validate = async (data: ValidatePOSTransactionDto) => {
     try {
       await validateMutation.mutateAsync(data);
       return { valid: true, error: null };
@@ -37,7 +24,7 @@ export function useTransaction() {
     }
   };
 
-  const create = async (data: TransactionData) => {
+  const create = async (data: Omit<CreatePOSTransactionDto, 'idempotencyKey'>) => {
     // Generate idempotency key if not exists
     const key = idempotencyKey || `pos-${Date.now()}-${data.customerId}-${data.motorcycleId}`;
     setIdempotencyKey(key);

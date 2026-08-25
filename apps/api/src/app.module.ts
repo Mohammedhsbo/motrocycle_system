@@ -8,6 +8,7 @@ import { RequestLoggerMiddleware } from "./common/middleware/request-logger.midd
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { TokenStoreModule } from "./token-store/token-store.module.js";
 import { UsersModule } from "./users/users.module.js";
+import { RolesModule } from "./roles/roles.module.js";
 
 import { UploadModule } from "./upload/upload.module.js";
 import { MotorcyclesModule } from "./motorcycles/motorcycles.module.js";
@@ -45,6 +46,7 @@ import { HealthModule } from "./health/health.module.js";
     AuditModule,
     AuthModule,
     UsersModule,
+    RolesModule,
     BrandsModule,
     CategoriesModule,
     UploadModule,

@@ -221,6 +221,7 @@ export class ReservationsController {
    * POST /api/v1/reservations/expire
    */
   @Post('expire')
+  @RequirePermission(Resource.SCHEDULER, Action.UPDATE)
   async processExpired(@Body() body: { limit?: number }) {
     const limit = body.limit ?? 100;
 

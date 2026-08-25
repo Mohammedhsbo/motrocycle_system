@@ -22,7 +22,7 @@ export interface POSDashboardData {
       id: string;
       nameAr: string;
       nameEn: string;
-    };
+    } | null;
     permissions: {
       canApplyDiscount: boolean;
       maxDiscountPercent: number;

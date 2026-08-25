@@ -6,11 +6,11 @@ import { reports, type ReportPreset } from '../api';
 type Lang = 'en' | 'ar';
 type ReportTab = 'executive' | 'sales' | 'inventory' | 'installments';
 
-export default function Reports({ lang }: { lang: Lang }) {
+export default function Reports({ lang, branchId }: { lang: Lang; branchId?: string }) {
   const isRtl = lang === 'ar';
   const [tab, setTab] = useState<ReportTab>('executive');
   const [preset, setPreset] = useState<ReportPreset>('this_month');
-  const query = useQuery({ queryKey: ['desktop-report', tab, preset], queryFn: () => tab === 'executive' ? reports.executive({ preset }) : tab === 'sales' ? reports.sales({ preset }) : tab === 'inventory' ? reports.inventory({ preset }) : reports.installments({ preset }) });
+  const query = useQuery({ queryKey: ['desktop-report', tab, preset, branchId], queryFn: () => tab === 'executive' ? reports.executive({ preset, branches: branchId }) : tab === 'sales' ? reports.sales({ preset, branches: branchId }) : tab === 'inventory' ? reports.inventory({ preset, branches: branchId }) : reports.installments({ preset, branches: branchId }) });
   const data: any = query.data;
   const money = (value: number) => `${Number(value || 0).toLocaleString(isRtl ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 0 })} ${isRtl ? 'ج.م' : 'EGP'}`;
   const tabs: Array<[ReportTab, string, string]> = [['executive', 'Executive', 'تنفيذي'], ['sales', 'Sales', 'المبيعات'], ['inventory', 'Inventory', 'المخزون'], ['installments', 'Installments', 'الأقساط']];

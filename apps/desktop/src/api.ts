@@ -3,9 +3,65 @@ function normalizeApiBase(url: string) {
   return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
 }
 
+import type {
+  CreatePOSTransactionDto,
+  CreatePOSTransactionResponse,
+  POSCustomerSearchQuery,
+  POSMotorcycleSearchQuery,
+  POSActiveReservationsQuery,
+  ValidatePOSTransactionDto,
+  ValidatePOSTransactionResponse,
+  QueueOfflineOperationDto,
+} from '../../../packages/shared-types/src/pos';
+
 const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1');
 
 let authToken: string | null = localStorage.getItem('pos_token');
+
+export interface DesktopUser {
+  id: string;
+  name: string;
+  email: string;
+  role: {
+    id: string;
+    name: string;
+    permissions: Array<{ resource: string; action: string }>;
+  };
+  branchId?: string | null;
+  branch?: { id: string; nameAr: string; nameEn: string } | null;
+  lang: 'ar' | 'en';
+}
+
+export interface BranchSummary {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  isActive?: boolean;
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+  description?: string | null;
+  isSystem: boolean;
+}
+
+export interface UserListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: { id: string; name: string };
+  branch?: BranchSummary | null;
+  isActive: boolean;
+}
+
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  roleId: string;
+  branchId?: string;
+}
 
 export function setToken(token: string) {
   authToken = token;
@@ -14,6 +70,13 @@ export function setToken(token: string) {
 
 export function getToken() { return authToken; }
 export function clearToken() { authToken = null; localStorage.removeItem('pos_token'); }
+export function setUser(user: DesktopUser) { localStorage.setItem('pos_user', JSON.stringify(user)); }
+export function getUser(): DesktopUser | null {
+  const stored = localStorage.getItem('pos_user');
+  if (!stored) return null;
+  try { return JSON.parse(stored) as DesktopUser; } catch { return null; }
+}
+export function clearUser() { localStorage.removeItem('pos_user'); }
 
 async function refreshAccessToken() {
   const response = await fetch(`${API_BASE}/auth/refresh`, {
@@ -28,13 +91,14 @@ async function refreshAccessToken() {
 }
 
 async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh = true): Promise<T> {
+  const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(options.headers as Record<string, string> ?? {}),
   };
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
-  const json = await res.json();
+  const json = await res.json() as Record<string, any>;
   if (res.status === 401 && canRefresh && path !== '/auth/login' && path !== '/auth/refresh') {
     try {
       await refreshAccessToken();
@@ -45,22 +109,44 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh =
     }
   }
   if (!res.ok) {
-    const err = new Error(json.message ?? 'Request failed') as Error & { code?: string; status?: number };
-    err.code = json.code;
+    const errorBody = json.error && typeof json.error === 'object' ? json.error : json;
+    const err = new Error(errorBody.message ?? 'Request failed') as Error & { code?: string; status?: number; details?: unknown };
+    err.code = errorBody.code;
     err.status = res.status;
+    err.details = errorBody.details;
     throw err;
   }
-  return json.success === true ? json.data : (json.data ?? json);
+  if (Array.isArray(json.data) && json.meta) {
+    return { items: json.data, ...json.meta } as T;
+  }
+  if (Array.isArray(json.items) && json.meta) {
+    return { items: json.items, ...json.meta } as T;
+  }
+  return (Object.prototype.hasOwnProperty.call(json, 'data') ? json.data : json) as T;
 }
 
 // ─── Auth ────────────────────────────────────────────────
 export const auth = {
   login: (email: string, password: string) =>
-    apiFetch<{ accessToken: string }>('/auth/login', {
+    apiFetch<{ accessToken: string; user: DesktopUser }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  me: () => apiFetch<DesktopUser>('/auth/me'),
   logout: () => apiFetch<null>('/auth/logout', { method: 'POST' }),
+};
+
+export const branches = {
+  list: () => apiFetch<{ items: BranchSummary[]; total: number }>('/branches?isActive=true&limit=100'),
+};
+
+export const roles = {
+  list: () => apiFetch<RoleSummary[]>('/roles'),
+};
+
+export const users = {
+  list: () => apiFetch<{ items: UserListItem[]; total: number }>('/users?limit=100'),
+  create: (data: CreateUserInput) => apiFetch<UserListItem>('/users', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ─── Types ───────────────────────────────────────────────
@@ -264,13 +350,16 @@ export interface CreateOrderInput {
 }
 
 export const orders = {
-  list: (params?: { customerId?: string; status?: OrderStatus; page?: number; limit?: number }) => {
+  list: (params?: { search?: string; customerId?: string; status?: OrderStatus; startDate?: string; endDate?: string; page?: number; limit?: number }) => {
     const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
     if (params?.customerId) q.set('customerId', params.customerId);
     if (params?.status) q.set('status', params.status);
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
-    return apiFetch<{ items: OrderListItem[]; total: number; page: number; limit: number }>(`/orders?${q}`);
+    return apiFetch<{ items: OrderListItem[]; total: number; page: number; limit: number; totalPages: number }>(`/orders?${q}`);
   },
   get: (id: string) => apiFetch<OrderDetail>(`/orders/${id}`),
   create: (data: CreateOrderInput) =>
@@ -355,9 +444,10 @@ export const reservations = {
   get: (id: string) => apiFetch<ReservationDetail>(`/reservations/${id}`),
   create: (data: CreateReservationInput) =>
     apiFetch<ReservationDetail>('/reservations', { method: 'POST', body: JSON.stringify(data) }),
-  convert: (id: string, notes?: string) =>
+  convert: (id: string, notes?: string, idempotencyKey?: string) =>
     apiFetch<{ reservation: ReservationDetail; order: { id: string; orderNumber: string } }>(`/reservations/${id}/convert`, {
       method: 'POST',
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
       body: JSON.stringify({ notes }),
     }),
   cancel: (id: string, reason: string) =>
@@ -458,7 +548,7 @@ export interface POSDashboard {
       id: string;
       nameAr: string;
       nameEn: string;
-    };
+    } | null;
     permissions: {
       canApplyDiscount: boolean;
       maxDiscountPercent: number;
@@ -535,14 +625,14 @@ export const pos = {
     return apiFetch<MotorcycleSearchResult[]>(`/pos/motorcycles/search?${params}`);
   },
   
-  validateTransaction: (data: any) =>
-    apiFetch('/pos/validate-transaction', {
+  validateTransaction: (data: ValidatePOSTransactionDto) =>
+    apiFetch<ValidatePOSTransactionResponse>('/pos/validate-transaction', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   
-  createTransaction: (data: any) =>
-    apiFetch('/pos/transactions', {
+  createTransaction: (data: CreatePOSTransactionDto) =>
+    apiFetch<CreatePOSTransactionResponse>('/pos/transactions', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -553,20 +643,28 @@ export const pos = {
     if (customerId) params.append('customerId', customerId);
     return apiFetch<POSReservation[]>(`/pos/reservations/active?${params}`);
   },
-  
-  convertReservation: (id: string, notes?: string) =>
-    apiFetch(`/pos/reservations/${id}/convert`, {
+  listActiveReservations: (params?: { branchId?: string; customerId?: string; expiringInDays?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.branchId) query.set('branchId', params.branchId);
+    if (params?.customerId) query.set('customerId', params.customerId);
+    if (params?.expiringInDays !== undefined) query.set('expiringInDays', String(params.expiringInDays));
+    return apiFetch<POSReservation[]>(`/pos/reservations/active?${query}`);
+  },
+  convertReservation: (id: string, notes?: string, idempotencyKey?: string) =>
+    apiFetch<{ reservation: ReservationDetail; order: { id: string; orderNumber: string } }>(`/pos/reservations/${id}/convert`, {
       method: 'POST',
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
       body: JSON.stringify({ notes }),
     }),
   
   getSyncStatus: () => apiFetch<POSSyncStatus>('/pos/offline/sync-status'),
   
-  queueOperation: (data: any) =>
+  queueOperation: (data: QueueOfflineOperationDto) =>
     apiFetch('/pos/offline/queue', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  getQueuedOperations: () => apiFetch<Array<{ id: string; type: string; data: unknown; status: string; createdAt: string; expiresAt: string }>>('/pos/offline/queue'),
 };
 
 // ─── Financing & Installments ────────────────────────────
@@ -614,7 +712,7 @@ export const financing = {
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.status) q.set('status', params.status);
     if (params?.customerId) q.set('customerId', params.customerId);
-    return apiFetch<{ data: FinancingContractRecord[]; total: number; page: number; limit: number }>(`/financing-contracts?${q}`);
+    return apiFetch<{ items: FinancingContractRecord[]; total: number; page: number; limit: number; totalPages: number }>(`/financing-contracts?${q}`);
   },
   get: (id: string) => apiFetch<FinancingContractRecord>(`/financing-contracts/${id}`),
   approve: (id: string, notes?: string) => apiFetch<FinancingContractRecord>(`/financing-contracts/${id}/approve`, { method: 'PATCH', body: JSON.stringify({ notes }) }),
@@ -670,7 +768,7 @@ export const notifications = {
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.unreadOnly) q.set('unreadOnly', 'true');
-    return apiFetch<{ data: NotificationRecord[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(`/notifications?${q}`);
+    return apiFetch<{ items: NotificationRecord[]; page: number; limit: number; total: number; totalPages: number }>(`/notifications?${q}`);
   },
   unreadCount: () => apiFetch<{ count: number }>('/notifications/unread-count'),
   markRead: (id: string) => apiFetch<NotificationRecord>(`/notifications/${id}/read`, { method: 'PATCH' }),

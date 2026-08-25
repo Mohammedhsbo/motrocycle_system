@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { pos } from '../api';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
+import { useViewingBranch } from '../contexts/ViewingBranchContext';
 
 interface MotorcycleSearchPOSProps {
   lang: 'en' | 'ar';
@@ -20,10 +21,12 @@ export default function MotorcycleSearchPOS({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isRtl = lang === 'ar';
+  const { viewingBranchId, isSuperAdmin } = useViewingBranch();
+  const branchId = isSuperAdmin ? viewingBranchId ?? undefined : undefined;
 
-  const { data: motorcycles, isLoading } = useQuery({
-    queryKey: ['pos-motorcycles', query],
-    queryFn: () => pos.searchMotorcycles(query),
+  const { data: motorcycles, isLoading, isError, refetch } = useQuery({
+    queryKey: ['pos-motorcycles', query, branchId],
+    queryFn: () => pos.searchMotorcycles(query, branchId),
     enabled: query.length >= 2 || query.length === 0,
   });
 
@@ -100,8 +103,15 @@ export default function MotorcycleSearchPOS({
         </div>
       )}
 
+      {isError && (
+        <div className="state-panel" role="alert">
+          <p>{isRtl ? 'تعذر تحميل المخزون.' : 'Could not load motorcycles.'}</p>
+          <button className="secondary-action" onClick={() => refetch()}>{isRtl ? 'إعادة المحاولة' : 'Retry'}</button>
+        </div>
+      )}
+
       {/* Results */}
-      {!isLoading && results.length > 0 && (
+      {!isLoading && !isError && results.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {results.map((moto: any, index: number) => (
             <button
@@ -178,14 +188,14 @@ export default function MotorcycleSearchPOS({
       )}
 
       {/* No Results */}
-      {!isLoading && query.length >= 2 && results.length === 0 && (
+      {!isLoading && !isError && query.length >= 2 && results.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           {isRtl ? 'لا توجد نتائج' : 'No results found'}
         </div>
       )}
 
       {/* Initial State */}
-      {!isLoading && query.length < 2 && results.length === 0 && (
+      {!isLoading && !isError && query.length < 2 && results.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           {isRtl
             ? 'ابدأ بكتابة حرفين على الأقل للبحث'

@@ -1515,28 +1515,13 @@ export const letters = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
-  issue: (id: string, notes?: string) =>
-    apiFetch<LetterDetail>(`/letters/${id}/issue`, {
-      method: 'POST',
-      body: JSON.stringify({ notes }),
-    }),
-  send: (id: string, notes?: string) =>
-    apiFetch<LetterDetail>(`/letters/${id}/send`, {
-      method: 'POST',
-      body: JSON.stringify({ notes }),
-    }),
-  confirmReceipt: (id: string, receivedBy?: string, notes?: string) =>
+  confirmReceipt: (id: string, notes?: string) =>
     apiFetch<LetterDetail>(`/letters/${id}/confirm-receipt`, {
       method: 'POST',
-      body: JSON.stringify({ receivedBy, notes }),
+      body: JSON.stringify({ notes }),
     }),
   markNotReceived: (id: string, reason: string) =>
-    apiFetch<LetterDetail>(`/letters/${id}/not-received`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    }),
-  cancel: (id: string, reason: string) =>
-    apiFetch<LetterDetail>(`/letters/${id}/cancel`, {
+    apiFetch<LetterDetail>(`/letters/${id}/record-non-receipt`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
@@ -1554,9 +1539,9 @@ export const letters = {
     }));
   },
   generateDocument: (id: string, language: 'en' | 'ar') =>
-    apiFetch<{ url: string }>(`/letters/${id}/documents/generate`, {
+    apiFetch<{ id: string; url?: string }>(`/letters/${id}/documents`, {
       method: 'POST',
-      body: JSON.stringify({ language }),
+      body: JSON.stringify({ documentType: language === 'ar' ? 'receipt' : 'delivery' }),
     }),
 };
 

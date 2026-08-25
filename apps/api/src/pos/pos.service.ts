@@ -62,17 +62,19 @@ export class POSService {
     const branchId = user.branchId;
     const isSuperAdmin = user.roleName === 'super_admin';
 
-    // Get user's branch info
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: branchId! },
-      select: {
-        id: true,
-        nameAr: true,
-        nameEn: true,
-      },
-    });
+    // Super-admins have no assigned branch and see aggregate dashboard data.
+    const branch = branchId
+      ? await this.prisma.branch.findUnique({
+          where: { id: branchId },
+          select: {
+            id: true,
+            nameAr: true,
+            nameEn: true,
+          },
+        })
+      : null;
 
-    if (!branch) {
+    if (!branch && !isSuperAdmin) {
       throw new Error('Branch not found');
     }
 
@@ -215,11 +217,13 @@ export class POSService {
         id: user.id,
         name: user.name,
         role: user.roleName,
-        branch: {
-          id: branch.id,
-          nameAr: branch.nameAr,
-          nameEn: branch.nameEn,
-        },
+        branch: branch
+          ? {
+              id: branch.id,
+              nameAr: branch.nameAr,
+              nameEn: branch.nameEn,
+            }
+          : null,
         permissions: {
           canApplyDiscount: true, // All authenticated users can attempt, validated server-side
           maxDiscountPercent: discountLimits.maxPercent,

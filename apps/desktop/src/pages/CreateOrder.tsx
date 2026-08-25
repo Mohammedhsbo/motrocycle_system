@@ -11,6 +11,7 @@ import {
   type CustomerSearchResult,
   type MotorcycleSearchResult,
 } from '../api';
+import { useViewingBranch } from '../contexts/ViewingBranchContext';
 
 type Lang = 'en' | 'ar';
 
@@ -80,6 +81,8 @@ export default function CreateOrder({ lang }: Props) {
   const isRtl = lang === 'ar';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { viewingBranchId, isSuperAdmin } = useViewingBranch();
+  const branchId = isSuperAdmin ? viewingBranchId ?? undefined : undefined;
 
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
@@ -93,10 +96,11 @@ export default function CreateOrder({ lang }: Props) {
 
   // Search available motorcycles
   const { data: motorcyclesData, isLoading: motorcyclesLoading } = useQuery({
-    queryKey: ['motorcycles', motorcycleSearch],
+    queryKey: ['motorcycles', motorcycleSearch, branchId],
     queryFn: () =>
       motorcycles.search({
         search: motorcycleSearch,
+        branchId,
         status: 'available',
         limit: 50,
       }),

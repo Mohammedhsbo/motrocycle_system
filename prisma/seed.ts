@@ -20,6 +20,9 @@ const resources = [
   "report",
   "setting",
   "web_content",
+  "notification",
+  "pos",
+  "scheduler",
 ] as const;
 
 const actions = ["create", "read", "update", "delete", "export", "confirm"] as const;
@@ -53,6 +56,7 @@ async function upsertRole(
     create: { name, description, isSystem },
   });
 
+  await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
   await prisma.rolePermission.createMany({
     data: permissions.map((permission) => ({
       roleId: role.id,
@@ -162,6 +166,38 @@ export async function seedDatabase() {
     "Sales staff with access to customer operations and sales",
     true,
     salesStaffPermissions,
+  );
+
+  const posCashierPermissions = [
+    { resource: "pos", action: "create" },
+    { resource: "order", action: "read" },
+    { resource: "order", action: "create" },
+    { resource: "customer", action: "read" },
+    { resource: "customer", action: "create" },
+    { resource: "motorcycle", action: "read" },
+    { resource: "reservation", action: "read" },
+    { resource: "reservation", action: "update" },
+  ] as const;
+
+  await upsertRole(
+    "pos_cashier",
+    "Least-privilege POS cashier access for one assigned branch",
+    true,
+    posCashierPermissions,
+  );
+
+  const posSalesPermissions = [
+    ...posCashierPermissions,
+    { resource: "reservation", action: "create" },
+    { resource: "reservation", action: "delete" },
+    { resource: "payment", action: "read" },
+  ] as const;
+
+  await upsertRole(
+    "pos_sales",
+    "POS sales access with reservation management and payment lookup",
+    true,
+    posSalesPermissions,
   );
 
   // Create admin user

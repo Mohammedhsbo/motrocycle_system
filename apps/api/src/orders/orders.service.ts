@@ -186,6 +186,13 @@ export class OrdersService {
 
               const moto = motorcycle[0];
 
+              if (moto.branchId !== branchId) {
+                throw new ConflictException({
+                  code: 'MOTORCYCLE_WRONG_BRANCH',
+                  message: `Motorcycle ${moto.vin} is not in the order's branch`,
+                });
+              }
+
               // Validate motorcycle is available (unless skipped, e.g. for reservation conversion)
               if (!opts?.skipMotorcycleStatusCheck && moto.status !== 'available') {
                 throw new ConflictException({
@@ -227,6 +234,13 @@ export class OrdersService {
                 throw new NotFoundException({
                   code: 'MOTORCYCLE_NOT_FOUND',
                   message: `Motorcycle ${motorcycleId} not found`,
+                });
+              }
+
+              if (moto.branchId !== branchId) {
+                throw new ConflictException({
+                  code: 'MOTORCYCLE_WRONG_BRANCH',
+                  message: `Motorcycle ${moto.vin} is not in the order's branch`,
                 });
               }
 

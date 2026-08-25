@@ -21,6 +21,9 @@ export enum Resource {
   INVOICES = "invoices",
   PAYMENTS = "payments",
   CONFIGURATION = "configuration",
+  NOTIFICATION = "notification",
+  POS = "pos",
+  SCHEDULER = "scheduler",
 }
 
 export enum Action {

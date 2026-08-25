@@ -17,7 +17,7 @@ export default function CustomerSearchPOS({ lang, onSelect, onCreateNew, onClose
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isRtl = lang === 'ar';
 
-  const { data: customers, isLoading } = useQuery({
+  const { data: customers, isLoading, isError, refetch } = useQuery({
     queryKey: ['pos-customers', query],
     queryFn: () => pos.searchCustomers(query),
     enabled: query.length >= 2,
@@ -97,8 +97,15 @@ export default function CustomerSearchPOS({ lang, onSelect, onCreateNew, onClose
         </div>
       )}
 
+      {isError && (
+        <div className="state-panel" role="alert">
+          <p>{isRtl ? 'تعذر تحميل العملاء.' : 'Could not load customers.'}</p>
+          <button className="secondary-action" onClick={() => refetch()}>{isRtl ? 'إعادة المحاولة' : 'Retry'}</button>
+        </div>
+      )}
+
       {/* Results */}
-      {!isLoading && results.length > 0 && (
+      {!isLoading && !isError && results.length > 0 && (
         <div className="space-y-3">
           {results.map((customer: any, index: number) => (
             <button
@@ -117,7 +124,7 @@ export default function CustomerSearchPOS({ lang, onSelect, onCreateNew, onClose
       )}
 
       {/* No Results */}
-      {!isLoading && query.length >= 2 && results.length === 0 && (
+      {!isLoading && !isError && query.length >= 2 && results.length === 0 && (
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">
             {isRtl ? 'لا توجد نتائج' : 'No results found'}
@@ -132,7 +139,7 @@ export default function CustomerSearchPOS({ lang, onSelect, onCreateNew, onClose
       )}
 
       {/* Initial State */}
-      {!isLoading && query.length < 2 && (
+      {!isLoading && !isError && query.length < 2 && (
         <div className="text-center py-8 text-gray-500">
           {isRtl
             ? 'ابدأ بكتابة حرفين على الأقل للبحث'

@@ -25,6 +25,7 @@ describe('POS Offline Tests', () => {
 
     const role = await createRole('cashier', [
       { resource: 'order', action: 'read' },
+      { resource: 'pos', action: 'create' },
       { resource: 'customer', action: 'create' },
       { resource: 'customer', action: 'read' },
     ]);

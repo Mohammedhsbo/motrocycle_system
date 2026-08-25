@@ -3,6 +3,8 @@ import POSLayout from '../components/POSLayout';
 import CustomerSearchPOS from '../components/CustomerSearchPOS';
 import MotorcycleSearchPOS from '../components/MotorcycleSearchPOS';
 import TransactionReview from '../components/TransactionReview';
+import CustomerFormPOS from '../components/CustomerFormPOS';
+import type { CustomerDetail, CustomerSearchResult } from '../api';
 
 type POSStep = 'customer' | 'motorcycle' | 'review';
 
@@ -15,6 +17,7 @@ export default function POSMain({ lang, onBack }: POSMainProps) {
   const [step, setStep] = useState<POSStep>('customer');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedMotorcycle, setSelectedMotorcycle] = useState<any>(null);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
 
   const isRtl = lang === 'ar';
 
@@ -54,6 +57,7 @@ export default function POSMain({ lang, onBack }: POSMainProps) {
         <CustomerSearchPOS
           lang={lang}
           onSelect={handleCustomerSelect}
+          onCreateNew={() => setShowCustomerForm(true)}
         />
       )}
 
@@ -63,6 +67,25 @@ export default function POSMain({ lang, onBack }: POSMainProps) {
           customer={selectedCustomer}
           onSelect={handleMotorcycleSelect}
           onBack={() => setStep('customer')}
+        />
+      )}
+      {showCustomerForm && (
+        <CustomerFormPOS
+          lang={lang}
+          onClose={() => setShowCustomerForm(false)}
+          onSuccess={(customer: CustomerDetail) => {
+            const selected: CustomerSearchResult = {
+              id: customer.id,
+              name: customer.name,
+              phone: customer.phone,
+              email: customer.email ?? undefined,
+              nationalId: customer.nationalId ?? undefined,
+              defaultAddress: null,
+            };
+            setSelectedCustomer(selected);
+            setShowCustomerForm(false);
+            setStep('motorcycle');
+          }}
         />
       )}
 

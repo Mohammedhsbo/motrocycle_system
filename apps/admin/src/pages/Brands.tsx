@@ -44,7 +44,7 @@ export default function Brands({ lang }: Props) {
   function openEdit(brand: BrandResponse) { setSelected(brand); setForm({ nameAr: brand.nameAr, nameEn: brand.nameEn, logo: brand.logo ?? '', sortOrder: brand.sortOrder, isActive: brand.isActive }); setFormError(null); setModalMode('edit'); }
   function openDelete(brand: BrandResponse) { setSelected(brand); setFormError(null); setModalMode('delete'); }
   function closeModal() { setModalMode(null); setSelected(null); setFormError(null); }
-  function submit(event: FormEvent) { event.preventDefault(); setFormError(null); if (!form.nameAr.trim() || !form.nameEn.trim()) { setFormError(isRtl ? 'الاسمان مطلوبان.' : 'Both names are required.'); return; } if (modalMode === 'create') createMut.mutate({ ...form, logo: form.logo || undefined }); else if (modalMode === 'edit' && selected) updateMut.mutate({ id: selected.id, data: { ...form, logo: form.logo || undefined } }); }
+  function submit(event: FormEvent) { event.preventDefault(); setFormError(null); if (!form.nameAr.trim() || !form.nameEn.trim()) { setFormError(isRtl ? 'الاسمان مطلوبان.' : 'Both names are required.'); return; } if (modalMode === 'create') createMut.mutate({ nameAr: form.nameAr, nameEn: form.nameEn, logo: form.logo || undefined, sortOrder: form.sortOrder }); else if (modalMode === 'edit' && selected) updateMut.mutate({ id: selected.id, data: { ...form, logo: form.logo || undefined } }); }
 
   const rows = (query.data ?? []).filter(brand => `${brand.nameAr} ${brand.nameEn}`.toLowerCase().includes(search.toLowerCase()));
   const isBusy = createMut.isPending || updateMut.isPending || deleteMut.isPending;

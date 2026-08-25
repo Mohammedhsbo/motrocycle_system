@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { pos } from '../api';
+import type { ReservationDetail } from '../api';
 
 interface ReservationConvertProps {
   lang: 'en' | 'ar';
-  reservation: any;
+  reservation: ReservationDetail;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -16,25 +17,24 @@ export default function ReservationConvert({
   onCancel,
 }: ReservationConvertProps) {
   const [notes, setNotes] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [idempotencyKey] = useState(() => `pos-reservation-conversion-${reservation.id}`);
   const isRtl = lang === 'ar';
 
   const convertMutation = useMutation({
-    mutationFn: () => pos.convertReservation(reservation.id, notes),
+    mutationFn: () => pos.convertReservation(reservation.id, notes, idempotencyKey),
     onSuccess: () => {
-      alert(
-        isRtl
-          ? 'تم تحويل الحجز إلى طلب بنجاح!'
-          : 'Reservation converted to order successfully!'
-      );
+      setError(null);
       onSuccess();
     },
     onError: (error: any) => {
-      alert(error.message || 'Conversion failed');
+      setError(error.message || (isRtl ? 'فشل التحويل' : 'Conversion failed'));
     },
   });
 
   return (
     <div className="space-y-6">
+      {error && <div className="state-panel" role="alert">{error}</div>}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-bold text-lg mb-2">
           {isRtl ? 'تحويل حجز إلى طلب' : 'Convert Reservation to Order'}

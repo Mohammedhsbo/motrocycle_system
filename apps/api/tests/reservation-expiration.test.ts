@@ -32,6 +32,7 @@ describe("Reservations Expiration Tests", () => {
     const staffRole = await createRole("reservation_staff_exp", [
       { resource: "reservation", action: "create" },
       { resource: "reservation", action: "read" },
+      { resource: "scheduler", action: "update" },
     ]);
 
     // Create staff user

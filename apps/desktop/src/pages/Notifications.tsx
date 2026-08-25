@@ -7,7 +7,7 @@ type Lang = 'en' | 'ar';
 export default function Notifications({ lang }: { lang: Lang }) {
   const isRtl = lang === 'ar';
   const qc = useQueryClient();
-  const list = useQuery({ queryKey: ['desktop-notifications'], queryFn: async () => { const result = await notifications.list({ page: 1, limit: 50 }); return Array.isArray(result) ? result : result.data || []; }, refetchInterval: 30_000 });
+  const list = useQuery({ queryKey: ['desktop-notifications'], queryFn: async () => (await notifications.list({ page: 1, limit: 50 })).items, refetchInterval: 30_000 });
   const mark = useMutation({ mutationFn: (id: string) => notifications.markRead(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['desktop-notifications'] }) });
   const markAll = useMutation({ mutationFn: notifications.markAllRead, onSuccess: () => qc.invalidateQueries({ queryKey: ['desktop-notifications'] }) });
   const items = list.data || [];

@@ -10,8 +10,6 @@ import {
   Download,
   CheckCircle,
   XCircle,
-  Send,
-  Ban,
 } from 'lucide-react';
 import { letters, type LetterStatus, type LetterDocument, type LetterHistoryEntry } from '../api';
 import Modal from '../components/Modal';
@@ -44,11 +42,8 @@ const t = {
     documents: 'Documents',
     history: 'History',
     actions: 'Actions',
-    issue: 'Issue Letter',
-    send: 'Mark as Sent',
     confirmReceipt: 'Confirm Receipt',
     markNotReceived: 'Mark Not Received',
-    cancel: 'Cancel Letter',
     generateDoc: 'Generate Document',
     downloadDoc: 'Download',
     generateEnglish: 'Generate English',
@@ -58,13 +53,10 @@ const t = {
     viewCustomer: 'View Customer',
     confirmReceiptTitle: 'Confirm Receipt',
     confirmReceiptPrompt: 'Confirm that this letter was received by the customer?',
-    receivedByLabel: 'Received by (optional)',
     notesLabel: 'Notes (optional)',
     markNotReceivedTitle: 'Mark Not Received',
     markNotReceivedPrompt: 'Why was this letter not received?',
     reasonLabel: 'Reason',
-    cancelTitle: 'Cancel Letter',
-    cancelPrompt: 'Are you sure you want to cancel this letter?',
     confirm: 'Confirm',
     close: 'Close',
     success: 'Operation successful',
@@ -117,11 +109,8 @@ const t = {
     documents: 'المستندات',
     history: 'السجل',
     actions: 'الإجراءات',
-    issue: 'إصدار الخطاب',
-    send: 'تعيين كمرسل',
     confirmReceipt: 'تأكيد الاستلام',
     markNotReceived: 'تعيين كغير مستلم',
-    cancel: 'إلغاء الخطاب',
     generateDoc: 'إنشاء مستند',
     downloadDoc: 'تنزيل',
     generateEnglish: 'إنشاء بالإنجليزية',
@@ -131,13 +120,10 @@ const t = {
     viewCustomer: 'عرض العميل',
     confirmReceiptTitle: 'تأكيد الاستلام',
     confirmReceiptPrompt: 'تأكيد أن هذا الخطاب تم استلامه من قبل العميل؟',
-    receivedByLabel: 'استلمه (اختياري)',
     notesLabel: 'ملاحظات (اختياري)',
     markNotReceivedTitle: 'تعيين كغير مستلم',
     markNotReceivedPrompt: 'لماذا لم يتم استلام هذا الخطاب؟',
     reasonLabel: 'السبب',
-    cancelTitle: 'إلغاء الخطاب',
-    cancelPrompt: 'هل أنت متأكد من إلغاء هذا الخطاب؟',
     confirm: 'تأكيد',
     close: 'إغلاق',
     success: 'تمت العملية بنجاح',
@@ -178,8 +164,6 @@ export default function LetterDetail({ lang }: Props) {
 
   const [confirmReceiptModal, setConfirmReceiptModal] = useState(false);
   const [notReceivedModal, setNotReceivedModal] = useState(false);
-  const [cancelModal, setCancelModal] = useState(false);
-  const [receivedBy, setReceivedBy] = useState('');
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -195,31 +179,12 @@ export default function LetterDetail({ lang }: Props) {
     enabled: !!id,
   });
 
-  const issueMutation = useMutation({
-    mutationFn: () => letters.issue(id!, notes),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['letter', id] });
-      queryClient.invalidateQueries({ queryKey: ['letter-history', id] });
-      setNotes('');
-    },
-  });
-
-  const sendMutation = useMutation({
-    mutationFn: () => letters.send(id!, notes),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['letter', id] });
-      queryClient.invalidateQueries({ queryKey: ['letter-history', id] });
-      setNotes('');
-    },
-  });
-
   const confirmReceiptMutation = useMutation({
-    mutationFn: () => letters.confirmReceipt(id!, receivedBy || undefined, notes),
+    mutationFn: () => letters.confirmReceipt(id!, notes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['letter', id] });
       queryClient.invalidateQueries({ queryKey: ['letter-history', id] });
       setConfirmReceiptModal(false);
-      setReceivedBy('');
       setNotes('');
     },
   });
@@ -234,21 +199,11 @@ export default function LetterDetail({ lang }: Props) {
     },
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: () => letters.cancel(id!, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['letter', id] });
-      queryClient.invalidateQueries({ queryKey: ['letter-history', id] });
-      setCancelModal(false);
-      setReason('');
-    },
-  });
-
   const generateDocMutation = useMutation({
     mutationFn: (language: 'en' | 'ar') => letters.generateDocument(id!, language),
-    onSuccess: (data: { url: string }) => {
+    onSuccess: (data: { id: string; url?: string }) => {
       queryClient.invalidateQueries({ queryKey: ['letter', id] });
-      window.open(data.url, '_blank');
+      if (data.url) window.open(data.url, '_blank');
     },
   });
 
@@ -563,29 +518,7 @@ export default function LetterDetail({ lang }: Props) {
               {i18n.actions}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {status === 'draft' && (
-                <button
-                  onClick={() => issueMutation.mutate()}
-                  disabled={issueMutation.isPending}
-                  className="btn btn-primary"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  <CheckCircle size={16} /> {i18n.issue}
-                </button>
-              )}
-
               {status === 'issued' && (
-                <button
-                  onClick={() => sendMutation.mutate()}
-                  disabled={sendMutation.isPending}
-                  className="btn btn-primary"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  <Send size={16} /> {i18n.send}
-                </button>
-              )}
-
-              {status === 'sent' && (
                 <>
                   <button
                     onClick={() => setConfirmReceiptModal(true)}
@@ -604,7 +537,7 @@ export default function LetterDetail({ lang }: Props) {
                 </>
               )}
 
-              {(status === 'issued' || status === 'sent') && (
+              {(status === 'issued' || status === 'not_received') && (
                 <>
                   <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
                   <button
@@ -626,18 +559,6 @@ export default function LetterDetail({ lang }: Props) {
                 </>
               )}
 
-              {status !== 'cancelled' && status !== 'received' && (
-                <>
-                  <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
-                  <button
-                    onClick={() => setCancelModal(true)}
-                    className="btn btn-outline"
-                    style={{ width: '100%', justifyContent: 'center', color: 'var(--error)', borderColor: 'var(--error)' }}
-                  >
-                    <Ban size={16} /> {i18n.cancel}
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -647,23 +568,6 @@ export default function LetterDetail({ lang }: Props) {
       {confirmReceiptModal && (
         <Modal onClose={() => setConfirmReceiptModal(false)} title={i18n.confirmReceiptTitle}>
           <p style={{ marginBottom: '1rem' }}>{i18n.confirmReceiptPrompt}</p>
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-            {i18n.receivedByLabel}
-          </label>
-          <input
-            type="text"
-            value={receivedBy}
-            onChange={(e) => setReceivedBy(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid var(--border)',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-            }}
-          />
-        </div>
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
             {i18n.notesLabel}
@@ -734,43 +638,6 @@ export default function LetterDetail({ lang }: Props) {
       </Modal>
       )}
 
-      {cancelModal && (
-        <Modal onClose={() => setCancelModal(false)} title={i18n.cancelTitle}>
-          <p style={{ marginBottom: '1rem' }}>{i18n.cancelPrompt}</p>
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-            {i18n.reasonLabel}
-          </label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid var(--border)',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-              resize: 'vertical',
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-          <button onClick={() => setCancelModal(false)} className="btn btn-outline">
-            {i18n.close}
-          </button>
-          <button
-            onClick={() => cancelMutation.mutate()}
-            disabled={cancelMutation.isPending || !reason.trim()}
-            className="btn btn-primary"
-            style={{ backgroundColor: 'var(--error)' }}
-          >
-            {i18n.confirm}
-          </button>
-        </div>
-      </Modal>
-      )}
     </div>
   );
 }

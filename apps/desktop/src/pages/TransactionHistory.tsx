@@ -1,198 +1,38 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { pos } from '../api';
+import { useNavigate } from 'react-router-dom';
+import { Search, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { orders, type OrderStatus } from '../api';
 
-interface TransactionHistoryProps {
-  lang: 'en' | 'ar';
-  onBack: () => void;
-}
-
-export default function TransactionHistory({ lang, onBack }: TransactionHistoryProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'order' | 'reservation'>('all');
+export default function TransactionHistory({ lang }: { lang: 'en' | 'ar' }) {
   const isRtl = lang === 'ar';
-
-  const { data: dashboard } = useQuery({
-    queryKey: ['pos-dashboard'],
-    queryFn: pos.getDashboard,
-  });
-
-  const transactions = dashboard?.recentTransactions || [];
-
-  const filteredTransactions = transactions.filter((t: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      t.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.motorcycleModel.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesType = typeFilter === 'all' || t.type === typeFilter;
-
-    return matchesSearch && matchesType;
-  });
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<OrderStatus | ''>('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(1);
+  const query = useQuery({ queryKey: ['desktop-transaction-history', search, status, startDate, endDate, page], queryFn: () => orders.list({ search: search || undefined, status: status || undefined, startDate: startDate ? `${startDate}T00:00:00.000Z` : undefined, endDate: endDate ? `${endDate}T23:59:59.999Z` : undefined, page, limit: 25 }) });
+  const result = query.data;
+  const totalPages = result?.totalPages ?? (result ? Math.max(1, Math.ceil(result.total / result.limit)) : 1);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-        >
-          {isRtl ? '→ رجوع' : '← Back'}
-        </button>
-        <h1 className="text-2xl font-bold">
-          {isRtl ? 'سجل العمليات' : 'Transaction History'}
-        </h1>
-      </div>
+      <div className="page-heading"><div><span className="eyebrow">{isRtl ? 'السجل الكامل' : 'Full history'}</span><h1>{isRtl ? 'سجل المعاملات' : 'Transaction history'}</h1><p>{isRtl ? 'بحث في طلبات الفرع الحالي.' : 'Search orders in the signed-in user branch.'}</p></div><button className="secondary-action" onClick={() => query.refetch()}><RefreshCw size={16} /> {isRtl ? 'تحديث' : 'Refresh'}</button></div>
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
         <div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              isRtl
-                ? 'البحث (رقم العملية، العميل، الدراجة)...'
-                : 'Search (number, customer, motorcycle)...'
-            }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="search-box"><Search size={17} /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder={isRtl ? 'رقم الطلب أو العميل أو الهيكل...' : 'Order, customer, or VIN...'} /></div>
         </div>
 
-        <div className="flex gap-2">
-          {[
-            { value: 'all', label: isRtl ? 'الكل' : 'All' },
-            { value: 'order', label: isRtl ? 'طلبات' : 'Orders' },
-            { value: 'reservation', label: isRtl ? 'حجوزات' : 'Reservations' },
-          ].map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setTypeFilter(filter.value as any)}
-              className={`px-4 py-2 rounded-lg border ${
-                typeFilter === filter.value
-                  ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
-                  : 'border-gray-300'
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+        <div className="flex gap-2"><select className="pos-input" value={status} onChange={(event) => { setStatus(event.target.value as OrderStatus | ''); setPage(1); }}><option value="">{isRtl ? 'كل الحالات' : 'All statuses'}</option>{(['draft', 'confirmed', 'processing', 'awaiting_delivery', 'completed', 'cancelled', 'refunded'] as OrderStatus[]).map((value) => <option key={value} value={value}>{value}</option>)}</select><label className="pos-input">{isRtl ? 'من' : 'From'} <input type="date" value={startDate} onChange={(event) => { setStartDate(event.target.value); setPage(1); }} /></label><label className="pos-input">{isRtl ? 'إلى' : 'To'} <input type="date" value={endDate} onChange={(event) => { setEndDate(event.target.value); setPage(1); }} /></label></div>
       </div>
 
-      {/* Results */}
-      {filteredTransactions.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          {isRtl ? 'لا توجد عمليات' : 'No transactions found'}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredTransactions.map((transaction: any) => (
-            <div
-              key={transaction.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="font-bold text-lg">{transaction.number}</div>
-                  <div className="text-sm text-gray-600">
-                    {transaction.customerName}
-                  </div>
-                </div>
-                <span
-                  className={`px-3 py-1 text-sm rounded ${
-                    transaction.type === 'order'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
-                  {transaction.type === 'order'
-                    ? isRtl
-                      ? 'طلب'
-                      : 'Order'
-                    : isRtl
-                    ? 'حجز'
-                    : 'Reservation'}
-                </span>
-              </div>
-
-              <div className="space-y-1 text-sm">
-                <div>
-                  <span className="text-gray-600">
-                    {isRtl ? 'الدراجة:' : 'Motorcycle:'}
-                  </span>{' '}
-                  {transaction.motorcycleModel}
-                </div>
-                <div>
-                  <span className="text-gray-600">
-                    {isRtl ? 'المبلغ:' : 'Amount:'}
-                  </span>{' '}
-                  <span className="font-bold">
-                    {transaction.amount.toLocaleString()}{' '}
-                    {isRtl ? 'ريال' : 'EGP'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-600">
-                    {isRtl ? 'التاريخ:' : 'Date:'}
-                  </span>{' '}
-                  {new Date(transaction.createdAt).toLocaleString(
-                    isRtl ? 'ar-EG' : 'en-EG'
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Stats */}
-      {dashboard && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-bold mb-3">
-            {isRtl ? 'إحصائيات اليوم' : "Today's Stats"}
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm text-gray-600">
-                {isRtl ? 'طلبات' : 'Orders'}
-              </div>
-              <div className="text-2xl font-bold text-green-600">
-                {dashboard.todayStats.ordersCreated}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600">
-                {isRtl ? 'حجوزات' : 'Reservations'}
-              </div>
-              <div className="text-2xl font-bold text-blue-600">
-                {dashboard.todayStats.reservationsCreated}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600">
-                {isRtl ? 'إجمالي المبيعات' : 'Total Sales'}
-              </div>
-              <div className="text-2xl font-bold text-gray-800">
-                {dashboard.todayStats.totalSales.toLocaleString()}{' '}
-                <span className="text-sm">
-                  {isRtl ? 'ريال' : 'EGP'}
-                </span>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600">
-                {isRtl ? 'دراجات متاحة' : 'Available'}
-              </div>
-              <div className="text-2xl font-bold text-gray-800">
-                {dashboard.todayStats.availableMotorcycles}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {query.isLoading && <div className="state-panel">{isRtl ? 'جاري التحميل...' : 'Loading...'}</div>}
+      {query.isError && <div className="state-panel" role="alert"><p>{isRtl ? 'تعذر تحميل السجل.' : 'Could not load history.'}</p><button className="secondary-action" onClick={() => query.refetch()}>{isRtl ? 'إعادة المحاولة' : 'Retry'}</button></div>}
+      {!query.isLoading && !query.isError && result?.items.length === 0 && <div className="state-panel">{isRtl ? 'لا توجد معاملات مطابقة.' : 'No matching transactions.'}</div>}
+      {!query.isLoading && !query.isError && result && result.items.length > 0 && <><div className="customer-list">{result.items.map((order) => <button className="customer-row" key={order.id} onClick={() => navigate(`/orders/${order.id}`)}><div className="customer-main"><strong>{order.orderNumber}</strong><span>{order.customer.name} · {order.customer.phone}</span><span>{order.itemCount} {isRtl ? 'عناصر' : 'items'} · {new Date(order.createdAt).toLocaleString(isRtl ? 'ar-EG' : 'en-EG')}</span></div><div className="customer-stats"><span className="status-pill">{order.status}</span><strong>{order.netAmount.toLocaleString()} {isRtl ? 'ج.م' : 'EGP'}</strong></div></button>)}</div><div className="panel-heading"><span>{result.total} {isRtl ? 'معاملة' : 'transactions'}</span><div><button className="icon-button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} title="Previous">{isRtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</button><span>{page} / {totalPages}</span><button className="icon-button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)} title="Next">{isRtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}</button></div></div></>}
     </div>
   );
 }

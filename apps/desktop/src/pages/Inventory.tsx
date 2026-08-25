@@ -5,12 +5,12 @@ import { pos } from '../api';
 
 type Lang = 'en' | 'ar';
 
-export default function Inventory({ lang }: { lang: Lang }) {
+export default function Inventory({ lang, branchId }: { lang: Lang; branchId?: string }) {
   const [query, setQuery] = useState('');
   const isRtl = lang === 'ar';
   const { data = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['desktop-inventory', query],
-    queryFn: () => pos.searchMotorcycles(query, undefined, 50),
+    queryKey: ['desktop-inventory', query, branchId],
+    queryFn: () => pos.searchMotorcycles(query, branchId, 50),
     enabled: query.length === 0 || query.length >= 2,
   });
   const money = (value: number) => `${value.toLocaleString(isRtl ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 0 })} ${isRtl ? 'ج.م' : 'EGP'}`;

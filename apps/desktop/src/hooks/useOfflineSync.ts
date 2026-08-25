@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pos } from '../api';
 import { useConnectionStatus } from './useConnectionStatus';
+import { OfflineOperationType } from '../../../../packages/shared-types/src/pos';
 
 export interface OfflineOperation {
   id: string;
@@ -14,6 +15,8 @@ export function useOfflineSync() {
   const { isOnline } = useConnectionStatus();
   const queryClient = useQueryClient();
   const [queue, setQueue] = useState<OfflineOperation[]>([]);
+  const serverStatus = useQuery({ queryKey: ['pos-sync-status'], queryFn: pos.getSyncStatus, refetchInterval: 30_000 });
+  const serverQueue = useQuery({ queryKey: ['pos-queued-operations'], queryFn: pos.getQueuedOperations, refetchInterval: 30_000 });
 
   // Load queue from localStorage on mount
   useEffect(() => {
@@ -41,7 +44,7 @@ export function useOfflineSync() {
       for (const operation of queue) {
         try {
           await pos.queueOperation({
-            type: operation.type,
+            type: operation.type === 'customer_create' ? OfflineOperationType.CUSTOMER_CREATE : OfflineOperationType.CUSTOMER_UPDATE,
             data: operation.data,
             localTimestamp: new Date(operation.timestamp).toISOString(),
           });
@@ -61,7 +64,10 @@ export function useOfflineSync() {
 
   const queueMutation = useMutation({
     mutationFn: (operation: Omit<OfflineOperation, 'id' | 'timestamp'> & { localTimestamp: string }) =>
-      pos.queueOperation(operation),
+      pos.queueOperation({
+        ...operation,
+        type: operation.type === 'customer_create' ? OfflineOperationType.CUSTOMER_CREATE : OfflineOperationType.CUSTOMER_UPDATE,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-sync-status'] });
     },
@@ -82,7 +88,7 @@ export function useOfflineSync() {
       // If online, send immediately
       try {
         await queueMutation.mutateAsync({
-          type,
+          type: type === 'customer_create' ? OfflineOperationType.CUSTOMER_CREATE : OfflineOperationType.CUSTOMER_UPDATE,
           data,
           localTimestamp: new Date(operation.timestamp).toISOString(),
         });
@@ -114,6 +120,11 @@ export function useOfflineSync() {
     isOnline,
     queue,
     queueCount: queue.length,
+    serverStatus: serverStatus.data,
+    serverQueue: serverQueue.data ?? [],
+    isLoadingStatus: serverStatus.isLoading || serverQueue.isLoading,
+    syncError: serverStatus.error || serverQueue.error,
+    syncNow: async () => { await Promise.all([serverStatus.refetch(), serverQueue.refetch()]); },
     addToQueue,
     canOperateOffline,
     getOfflineRestrictionMessage,

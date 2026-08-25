@@ -17,6 +17,7 @@ import { CreateNotificationDto } from './dto/create-notification.dto.js';
 import { NotificationQueryDto, MarkAsReadDto } from './dto/notification-query.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
+import { Action, Resource } from '@motorcycle-system/shared-types';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 
 type AuthRequest = AuthenticatedRequest;
@@ -114,6 +115,7 @@ export class NotificationsController {
    * Admin: Create notification (requires notification:create permission)
    */
   @Post()
+  @RequirePermission(Resource.NOTIFICATION, Action.CREATE)
   async create(@Body() dto: CreateNotificationDto) {
     return this.notificationsService.create(dto);
   }
@@ -122,6 +124,7 @@ export class NotificationsController {
    * Admin: Send bulk notifications (requires notification:create permission)
    */
   @Post('bulk')
+  @RequirePermission(Resource.NOTIFICATION, Action.CREATE)
   async createBulk(
     @Body() body: { notifications: CreateNotificationDto[] },
   ) {

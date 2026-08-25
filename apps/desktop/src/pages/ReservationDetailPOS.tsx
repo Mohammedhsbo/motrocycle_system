@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Bike, Receipt, AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
-import { reservations, type ReservationStatus } from '../api';
+import { reservations, pos, type ReservationStatus } from '../api';
 import ConvertToOrder from '../components/ConvertToOrder';
 
 type Lang = 'en' | 'ar';
@@ -141,6 +141,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [conversionKey] = useState(() => id ? `pos-reservation-conversion-${id}` : '');
 
   const { data: reservation, isLoading, isError } = useQuery({
     queryKey: ['reservation', id],
@@ -157,7 +158,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
   const customerReservations = customerReservationsData?.items.filter((r) => r.id !== id) ?? [];
 
   const convertMutation = useMutation({
-    mutationFn: (notes?: string) => reservations.convert(id!, notes),
+    mutationFn: (notes?: string) => pos.convertReservation(id!, notes, conversionKey),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['reservation', id] });
       queryClient.invalidateQueries({ queryKey: ['reservations'] });

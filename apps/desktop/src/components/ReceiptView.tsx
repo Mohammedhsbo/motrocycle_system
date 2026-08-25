@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatReceiptForPrint, formatReceiptHTML, type ReceiptData } from '../utils/receiptFormatter';
 
 interface ReceiptViewProps {
@@ -8,6 +9,7 @@ interface ReceiptViewProps {
 
 export default function ReceiptView({ lang, data, onClose }: ReceiptViewProps) {
   const isRtl = lang === 'ar';
+  const [status, setStatus] = useState<string | null>(null);
   const textReceipt = formatReceiptForPrint(data, lang);
   const htmlReceipt = formatReceiptHTML(data, lang);
 
@@ -20,8 +22,10 @@ export default function ReceiptView({ lang, data, onClose }: ReceiptViewProps) {
   };
 
   const handleCopyText = () => {
-    navigator.clipboard.writeText(textReceipt);
-    alert(isRtl ? 'تم النسخ!' : 'Copied!');
+    navigator.clipboard.writeText(textReceipt).then(
+      () => setStatus(isRtl ? 'تم النسخ!' : 'Copied!'),
+      () => setStatus(isRtl ? 'تعذر نسخ الإيصال' : 'Could not copy receipt'),
+    );
   };
 
   const handleNativePrint = async () => {
@@ -31,8 +35,10 @@ export default function ReceiptView({ lang, data, onClose }: ReceiptViewProps) {
     }
     const result = await window.desktopPrinter.print({ html: htmlReceipt });
     if (!result.success) {
-      alert(result.reason || (isRtl ? 'فشلت الطباعة' : 'Printing failed'));
+      setStatus(result.reason || (isRtl ? 'فشلت الطباعة' : 'Printing failed'));
+      return;
     }
+    setStatus(isRtl ? 'تمت الطباعة' : 'Printed');
   };
 
   return (
@@ -74,6 +80,8 @@ export default function ReceiptView({ lang, data, onClose }: ReceiptViewProps) {
           {isRtl ? '📋 نسخ النص' : '📋 Copy Text'}
         </button>
       </div>
+
+      {status && <div className="state-panel" role="status">{status}</div>}
 
       <div className="text-xs text-gray-500 text-center">
         {isRtl
