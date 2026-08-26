@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Bike, Receipt, AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Bike, Receipt, AlertCircle, Clock, XCircle, CheckCircle, Edit3, MessageCircle } from 'lucide-react';
 import { reservations, pos, type ReservationStatus } from '../api';
 import ConvertToOrder from '../components/ConvertToOrder';
+import { buildWhatsAppUrl } from '../../../../packages/shared-types/src/whatsapp';
 
 type Lang = 'en' | 'ar';
 
@@ -141,6 +142,9 @@ export default function ReservationDetailPOS({ lang }: Props) {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [showEdit, setShowEdit] = useState(false);
+  const [editExpiresAt, setEditExpiresAt] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [conversionKey] = useState(() => id ? `pos-reservation-conversion-${id}` : '');
 
   const { data: reservation, isLoading, isError } = useQuery({
@@ -176,6 +180,18 @@ export default function ReservationDetailPOS({ lang }: Props) {
       setShowCancelModal(false);
       setCancelReason('');
     },
+  });
+  const updateMutation = useMutation({
+    mutationFn: () => reservations.update(id!, { expiresAt: editExpiresAt ? new Date(editExpiresAt).toISOString() : undefined, notes: editNotes }),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['reservation', id] }); void queryClient.invalidateQueries({ queryKey: ['reservations'] }); setShowEdit(false); },
+  });
+  const extendMutation = useMutation({
+    mutationFn: () => reservations.extend(id!, new Date(editExpiresAt).toISOString()),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['reservation', id] }); void queryClient.invalidateQueries({ queryKey: ['reservations'] }); setShowEdit(false); },
+  });
+  const sendWhatsApp = useMutation({
+    mutationFn: () => reservations.sendWhatsApp(id!),
+    onSuccess: ({ phone, message }) => window.open(buildWhatsAppUrl(phone, message), '_blank'),
   });
 
   const formatCurrency = (amount: number) => {
@@ -343,12 +359,14 @@ export default function ReservationDetailPOS({ lang }: Props) {
       )}
 
       {/* Actions */}
-      {(canConvert || canCancel) && (
+      {(
         <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem' }}>
             {t.actions}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button className="btn" disabled={sendWhatsApp.isPending} onClick={() => sendWhatsApp.mutate()}><MessageCircle size={16} />{isRtl ? 'إرسال واتساب' : 'Send WhatsApp'}</button>
+            {canCancel && <button className="btn" onClick={() => { setEditExpiresAt(reservation.expiresAt ? new Date(reservation.expiresAt).toISOString().slice(0, 16) : ''); setEditNotes(reservation.notes || ''); setShowEdit(true); }}><Edit3 size={16} />{isRtl ? 'تعديل وتمديد' : 'Edit / extend'}</button>}
             {canConvert && (
               <button
                 onClick={() => setShowConvertModal(true)}
@@ -380,6 +398,8 @@ export default function ReservationDetailPOS({ lang }: Props) {
           </div>
         </div>
       )}
+
+      {showEdit && <div className="modal-backdrop"><div className="payment-modal"><button className="drawer-close" onClick={() => setShowEdit(false)}><XCircle size={18} /></button><h2>{isRtl ? 'تعديل الحجز' : 'Edit reservation'}</h2><label>{isRtl ? 'تاريخ الانتهاء' : 'Expires at'}<input type="datetime-local" value={editExpiresAt} onChange={event => setEditExpiresAt(event.target.value)} /></label><label>{isRtl ? 'ملاحظات' : 'Notes'}<textarea value={editNotes} onChange={event => setEditNotes(event.target.value)} /></label>{(updateMutation.isError || extendMutation.isError) && <div className="inline-error">{((updateMutation.error || extendMutation.error) as Error).message}</div>}<div className="modal-actions"><button className="secondary-action" onClick={() => setShowEdit(false)}>{isRtl ? 'إلغاء' : 'Cancel'}</button><button className="secondary-action" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>{isRtl ? 'حفظ التعديل' : 'Save changes'}</button><button className="primary-action" disabled={!editExpiresAt || extendMutation.isPending} onClick={() => extendMutation.mutate()}>{isRtl ? 'تمديد' : 'Extend'}</button></div></div></div>}
 
       {/* Customer info */}
       <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>

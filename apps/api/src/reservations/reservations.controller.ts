@@ -29,11 +29,15 @@ import {
   Action,
 } from '@motorcycle-system/shared-types';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ReservationsController {
-  constructor(@Inject(ReservationsService) private readonly reservationsService: ReservationsService) {}
+  constructor(
+    @Inject(ReservationsService) private readonly reservationsService: ReservationsService,
+    @Inject(NotificationsService) private readonly notificationsService: NotificationsService,
+  ) {}
 
   /**
    * TASK-004: Create new reservation
@@ -124,6 +128,21 @@ export class ReservationsController {
     return {
       success: true,
       data: reservation,
+    };
+  }
+
+  @Post(':id/send-whatsapp')
+  @RequirePermission(Resource.RESERVATION, Action.UPDATE)
+  async sendWhatsApp(@Param('id') id: string, @Request() req: any) {
+    const reservation = await this.reservationsService.findOne(id, req.user.id, req.user.branchId ?? null, req.user.isSuperAdmin ?? false, req.user.isCustomer ?? false);
+    return {
+      success: true,
+      data: await this.notificationsService.sendDirectWhatsApp({
+        customerId: reservation.customer.id,
+        recipient: reservation.customer.phone,
+        subject: 'Reservation reminder',
+        body: `Reservation ${reservation.reservationNumber} for ${reservation.customer.name}: ${reservation.motorcycle.model}. Paid ${reservation.paidAmount.toFixed(2)}, remaining ${reservation.remainingAmount.toFixed(2)}.`,
+      }),
     };
   }
 

@@ -67,6 +67,12 @@ export class InstallmentsController {
     );
   }
 
+  @Post(':id/send-whatsapp')
+  @RequirePermission(Resource.FINANCING_CONTRACT, Action.UPDATE)
+  async sendWhatsApp(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.installmentsService.sendWhatsApp(id, req.user.id, req.user.branchId, req.user.isSuperAdmin);
+  }
+
   /**
    * GET /api/installments/contract/:contractId
    * List installments for a contract

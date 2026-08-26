@@ -16,11 +16,15 @@ import ReservationDetailPOS from './pages/ReservationDetailPOS';
 import './index.css';
 import POSMain from './pages/POSMain';
 import Inventory from './pages/Inventory';
+import InventoryForm from './pages/InventoryForm';
 import Customers from './pages/Customers';
 import Installments from './pages/Installments';
 import Reports from './pages/Reports';
 import Notifications from './pages/Notifications';
 import Suppliers from './pages/Suppliers';
+import Purchases from './pages/Purchases';
+import PurchaseCreate from './pages/PurchaseCreate';
+import PurchaseDetail from './pages/PurchaseDetail';
 import PrinterSettings from './pages/PrinterSettings';
 import ActiveReservations from './pages/ActiveReservations';
 import OfflineSync from './pages/OfflineSync';
@@ -46,6 +50,7 @@ const navItems = [
   { path: '/offline-sync', icon: RefreshCw, en: 'Offline sync', ar: 'المزامنة' },
   { path: '/history', icon: ClipboardList, en: 'Transaction history', ar: 'سجل المعاملات' },
   { path: '/receive', icon: Package, en: 'Receiving', ar: 'الاستلام' },
+  { path: '/purchases', icon: ShoppingCart, en: 'Purchases', ar: 'المشتريات' },
   { path: '/inventory', icon: Bike, en: 'Inventory', ar: 'المخزون' },
   { path: '/transfers', icon: ArrowRightLeft, en: 'Transfers', ar: 'التحويلات' },
   { path: '/customers', icon: Users, en: 'Customers', ar: 'العملاء' },
@@ -61,6 +66,7 @@ const navItems = [
 
 const permissionForPath: Record<string, [string, string]> = {
   '/receive': ['purchase', 'update'],
+  '/purchases': ['purchase', 'read'],
   '/installments': ['financing_contract', 'read'],
   '/reports': ['report', 'read'],
   '/suppliers': ['supplier', 'read'],
@@ -141,6 +147,7 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
   const unread = useQuery({ queryKey: ['desktop-notification-count'], queryFn: notifications.unreadCount, refetchInterval: 30_000 });
   const restrictedPages = {
     receive: gatedRoute(user, lang, '/receive', <ReceivePurchase lang={lang} />),
+    purchases: gatedRoute(user, lang, '/purchases', <Purchases lang={lang} />),
     installments: gatedRoute(user, lang, '/installments', <Installments lang={lang} />),
     reports: gatedRoute(user, lang, '/reports', <Reports lang={lang} />),
     suppliers: gatedRoute(user, lang, '/suppliers', <Suppliers lang={lang} />),
@@ -168,7 +175,12 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
         <Route path="/offline-sync" element={<OfflineSync lang={lang} />} />
         <Route path="/history" element={<TransactionHistory lang={lang} />} />
         <Route path="/receive" element={restrictedPages.receive} />
+        <Route path="/purchases" element={restrictedPages.purchases} />
+        <Route path="/purchases/new" element={gatedRoute(user, lang, '/purchases', <PurchaseCreate lang={lang} />)} />
+        <Route path="/purchases/:id" element={gatedRoute(user, lang, '/purchases', <PurchaseDetail lang={lang} />)} />
         <Route path="/inventory" element={<Inventory lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/inventory/new" element={<InventoryForm lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/inventory/:id/edit" element={<InventoryForm lang={lang} branchId={selectedBranchId} />} />
         <Route path="/transfers" element={restrictedPages.transfers} />
         <Route path="/transfers/new" element={<TransferCreate lang={lang} />} />
         <Route path="/customers" element={<Customers lang={lang} />} />

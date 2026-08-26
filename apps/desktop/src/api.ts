@@ -7,6 +7,7 @@ import type {
   CreatePOSTransactionDto,
   CreatePOSTransactionResponse,
   POSCustomerSearchQuery,
+  POSCustomerSearchResponse,
   POSMotorcycleSearchQuery,
   POSActiveReservationsQuery,
   ValidatePOSTransactionDto,
@@ -51,10 +52,14 @@ export interface UserListItem {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
+  whatsappSenderNumber?: string | null;
   role: { id: string; name: string };
   branch?: BranchSummary | null;
-  whatsappSenderNumber?: string | null;
   isActive: boolean;
+  lang?: 'ar' | 'en';
+  lastLoginAt?: string | null;
+  createdAt?: string;
 }
 
 export interface CreateUserInput {
@@ -68,9 +73,21 @@ export interface CreateUserInput {
 
 export interface SelfUpdateUserInput {
   name?: string;
+  phone?: string;
   whatsappSenderNumber?: string;
   currentPassword?: string;
   newPassword?: string;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  phone?: string;
+  whatsappSenderNumber?: string;
+  roleId?: string;
+  branchId?: string | null;
+  lang?: 'ar' | 'en';
+  isActive?: boolean;
 }
 
 export function setToken(token: string) {
@@ -157,6 +174,8 @@ export const roles = {
 export const users = {
   list: () => apiFetch<{ items: UserListItem[]; total: number }>('/users?limit=100'),
   create: (data: CreateUserInput) => apiFetch<UserListItem>('/users', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: UpdateUserInput) => apiFetch<UserListItem>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  remove: (id: string) => apiFetch<void>(`/users/${id}`, { method: 'DELETE' }),
   me: () => apiFetch<UserListItem>('/users/me'),
   updateMe: (data: SelfUpdateUserInput) => apiFetch<UserListItem>('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };
@@ -191,16 +210,39 @@ export interface Purchase {
 
 export interface ReceiveItemInput { purchaseItemId: string; vin: string; }
 
+export interface PurchaseCreateInput {
+  supplierId: string;
+  branchId: string;
+  notes?: string;
+  items: Array<{ model: string; vin?: string; quantity: number; unitCost: number }>;
+}
+
 // ─── Purchases API ───────────────────────────────────────
 export const purchases = {
+  list: (params?: { page?: number; limit?: number; status?: string; branchId?: string; supplierId?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.status) q.set('status', params.status);
+    if (params?.branchId) q.set('branchId', params.branchId);
+    if (params?.supplierId) q.set('supplierId', params.supplierId);
+    if (params?.search) q.set('search', params.search);
+    return apiFetch<{ items: Purchase[]; meta: { total: number; page: number; limit: number; totalPages: number } }>(`/purchases?${q}`);
+  },
   listPending: () =>
     apiFetch<{ items: Purchase[]; total: number }>('/purchases?status=ordered&limit=50')
       .then(async (res) => {
-        // Also fetch partially_received
         const partial = await apiFetch<{ items: Purchase[]; total: number }>('/purchases?status=partially_received&limit=50');
         return { items: [...res.items, ...partial.items], total: res.total + partial.total };
       }),
   get: (id: string) => apiFetch<Purchase>(`/purchases/${id}`),
+  create: (data: PurchaseCreateInput) =>
+    apiFetch<Purchase>('/purchases', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<PurchaseCreateInput>) =>
+    apiFetch<Purchase>(`/purchases/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  order: (id: string) => apiFetch<Purchase>(`/purchases/${id}/order`, { method: 'POST' }),
+  cancel: (id: string) => apiFetch<Purchase>(`/purchases/${id}/cancel`, { method: 'POST' }),
+  remove: (id: string) => apiFetch<void>(`/purchases/${id}`, { method: 'DELETE' }),
   receive: (id: string, items: ReceiveItemInput[]) =>
     apiFetch<Purchase>(`/purchases/${id}/receive`, {
       method: 'POST',
@@ -216,13 +258,14 @@ export interface CustomerSearchResult {
   email?: string;
   nationalId?: string;
   defaultAddress?: {
-    id: string;
+    id?: string;
     addressLine: string;
     city?: string;
   } | null;
   recentOrderCount?: number;
   activeReservationCount?: number;
   lastTransactionDate?: string;
+  isActive?: boolean;
 }
 
 export interface CustomerDetail {
@@ -255,6 +298,14 @@ export interface CustomerInput {
 }
 
 export const customers = {
+  list: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => {
+    const q = new URLSearchParams();
+    q.set('page', String(params?.page ?? 1));
+    q.set('limit', String(params?.limit ?? 10));
+    if (params?.search) q.set('search', params.search);
+    if (params?.isActive !== undefined) q.set('isActive', String(params.isActive));
+    return apiFetch<{ items: CustomerSearchResult[]; total: number; page: number; limit: number; totalPages: number }>(`/customers?${q}`);
+  },
   search: (params: { q: string; limit?: number }) => {
     const q = new URLSearchParams();
     q.set('q', params.q);
@@ -266,6 +317,8 @@ export const customers = {
     apiFetch<CustomerDetail>('/customers', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<CustomerInput>) =>
     apiFetch<CustomerDetail>(`/customers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deactivate: (id: string) => apiFetch<CustomerDetail>(`/customers/${id}/deactivate`, { method: 'POST' }),
+  reactivate: (id: string) => apiFetch<CustomerDetail>(`/customers/${id}/reactivate`, { method: 'POST' }),
 };
 
 export interface CustomerInquiry {
@@ -306,7 +359,7 @@ export const customerInquiries = {
     form.set('idCardBackImage', input.idCardBackImage);
     return apiFetch<CustomerInquiry>('/customer-inquiries', { method: 'POST', body: form });
   },
-  sendWhatsApp: (id: string) => apiFetch<{ mediaSupported: boolean; limitation?: string }>(`/customer-inquiries/${id}/send-whatsapp`, { method: 'POST' }),
+  sendWhatsApp: (id: string) => apiFetch<{ phone: string; message: string }>(`/customer-inquiries/${id}/send-whatsapp`, { method: 'POST' }),
 };
 
 // ─── Motorcycles API (POS) ───────────────────────────────
@@ -317,11 +370,61 @@ export interface MotorcycleSearchResult {
   year: number;
   color?: string;
   price: number;
+  costPrice?: number;
   status: string;
   brand: { id: string; nameEn: string; nameAr: string };
   branch: { id: string; nameEn: string; nameAr: string };
+  category?: { id?: string; nameEn: string; nameAr: string };
   images?: string[];
-  category?: { nameEn: string; nameAr: string };
+}
+
+export interface BrandSummary {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  isActive?: boolean;
+}
+
+export interface CategorySummary {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  parentId?: string | null;
+  isActive?: boolean;
+  depth?: number;
+  path?: string;
+}
+
+export const brands = {
+  list: (params?: { isActive?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiFetch<BrandSummary[]>(`/brands?${query}`);
+  },
+};
+
+export const categories = {
+  list: (params?: { isActive?: boolean; flat?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
+    if (params?.flat !== undefined) query.set('flat', String(params.flat));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiFetch<CategorySummary[]>(`/categories?${query}`);
+  },
+};
+
+export interface MotorcycleInput {
+  vin?: string;
+  model: string;
+  year: number;
+  color?: string;
+  price?: number;
+  costPrice?: number;
+  brandId?: string;
+  categoryId?: string;
+  branchId?: string;
+  images?: string[];
 }
 
 export const motorcycles = {
@@ -333,6 +436,11 @@ export const motorcycles = {
     if (params.limit) q.set('limit', String(params.limit));
     return apiFetch<{ items: MotorcycleSearchResult[]; total: number }>(`/motorcycles?${q}`);
   },
+  get: (id: string) => apiFetch<MotorcycleSearchResult>(`/motorcycles/${id}`),
+  create: (data: Required<Pick<MotorcycleInput, 'vin' | 'model' | 'year' | 'price' | 'costPrice' | 'brandId' | 'categoryId' | 'branchId'>>) => apiFetch<MotorcycleSearchResult>('/motorcycles', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: MotorcycleInput) => apiFetch<MotorcycleSearchResult>(`/motorcycles/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateStatus: (id: string, status: string, reason?: string) => apiFetch<MotorcycleSearchResult>(`/motorcycles/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }),
+  remove: (id: string) => apiFetch<void>(`/motorcycles/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Transfers API ──────────────────────────────────────
@@ -434,6 +542,10 @@ export const orders = {
     apiFetch<OrderDetail>('/orders', { method: 'POST', body: JSON.stringify(data) }),
   confirm: (id: string) =>
     apiFetch<OrderDetail>(`/orders/${id}/confirm`, { method: 'POST' }),
+  updateStatus: (id: string, status: OrderStatus) =>
+    apiFetch<OrderDetail>(`/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+  cancel: (id: string, reason?: string) =>
+    apiFetch<OrderDetail>(`/orders/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
   getCustomerOrders: (customerId: string, params?: { page?: number; limit?: number }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
@@ -512,6 +624,7 @@ export const reservations = {
     return apiFetch<{ items: ReservationListItem[]; total: number; page: number; limit: number }>(`/reservations?${q}`);
   },
   get: (id: string) => apiFetch<ReservationDetail>(`/reservations/${id}`),
+  sendWhatsApp: (id: string) => apiFetch<{ phone: string; message: string }>(`/reservations/${id}/send-whatsapp`, { method: 'POST' }),
   create: (data: CreateReservationInput) =>
     apiFetch<ReservationDetail>('/reservations', { method: 'POST', body: JSON.stringify(data) }),
   convert: (id: string, notes?: string, idempotencyKey?: string) =>
@@ -525,6 +638,10 @@ export const reservations = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
+  update: (id: string, data: { expiresAt?: string; notes?: string }) =>
+    apiFetch<ReservationDetail>(`/reservations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  extend: (id: string, expiresAt: string, reason?: string) =>
+    apiFetch<ReservationDetail>(`/reservations/${id}/extend`, { method: 'POST', body: JSON.stringify({ expiresAt, reason }) }),
   getCustomerReservations: (customerId: string, params?: { page?: number; limit?: number }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
@@ -684,8 +801,8 @@ export interface POSReservation {
 export const pos = {
   getDashboard: () => apiFetch<POSDashboard>('/pos/dashboard'),
   
-  searchCustomers: (q: string, limit = 10) =>
-    apiFetch<CustomerSearchResult[]>(`/pos/customers/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  searchCustomers: (q: string, limit = 10, page = 1) =>
+    apiFetch<POSCustomerSearchResponse>(`/pos/customers/search?q=${encodeURIComponent(q)}&limit=${limit}&page=${page}`),
   
   searchMotorcycles: (q?: string, branchId?: string, limit = 20) => {
     const params = new URLSearchParams();
@@ -843,6 +960,7 @@ export const notifications = {
   unreadCount: () => apiFetch<{ count: number }>('/notifications/unread-count'),
   markRead: (id: string) => apiFetch<NotificationRecord>(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllRead: () => apiFetch<unknown>('/notifications/mark-all-read', { method: 'POST' }),
+  remove: (id: string) => apiFetch<void>(`/notifications/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Suppliers ───────────────────────────────────────────

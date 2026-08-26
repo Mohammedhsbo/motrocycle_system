@@ -14,7 +14,8 @@ import {
 import { NotificationsService } from './notifications.service.js';
 import { NotificationPreferenceService } from './notification-preference.service.js';
 import { CreateNotificationDto } from './dto/create-notification.dto.js';
-import { NotificationQueryDto, MarkAsReadDto } from './dto/notification-query.dto.js';
+import { NotificationQueryDto, MarkAsReadDto, notificationQuerySchema } from './dto/notification-query.dto.js';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
 import { Action, Resource } from '@motorcycle-system/shared-types';
@@ -34,7 +35,7 @@ export class NotificationsController {
    * Get all notifications for authenticated user
    */
   @Get()
-  async findAll(@Req() req: AuthRequest, @Query() query: NotificationQueryDto) {
+  async findAll(@Req() req: AuthRequest, @Query(new ZodValidationPipe(notificationQuerySchema)) query: NotificationQueryDto) {
     return this.notificationsService.findAll(req.user.id, query);
   }
 

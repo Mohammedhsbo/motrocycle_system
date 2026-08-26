@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileImage, MessageCircle, Plus, Search, UserRound } from 'lucide-react';
 import { customerInquiries, customers, type CustomerInquiryInput, type CustomerSearchResult } from '../api';
 import { DataList, DataTableState } from '../components/DataTable';
+import { buildWhatsAppUrl } from '../../../../packages/shared-types/src/whatsapp';
 
 type Lang = 'en' | 'ar';
 
@@ -23,7 +24,7 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
     onSuccess: () => { setShowForm(false); setSelectedCustomer(null); setCustomerQuery(''); setFront(null); setBack(null); setForm({ address: '', phone: '', occupation: '', occupationAddress: '' }); void queryClient.invalidateQueries({ queryKey: ['customer-inquiries'] }); },
     onError: (err: Error) => setError(err.message),
   });
-  const send = useMutation({ mutationFn: customerInquiries.sendWhatsApp });
+  const send = useMutation({ mutationFn: customerInquiries.sendWhatsApp, onSuccess: ({ phone, message }) => window.open(buildWhatsAppUrl(phone, message), '_blank') });
 
   function submit(event: FormEvent) {
     event.preventDefault(); setError(null);
@@ -43,6 +44,6 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
     </form>}
     {inquiries.isLoading && <DataTableState kind="loading" lang={lang} />}
     {!inquiries.isLoading && inquiries.data?.length === 0 && <DataTableState kind="empty" lang={lang} />}
-    {!inquiries.isLoading && inquiries.data && inquiries.data.length > 0 && <DataList className="inquiry-list">{inquiries.data.map(inquiry => <article className="surface-panel" key={inquiry.id} style={{ marginBottom: '1rem' }}><div className="panel-heading"><div><h2>{inquiry.customer.name}</h2><span>{inquiry.phone} · {inquiry.occupation}</span></div><button className="secondary-action" disabled={send.isPending} onClick={() => send.mutate(inquiry.id)}><MessageCircle size={16} /> {isRtl ? 'إرسال واتساب' : 'Send WhatsApp'}</button></div><div className="inquiry-details"><span>{inquiry.address}</span><span>{inquiry.occupationAddress}</span><small>{new Date(inquiry.createdAt).toLocaleString(isRtl ? 'ar-EG' : 'en-GB')}</small></div>{send.variables === inquiry.id && send.data && !send.data.mediaSupported && <div className="state-panel">{isRtl ? 'تم إرسال النص، وتم إرسال مراجع الصور كرسائل منفصلة لأن المزود لا يدعم الوسائط.' : 'Text sent; image references were sent as separate messages because the provider does not support media.'}</div>}</article>)}</DataList>}
+    {!inquiries.isLoading && inquiries.data && inquiries.data.length > 0 && <DataList className="inquiry-list">{inquiries.data.map(inquiry => <article className="surface-panel" key={inquiry.id} style={{ marginBottom: '1rem' }}><div className="panel-heading"><div><h2>{inquiry.customer.name}</h2><span>{inquiry.phone} · {inquiry.occupation}</span></div><button className="secondary-action" disabled={send.isPending} onClick={() => send.mutate(inquiry.id)}><MessageCircle size={16} /> {isRtl ? 'فتح واتساب' : 'Open WhatsApp'}</button></div><div className="inquiry-details"><span>{inquiry.address}</span><span>{inquiry.occupationAddress}</span><small>{new Date(inquiry.createdAt).toLocaleString(isRtl ? 'ar-EG' : 'en-GB')}</small></div></article>)}</DataList>}
   </section>;
 }

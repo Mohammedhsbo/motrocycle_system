@@ -25,7 +25,7 @@ export default function CustomerSearchPOS({ lang, onSelect, onCreateNew, onClose
     enabled: query.length >= 2,
   });
 
-  const results = customers || [];
+  const results = customers?.items || [];
 
   useEffect(() => {
     searchInputRef.current?.focus();

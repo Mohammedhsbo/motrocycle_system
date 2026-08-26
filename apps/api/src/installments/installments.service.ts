@@ -14,6 +14,7 @@ import {
 } from '@motorcycle-system/shared-types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import {
   retryOnDeadlock,
   validateIdempotencyKey,
@@ -32,8 +33,20 @@ interface CreateInstallmentPaymentRequest {
 export class InstallmentsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(AuditService) private readonly audit: AuditService
+    @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(NotificationsService) private readonly notifications: NotificationsService,
   ) {}
+
+  async sendWhatsApp(id: string, userId: string, userBranchId: string | null, isSuperAdmin: boolean) {
+    const installment = await this.findById(id, userId, userBranchId, isSuperAdmin);
+    const remaining = Number(installment.amount) - Number(installment.paidAmount);
+    return this.notifications.sendDirectWhatsApp({
+      customerId: installment.contract.customerId,
+      recipient: installment.contract.customer.phone,
+      subject: 'Installment reminder',
+      body: `Installment reminder for ${installment.contract.customer.name}: ${remaining.toFixed(2)} is due on ${new Date(installment.dueDate).toLocaleDateString('en-GB')}.`,
+    });
+  }
 
   /**
    * TASK-006: Create payment for an installment

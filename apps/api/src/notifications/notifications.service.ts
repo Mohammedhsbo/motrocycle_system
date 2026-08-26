@@ -247,41 +247,24 @@ export class NotificationsService {
     customerId: string;
     recipient: string;
     body: string;
-    attachments: string[];
+    attachments?: string[];
+    subject?: string;
   }) {
-    const provider = this.channelProviders.find((item) => item.supportsChannel(NotificationChannel.WHATSAPP));
-    if (!provider) throw new Error('WHATSAPP_PROVIDER_UNAVAILABLE');
+    const message = [payload.body, ...(payload.attachments ?? []).map((ref) => `مرفق بطاقة الهوية / ${ref}`)].join('\n');
+    await this.prisma.communicationLog.create({
+      data: {
+        userId: null,
+        customerId: payload.customerId,
+        channel: NotificationChannel.WHATSAPP,
+        direction: 'outbound',
+        subject: payload.subject ?? 'Customer message',
+        content: message,
+        metadata: { delivery: 'client_link', initiated: true } as any,
+        sentAt: new Date(),
+      },
+    });
 
-    const messages = [payload.body, ...payload.attachments.map((ref) => `مرفق بطاقة الهوية / ${ref}`)];
-    const results = [];
-    for (const message of messages) {
-      const result = await provider.send({
-        recipient: payload.recipient,
-        title: 'Customer inquiry',
-        body: message,
-        data: { customerId: payload.customerId, attachment: message !== payload.body },
-      });
-      results.push(result);
-      await this.prisma.communicationLog.create({
-        data: {
-          userId: null,
-          customerId: payload.customerId,
-          channel: NotificationChannel.WHATSAPP,
-          direction: 'outbound',
-          subject: 'Customer inquiry',
-          content: message,
-          metadata: { attachment: message !== payload.body, providerExternalId: result.externalId } as any,
-          sentAt: new Date(),
-        },
-      });
-    }
-
-    return {
-      provider: 'whatsapp',
-      results,
-      mediaSupported: false,
-      limitation: 'The configured WhatsApp provider does not support media messages; image storage references were sent as separate text messages.',
-    };
+    return { phone: payload.recipient, message };
   }
 
   /**

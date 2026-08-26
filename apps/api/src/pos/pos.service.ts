@@ -14,6 +14,7 @@ import { AuditService } from '../audit/audit.service.js';
 import {
   POSDashboardData,
   POSCustomerSearchResult,
+  POSCustomerSearchResponse,
   POSMotorcycleSearchResult,
   POSCustomerSearchQuery,
   POSMotorcycleSearchQuery,
@@ -244,9 +245,47 @@ export class POSService {
 
   async searchCustomers(
     query: POSCustomerSearchQuery,
-  ): Promise<POSCustomerSearchResult[]> {
-    // Use existing customer search
-    const customers = await this.customersService.search(query.q, query.limit);
+  ): Promise<POSCustomerSearchResponse> {
+    const trimmedQ = query.q.trim();
+    const skip = (query.page - 1) * query.limit;
+    let customers;
+    let total: number;
+
+    if (!trimmedQ) {
+      const where = { isActive: true };
+      [total, customers] = await Promise.all([
+        this.prisma.customer.count({ where }),
+        this.prisma.customer.findMany({
+          where,
+          include: { addresses: { where: { isDefault: true }, take: 1 } },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: query.limit,
+        }),
+      ]);
+    } else {
+      const normalizedQ = trimmedQ.replace(/[\s-]/g, '');
+      const baseWhere = { isActive: true };
+      const searchConditions: any[] = [
+        { ...baseWhere, phone: { equals: normalizedQ } },
+        { ...baseWhere, phone: { contains: normalizedQ } },
+        { ...baseWhere, name: { contains: trimmedQ, mode: 'insensitive' } },
+        { ...baseWhere, email: { contains: trimmedQ, mode: 'insensitive' } },
+      ];
+      if (/^[a-zA-Z0-9]+$/.test(normalizedQ)) {
+        searchConditions.push({ ...baseWhere, nationalId: { equals: normalizedQ } });
+      }
+      const where = { OR: searchConditions };
+      [total, customers] = await Promise.all([
+        this.prisma.customer.count({ where }),
+        this.prisma.customer.findMany({
+          where,
+          include: { addresses: { where: { isDefault: true }, take: 1 } },
+          skip,
+          take: query.limit,
+        }),
+      ]);
+    }
 
     // Enhance with POS-specific data
     const enhancedCustomers = await Promise.all(
@@ -314,7 +353,13 @@ export class POSService {
       }),
     );
 
-    return enhancedCustomers;
+    return {
+      items: enhancedCustomers,
+      total,
+      page: query.page,
+      limit: query.limit,
+      totalPages: Math.ceil(total / query.limit),
+    };
   }
 
   async searchMotorcycles(

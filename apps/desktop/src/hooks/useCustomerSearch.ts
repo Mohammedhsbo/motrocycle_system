@@ -23,7 +23,7 @@ export function useCustomerSearch(initialQuery = '') {
   return {
     query,
     setQuery,
-    results: data || [],
+    results: data?.items || [],
     isLoading,
     error,
   };

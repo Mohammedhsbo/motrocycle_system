@@ -252,8 +252,45 @@ export class CustomersService {
   }
 
   async search(q: string, limit: number) {
+    const trimmedQ = q?.trim() ?? "";
+
+    // An empty or missing search should browse the active customer list instead of
+    // generating a `contains: ""` filter that matches everything unexpectedly.
+    if (!trimmedQ) {
+      const customers = await this.prisma.customer.findMany({
+        where: {
+          isActive: true,
+        },
+        include: {
+          addresses: {
+            where: { isDefault: true },
+            take: 1,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit,
+      });
+
+      return customers.map((customer) => ({
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        nationalId: customer.nationalId ? this.maskNationalId(customer.nationalId) : null,
+        defaultAddress: customer.addresses[0]
+          ? {
+              id: customer.addresses[0].id,
+              addressLine: customer.addresses[0].addressLine,
+              city: customer.addresses[0].city,
+            }
+          : null,
+      }));
+    }
+
     // Normalize search term for phone comparison
-    const normalizedQ = q.replace(/[\s-]/g, "");
+    const normalizedQ = trimmedQ.replace(/[\s-]/g, "");
     
     // Search strategy for optimal performance:
     // 1. Exact phone match (highest priority)
@@ -281,13 +318,13 @@ export class CustomersService {
     // Name search (supports Arabic and English)
     searchConditions.push({
       ...baseWhere,
-      name: { contains: q, mode: "insensitive" },
+      name: { contains: trimmedQ, mode: "insensitive" },
     });
 
     // Email search
     searchConditions.push({
       ...baseWhere,
-      email: { contains: q, mode: "insensitive" },
+      email: { contains: trimmedQ, mode: "insensitive" },
     });
 
     // National ID search (if alphanumeric pattern)
@@ -325,7 +362,7 @@ export class CustomersService {
       if (!aPhoneMatch && bPhoneMatch) return 1;
 
       // Name match (case-insensitive)
-      const lowerQ = q.toLowerCase();
+      const lowerQ = trimmedQ.toLowerCase();
       const aNameMatch = a.name.toLowerCase().includes(lowerQ);
       const bNameMatch = b.name.toLowerCase().includes(lowerQ);
       if (aNameMatch && !bNameMatch) return -1;

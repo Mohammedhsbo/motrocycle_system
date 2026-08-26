@@ -5,10 +5,10 @@ import {
   DeliveryResult,
 } from './notification-channel.provider.js';
 import { NotificationChannel } from '../notifications.types.js';
+import { buildWhatsAppUrl } from '@motorcycle-system/shared-types';
 
 /**
- * WhatsApp Provider Stub
- * TODO: Integrate with WhatsApp Business API
+ * WhatsApp provider records the client-link handoff; the browser opens wa.me.
  */
 @Injectable()
 export class WhatsAppProvider extends NotificationChannelProvider {
@@ -17,22 +17,11 @@ export class WhatsAppProvider extends NotificationChannelProvider {
 
   async send(message: NotificationMessage): Promise<DeliveryResult> {
     try {
-      // Stub implementation - log the WhatsApp message
-      this.logger.log(`[WHATSAPP STUB] To: ${message.recipient}`);
-      this.logger.debug(`[WHATSAPP STUB] Message: ${message.body}`);
-
-      // TODO: Implement actual WhatsApp sending
-      // Example with Twilio WhatsApp:
-      // const msg = await this.twilioClient.messages.create({
-      //   to: `whatsapp:${message.recipient}`,
-      //   from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-      //   body: message.body,
-      // });
-      // return { success: true, externalId: msg.sid };
-
+      const url = buildWhatsAppUrl(message.recipient, message.body);
+      this.logger.log(`[WHATSAPP LINK] ${url}`);
       return {
         success: true,
-        externalId: `whatsapp_stub_${Date.now()}`,
+        externalId: url,
       };
     } catch (error) {
       this.logger.error(

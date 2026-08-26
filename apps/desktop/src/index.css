@@ -262,6 +262,43 @@ body { background: var(--pos-bg); }
 .data-table-shell { width: 100%; overflow-x: auto; border-radius: 12px; }
 .data-list-shell { width: 100%; display: grid; gap: .85rem; }
 .data-list-shell > .surface-panel { margin-bottom: 0 !important; }
+.data-table-header, .data-table-row { display: flex; align-items: center; gap: 1rem; min-width: 760px; }
+.data-table-header { min-height: 64px; padding: 1rem 1.35rem; color: var(--text-2); background: #f8fbff; border-bottom: 1px solid var(--pos-border); font-size: .72rem; font-weight: 700; }
+.data-table-row { min-height: 78px; padding: 1.15rem 1.35rem; color: var(--text-1); border-bottom: 1px solid #edf1f6; transition: background var(--transition), border-color var(--transition); }
+.data-table-row:last-child { border-bottom: 0; }
+.data-table-row:hover { background: #f5f9ff; }
+.data-table-row.is-selected { border-inline-start: 3px solid var(--blue); background: #eaf2ff; }
+.data-table-checkbox { width: 22px; height: 22px; display: grid; flex: 0 0 22px; place-items: center; cursor: pointer; }
+.data-table-checkbox input { position: absolute; opacity: 0; pointer-events: none; }
+.data-table-checkbox span { width: 17px; height: 17px; display: block; border: 1px solid #afc3dc; border-radius: 4px; background: #fff; }
+.data-table-checkbox input:checked + span { border-color: var(--blue); background: var(--blue); box-shadow: inset 0 0 0 4px #fff; }
+.data-table-sort { margin-inline-start: auto; border: 0; color: var(--blue); background: transparent; cursor: pointer; font-size: 1rem; }
+.data-table-menu { width: 34px; height: 34px; display: grid; flex: 0 0 34px; place-items: center; margin-inline-start: auto; border: 1px solid transparent; border-radius: 8px; color: var(--text-3); background: transparent; cursor: pointer; opacity: .65; }
+.data-table-menu:hover { color: var(--blue); border-color: var(--pos-border); background: #fff; }
+.data-status-pill { display: inline-flex; align-items: center; gap: .4rem; width: max-content; padding: .32rem .62rem; border: 1px solid #cfe0ff; border-radius: 99px; color: var(--blue); background: #eaf2ff; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+.data-status-pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.data-status-pill.status-active, .data-status-pill.status-completed, .data-status-pill.status-received, .data-status-pill.status-paid { color: #047857; border-color: #b7ead7; background: #ecfdf5; }
+.data-status-pill.status-pending, .data-status-pill.status-draft, .data-status-pill.status-due, .data-status-pill.status-upcoming { color: #9a6700; border-color: #f3d48b; background: #fff8e6; }
+.data-status-pill.status-cancelled, .data-status-pill.status-overdue, .data-status-pill.status-expired { color: #b42318; border-color: #f3c2bd; background: #fff1f0; }
+.data-table-toolbar { display: grid; gap: .8rem; margin-bottom: 1rem; }
+.data-table-tabs { display: flex; gap: .35rem; overflow-x: auto; border-bottom: 1px solid var(--pos-border); }
+.data-table-tabs button { display: inline-flex; align-items: center; gap: .45rem; padding: .8rem 1rem; border: 0; border-bottom: 2px solid transparent; color: var(--text-2); background: transparent; cursor: pointer; font: inherit; font-size: .76rem; white-space: nowrap; }
+.data-table-tabs button.active { color: var(--blue); border-color: var(--blue); }
+.data-table-tabs b { min-width: 22px; padding: .16rem .35rem; border-radius: 99px; color: var(--blue); background: #eaf2ff; font-size: .65rem; }
+.data-table-toolbar-controls { display: flex; align-items: center; gap: .65rem; }
+.data-table-search { min-height: 42px; display: flex; flex: 1; max-width: 520px; border: 1px solid var(--pos-border); border-radius: 9px; background: #fff; }
+.data-table-search input { width: 100%; padding: 0 .8rem; border: 0; outline: 0; color: var(--text-1); background: transparent; font: inherit; }
+.data-table-search button { width: 42px; border: 0; border-inline-start: 1px solid var(--pos-border); color: var(--text-2); background: transparent; cursor: pointer; }
+.data-table-bulk-bar { position: fixed; z-index: 45; left: 50%; bottom: 1.25rem; display: flex; align-items: center; gap: .7rem; padding: .7rem .8rem .7rem 1rem; border-radius: 99px; color: #fff; background: #17253d; box-shadow: 0 14px 35px rgba(18,35,63,.24); transform: translateX(-50%); }
+.data-table-bulk-bar strong { padding-inline-end: .45rem; font-size: .75rem; white-space: nowrap; }
+.data-table-bulk-bar button { display: inline-flex; align-items: center; gap: .35rem; padding: .42rem .65rem; border: 0; border-radius: 7px; color: #fff; background: rgba(255,255,255,.12); cursor: pointer; font: inherit; font-size: .7rem; }
+.data-table-bulk-bar button:hover { background: rgba(255,255,255,.22); }
+.data-table-bulk-bar button.danger { color: #fecaca; }
+.data-table-bulk-close { width: 28px; height: 28px; display: grid !important; place-items: center; padding: 0 !important; background: transparent !important; }
+.inventory-card { transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition); }
+.inventory-card:hover { border-color: #9bbcf5; box-shadow: 0 14px 32px rgba(24,55,99,.1); transform: translateY(-2px); }
+.inventory-info { padding: 1.2rem; }
+.customer-row, .supplier-row, .notification-row { min-height: 84px; padding-block: 1.1rem; }
 .customer-list, .supplier-list, .notification-list { overflow: hidden; }
 .customer-row, .supplier-row, .notification-row { min-width: 0; }
 .customer-main, .notification-copy, .inquiry-details { min-width: 0; overflow: hidden; }
@@ -819,4 +856,42 @@ body { background: var(--pos-bg); }
   .pos-header-bar > div { padding-inline: 1rem; }
   .customer-search-page { padding-top: .25rem; }
   .customer-search-hero { padding: 1rem; }
+}
+
+/* Shared record-card and filter treatment for list-style records. */
+.record-card, .customer-list > .customer-row, .supplier-list > .supplier-row, .notification-list > .notification-row, .pos-list > .pos-list-item {
+  border: 1px solid var(--pos-border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(24, 55, 99, .04);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.record-card:hover, .customer-list > .customer-row:hover, .supplier-list > .supplier-row:hover, .notification-list > .notification-row:hover, .pos-list > .pos-list-item:hover {
+  border-color: #9bbcf5;
+  background: #f8fbff;
+  box-shadow: 0 10px 24px rgba(24, 55, 99, .08);
+}
+.record-card:focus-visible, .customer-list > .customer-row:focus-visible, .pos-list > .pos-list-item:focus-visible { outline: 3px solid var(--blue-glow); outline-offset: 2px; }
+.history-records, .customer-list, .supplier-list, .notification-list { display: grid; gap: .65rem; background: transparent; border: 0; overflow: visible; }
+.history-records > .record-card, .customer-list > .customer-row { min-height: 78px; }
+.record-card .customer-stats, .customer-row .customer-stats { align-items: center; justify-content: flex-end; flex-wrap: wrap; min-width: min(38%, 250px); text-align: end; }
+.record-card .customer-stats > strong { color: var(--blue); white-space: nowrap; }
+.status-pill.status-draft { color: #9a6700; background: #fff8e6; border-color: #f3d48b; }
+.status-pill.status-confirmed, .status-pill.status-completed, .status-pill.status-received, .status-pill.status-active { color: #047857; background: #ecfdf5; border-color: #b7ead7; }
+.status-pill.status-processing, .status-pill.status-awaiting_delivery, .status-pill.status-in_transit { color: #1d4ed8; background: #eaf2ff; border-color: #cfe0ff; }
+.status-pill.status-cancelled, .status-pill.status-refunded, .status-pill.status-expired { color: #b42318; background: #fff1f0; border-color: #f3c2bd; }
+.date-range-filter { display: flex; align-items: stretch; gap: .65rem; }
+.date-range-filter label { display: grid; gap: .3rem; min-width: 145px; color: var(--text-2); font-size: .7rem; font-weight: 700; }
+.date-range-filter input { width: 100%; min-height: 42px; padding: 0 .7rem; border: 1px solid var(--pos-border); border-radius: 8px; color: var(--text-1); background: #fff; font: inherit; }
+.date-range-filter input:focus { outline: 0; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.history-filter-row { display: flex; align-items: end; gap: .75rem; flex-wrap: wrap; }
+.history-filter-row > .pos-input { min-width: 170px; }
+.history-pagination { margin-top: 1rem; padding: .75rem 0 0; border-top: 1px solid var(--pos-border); }
+.history-pagination > div { display: flex; align-items: center; gap: .6rem; color: var(--text-2); }
+.history-pagination .icon-button:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 620px) {
+  .date-range-filter { width: 100%; }
+  .date-range-filter label { min-width: 0; flex: 1; }
+  .history-filter-row > .pos-input { width: 100%; }
+  .record-card .customer-stats, .customer-row .customer-stats { min-width: 0; width: 100%; justify-content: flex-start; text-align: start; }
 }

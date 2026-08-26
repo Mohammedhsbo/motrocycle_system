@@ -40,6 +40,7 @@ export const updateUserRequestSchema = z
 export const selfUpdateUserRequestSchema = z
   .object({
     name: nameSchema.optional(),
+    phone: phoneSchema.optional(),
     whatsappSenderNumber: phoneSchema.optional(),
     currentPassword: passwordSchema.optional(),
     newPassword: passwordSchema.optional(),

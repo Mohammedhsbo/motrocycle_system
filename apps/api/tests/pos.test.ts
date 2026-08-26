@@ -160,6 +160,22 @@ describe('POS API - Integration Tests', () => {
   });
 
   describe('Search', () => {
+    it('should return the full customer list when q is empty', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/pos/customers/search')
+        .query({ q: '', limit: 10 })
+        .set('Authorization', `Bearer ${cashierToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
+      expect(res.body.data).toMatchObject({ page: 1, limit: 10 });
+      expect(res.body.data.total).toBeGreaterThan(0);
+      expect(res.body.data.items[0]).toHaveProperty('recentOrderCount');
+      expect(res.body.data.items[0]).toHaveProperty('activeReservationCount');
+    });
+
     it('should search customers', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/pos/customers/search')
@@ -168,10 +184,10 @@ describe('POS API - Integration Tests', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
-      expect(res.body.data[0]).toHaveProperty('recentOrderCount');
-      expect(res.body.data[0]).toHaveProperty('activeReservationCount');
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
+      expect(res.body.data.items[0]).toHaveProperty('recentOrderCount');
+      expect(res.body.data.items[0]).toHaveProperty('activeReservationCount');
     });
 
     it('should search motorcycles', async () => {

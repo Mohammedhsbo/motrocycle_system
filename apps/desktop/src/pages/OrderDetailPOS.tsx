@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, ShoppingBag, Package, AlertCircle, History } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle, History, Package, ShoppingBag, User, XCircle } from 'lucide-react';
 import { orders, type OrderStatus } from '../api';
 
 type Lang = 'en' | 'ar';
@@ -89,6 +89,7 @@ interface Props {
 export default function OrderDetailPOS({ lang }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const t = T[lang];
   const isRtl = lang === 'ar';
 
@@ -102,6 +103,10 @@ export default function OrderDetailPOS({ lang }: Props) {
     queryKey: ['customerOrders', order?.customer.id],
     queryFn: () => orders.getCustomerOrders(order!.customer.id, { limit: 10 }),
     enabled: !!order?.customer.id,
+  });
+  const action = useMutation({
+    mutationFn: ({ kind, status }: { kind: 'confirm' | 'status' | 'cancel'; status?: OrderStatus }) => kind === 'confirm' ? orders.confirm(id!) : kind === 'cancel' ? orders.cancel(id!, 'Cancelled from POS') : orders.updateStatus(id!, status!),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['order', id] }); void queryClient.invalidateQueries({ queryKey: ['orders'] }); },
   });
 
   const customerOrders = customerOrdersData?.items.filter((o) => o.id !== id) ?? [];
@@ -218,6 +223,12 @@ export default function OrderDetailPOS({ lang }: Props) {
             {statusLabels[order.status][lang]}
           </span>
         </div>
+        <div className="row-actions" style={{ marginTop: '1rem' }}>
+          {order.status === 'draft' && <button className="secondary-action" disabled={action.isPending} onClick={() => action.mutate({ kind: 'confirm' })}><CheckCircle size={15} /> {lang === 'ar' ? 'تأكيد' : 'Confirm'}</button>}
+          {!['completed', 'cancelled', 'refunded'].includes(order.status) && <select className="pos-input" value={order.status} disabled={action.isPending} onChange={event => action.mutate({ kind: 'status', status: event.target.value as OrderStatus })}>{Object.keys(statusLabels).filter(status => !['draft', 'cancelled', 'refunded'].includes(status)).map(status => <option key={status} value={status}>{statusLabels[status as OrderStatus][lang]}</option>)}</select>}
+          {!['completed', 'cancelled', 'refunded'].includes(order.status) && <button className="icon-button" title={lang === 'ar' ? 'إلغاء' : 'Cancel'} disabled={action.isPending} onClick={() => { if (window.confirm(lang === 'ar' ? 'إلغاء الطلب؟' : 'Cancel this order?')) action.mutate({ kind: 'cancel' }); }}><XCircle size={16} /></button>}
+        </div>
+        {action.isError && <div className="state-panel" role="alert">{(action.error as Error).message}</div>}
       </div>
 
       {/* Customer & Branch info */}

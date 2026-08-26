@@ -318,6 +318,14 @@ export class UsersService {
       throw new AppError("USER_NOT_FOUND", 404, "User not found");
     }
 
+    const phone = input.phone === undefined ? undefined : input.phone.trim() || null;
+    if (phone !== undefined) {
+      const existing = await this.prisma.user.findFirst({ where: { phone, id: { not: id } }, select: { id: true } });
+      if (existing) {
+        throw new AppError("PHONE_EXISTS", 409, "Phone already exists");
+      }
+    }
+
     const whatsappSenderNumber = input.whatsappSenderNumber === undefined
       ? undefined
       : this.normalizeWhatsappNumber(input.whatsappSenderNumber);
@@ -336,6 +344,7 @@ export class UsersService {
       where: { id },
       data: {
         name: input.name,
+        phone,
         whatsappSenderNumber,
         ...(input.newPassword ? { passwordHash: await hashPassword(input.newPassword) } : {}),
       },

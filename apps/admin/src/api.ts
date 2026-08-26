@@ -1368,6 +1368,8 @@ export const installments = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  sendWhatsApp: (installmentId: string) =>
+    apiFetch<{ phone: string; message: string }>(`/installments/${installmentId}/send-whatsapp`, { method: 'POST' }),
   updateStatuses: () =>
     apiFetch<{ updated: number }>('/installments/status-update', {
       method: 'POST',

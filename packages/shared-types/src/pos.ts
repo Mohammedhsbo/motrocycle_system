@@ -65,9 +65,20 @@ export interface POSCustomerSearchResult {
   };
 }
 
+export interface POSCustomerSearchResponse {
+  items: POSCustomerSearchResult[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const posCustomerSearchSchema = z.object({
-  q: z.string().min(2, "Search term must be at least 2 characters"),
+  q: z.string().trim().refine((value) => value.length === 0 || value.length >= 2, {
+    message: "Search term must be at least 2 characters",
+  }).optional().default(""),
   limit: z.coerce.number().min(1).max(20).default(10),
+  page: z.coerce.number().int().min(1).default(1),
 });
 
 export type POSCustomerSearchQuery = z.infer<typeof posCustomerSearchSchema>;
