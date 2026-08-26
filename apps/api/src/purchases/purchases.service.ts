@@ -151,6 +151,7 @@ export class PurchasesService {
         include: {
           supplier: { select: { id: true, name: true } },
           branch: { select: { id: true, nameAr: true, nameEn: true } },
+          items: { select: { id: true, model: true, vin: true, quantity: true, unitCost: true, motorcycleId: true } },
           _count: { select: { items: true } }
         },
         orderBy: { createdAt: 'desc' },
@@ -161,7 +162,7 @@ export class PurchasesService {
     const items = rawItems.map(item => ({
       ...item,
       itemCount: item._count.items,
-      receivedCount: 0,
+      receivedCount: item.items.filter((purchaseItem) => purchaseItem.motorcycleId !== null).length,
     }));
 
     return {

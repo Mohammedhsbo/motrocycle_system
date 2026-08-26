@@ -189,7 +189,6 @@ export interface PurchaseItem {
   vin?: string;
   quantity: number;
   unitCost: number | string;
-  receivedAt?: string;
   motorcycleId?: string;
 }
 

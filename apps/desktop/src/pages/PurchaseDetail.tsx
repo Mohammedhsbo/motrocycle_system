@@ -94,7 +94,7 @@ export default function PurchaseDetail({ lang }: { lang: Lang }) {
     onError: (err: Error) => setError(err.message),
   });
 
-  const pendingItems = purchase?.items.filter(item => !item.receivedAt) ?? [];
+  const pendingItems = (purchase?.items ?? []).filter(item => !item.motorcycleId);
 
   if (isLoading) {
     return <section className="desktop-page" dir={isRtl ? 'rtl' : 'ltr'}><div className="state-panel">{t.loading}</div></section>;
@@ -153,7 +153,7 @@ export default function PurchaseDetail({ lang }: { lang: Lang }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {purchase.items.map((item: PurchaseItem) => {
               const subtotal = Number(item.quantity) * Number(item.unitCost || 0);
-              const isReceived = !!item.receivedAt;
+              const isReceived = !!item.motorcycleId;
               return (
                 <div key={item.id} className="list-row" style={{ opacity: isReceived ? 0.8 : 1 }}>
                   <div>

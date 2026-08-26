@@ -107,6 +107,24 @@ export async function seedDatabase() {
     },
   });
 
+  const thirdBranch = await prisma.branch.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000003" },
+    update: {
+      nameAr: "فرع الجنوب",
+      nameEn: "South Branch",
+      address: "South district",
+      phone: "+966122222222",
+      isActive: true,
+    },
+    create: {
+      id: "00000000-0000-0000-0000-000000000003",
+      nameAr: "فرع الجنوب",
+      nameEn: "South Branch",
+      address: "South district",
+      phone: "+966122222222",
+    },
+  });
+
   // Create roles
   const superAdminRole = await upsertRole(
     "super_admin",
@@ -208,6 +226,8 @@ export async function seedDatabase() {
     update: {
       name: "Super Admin",
       passwordHash,
+      phone: "+966500000001",
+      whatsappSenderNumber: "+966500000001",
       roleId: superAdminRole.id,
       branchId: null,
       lang: "en",
@@ -217,6 +237,8 @@ export async function seedDatabase() {
       name: "Super Admin",
       email: "admin@example.com",
       passwordHash,
+      phone: "+966500000001",
+      whatsappSenderNumber: "+966500000001",
       roleId: superAdminRole.id,
       branchId: null,
       lang: "en",
@@ -729,7 +751,7 @@ export async function seedDatabase() {
   // Create customers with addresses
   const customers = await createCustomers();
 
-  return { defaultBranch, secondBranch, superAdminRole, customers };
+  return { defaultBranch, secondBranch, thirdBranch, superAdminRole, customers };
 }
 
 async function createCustomers() {
@@ -1842,9 +1864,122 @@ async function seedReservations() {
   console.log(`✅ Created/updated ${created} sample reservations`);
 }
 
+async function seedDemoResources() {
+  const branches = await prisma.branch.findMany({ orderBy: { id: "asc" } });
+  const [mainBranch, northBranch, southBranch] = branches;
+  const roles = await prisma.role.findMany({ where: { name: { in: ["super_admin", "branch_admin", "sales_staff", "pos_cashier", "pos_sales"] } } });
+  const roleMap = new Map(roles.map((role) => [role.name, role.id]));
+  const passwordHash = await bcrypt.hash("staff123", 10);
+
+  const userSeeds = [
+    { email: "branch.admin@example.com", name: "North Branch Admin", role: "branch_admin", branchId: northBranch.id, isActive: true, phone: "+966500000002" },
+    { email: "sales.staff@example.com", name: "Sales Staff", role: "sales_staff", branchId: mainBranch.id, isActive: true, phone: "+966500000003" },
+    { email: "cashier@example.com", name: "POS Cashier", role: "pos_cashier", branchId: southBranch.id, isActive: true, phone: "+966500000004" },
+    { email: "inactive.staff@example.com", name: "Inactive Staff", role: "sales_staff", branchId: northBranch.id, isActive: false, phone: "+966500000005" },
+  ];
+  const users = [await prisma.user.findUniqueOrThrow({ where: { email: "admin@example.com" } })];
+  for (const seed of userSeeds) {
+    const user = await prisma.user.upsert({
+      where: { email: seed.email },
+      update: { name: seed.name, passwordHash, phone: seed.phone, whatsappSenderNumber: seed.phone, roleId: roleMap.get(seed.role)!, branchId: seed.branchId, isActive: seed.isActive, lang: "en" },
+      create: { email: seed.email, name: seed.name, passwordHash, phone: seed.phone, whatsappSenderNumber: seed.phone, roleId: roleMap.get(seed.role)!, branchId: seed.branchId, isActive: seed.isActive, lang: "en" },
+    });
+    users.push(user);
+  }
+
+  const customers = await prisma.customer.findMany({ orderBy: { createdAt: "asc" }, take: 20 });
+  const motorcycles = await prisma.motorcycle.findMany({ orderBy: { vin: "asc" }, take: 20 });
+  const activeUser = users[1] ?? users[0];
+  if (customers.length < 10 || motorcycles.length < 10) throw new Error("The base customer and motorcycle seed must run first");
+
+  const supplierSeeds = [
+    { name: "Riyadh Motor Imports", contactPerson: "Omar Al-Harbi", phone: "+966511000001", email: "riyadh@example.com", address: "Riyadh Industrial City", isActive: true },
+    { name: "Jeddah Powersports", contactPerson: "Noura Saleh", phone: "+966511000002", email: "jeddah@example.com", address: "Jeddah Port", isActive: true },
+    { name: "Gulf Motorcycle Trading", contactPerson: "Faisal Khan", phone: "+966511000003", email: "gulf@example.com", address: "Dammam", isActive: false },
+  ];
+  const suppliers = [];
+  for (const seed of supplierSeeds) suppliers.push(await prisma.supplier.upsert({ where: { name: seed.name }, update: seed, create: seed }));
+
+  const orderSeeds = [
+    { number: "ORD-SEED-0001", customer: customers[0], bike: motorcycles[0], branch: mainBranch, status: "completed" as const },
+    { number: "ORD-SEED-0002", customer: customers[1], bike: motorcycles[1], branch: mainBranch, status: "confirmed" as const },
+    { number: "ORD-SEED-0003", customer: customers[2], bike: motorcycles[2], branch: northBranch, status: "processing" as const },
+    { number: "ORD-SEED-0004", customer: customers[3], bike: motorcycles[3], branch: northBranch, status: "awaiting_delivery" as const },
+    { number: "ORD-SEED-0005", customer: customers[4], bike: motorcycles[4], branch: southBranch, status: "cancelled" as const },
+    { number: "ORD-SEED-0006", customer: customers[5], bike: motorcycles[5], branch: southBranch, status: "draft" as const },
+    { number: "ORD-SEED-0007", customer: customers[6], bike: motorcycles[6], branch: mainBranch, status: "refunded" as const },
+    { number: "ORD-SEED-0008", customer: customers[7], bike: motorcycles[7], branch: northBranch, status: "confirmed" as const },
+  ];
+  const orders = [];
+  for (const seed of orderSeeds) {
+    const total = Number(seed.bike.price);
+    const order = await prisma.order.upsert({
+      where: { orderNumber: seed.number },
+      update: { status: seed.status, totalAmount: total, netAmount: total, customerId: seed.customer.id, branchId: seed.branch.id, userId: activeUser.id },
+      create: { orderNumber: seed.number, customerId: seed.customer.id, branchId: seed.branch.id, userId: activeUser.id, status: seed.status, totalAmount: total, netAmount: total, notes: "Seed data for desktop workflow testing" },
+    });
+    await prisma.orderItem.upsert({ where: { orderId_motorcycleId: { orderId: order.id, motorcycleId: seed.bike.id } }, update: { unitPrice: total, discount: 0 }, create: { orderId: order.id, motorcycleId: seed.bike.id, unitPrice: total, discount: 0 } });
+    orders.push(order);
+  }
+
+  const purchaseSeeds = [
+    { number: "PO-SEED-0001", supplier: suppliers[0], branch: mainBranch, status: "draft" as const, total: 72000 },
+    { number: "PO-SEED-0002", supplier: suppliers[1], branch: northBranch, status: "ordered" as const, total: 118000 },
+    { number: "PO-SEED-0003", supplier: suppliers[2], branch: southBranch, status: "partially_received" as const, total: 95000 },
+    { number: "PO-SEED-0004", supplier: suppliers[0], branch: mainBranch, status: "received" as const, total: 45000 },
+    { number: "PO-SEED-0005", supplier: suppliers[1], branch: northBranch, status: "cancelled" as const, total: 32000 },
+  ];
+  for (const seed of purchaseSeeds) {
+    const purchase = await prisma.purchase.upsert({ where: { purchaseNumber: seed.number }, update: { status: seed.status, totalAmount: seed.total }, create: { purchaseNumber: seed.number, supplierId: seed.supplier.id, branchId: seed.branch.id, userId: activeUser.id, totalAmount: seed.total, status: seed.status, notes: "Seed purchase for lifecycle testing" } });
+    await prisma.purchaseItem.deleteMany({ where: { purchaseId: purchase.id } });
+    await prisma.purchaseItem.create({ data: { purchaseId: purchase.id, model: "CBR Demo Unit", vin: seed.status === "received" ? motorcycles[8]?.vin : undefined, motorcycleId: seed.status === "received" ? motorcycles[8]?.id : undefined, quantity: 1, unitCost: seed.total } });
+  }
+
+  const transferSeeds = [
+    { number: "TR-SEED-0001", from: mainBranch, to: northBranch, bike: motorcycles[9], status: "initiated" as const },
+    { number: "TR-SEED-0002", from: northBranch, to: southBranch, bike: motorcycles[10], status: "in_transit" as const },
+    { number: "TR-SEED-0003", from: southBranch, to: mainBranch, bike: motorcycles[11], status: "received" as const },
+    { number: "TR-SEED-0004", from: mainBranch, to: southBranch, bike: motorcycles[12], status: "cancelled" as const },
+  ];
+  for (const seed of transferSeeds) {
+    const transfer = await prisma.transfer.upsert({ where: { transferNumber: seed.number }, update: { status: seed.status }, create: { transferNumber: seed.number, fromBranchId: seed.from.id, toBranchId: seed.to.id, userId: activeUser.id, status: seed.status, notes: "Seed transfer for status filtering" } });
+    await prisma.transferItem.deleteMany({ where: { transferId: transfer.id } });
+    await prisma.transferItem.create({ data: { transferId: transfer.id, motorcycleId: seed.bike.id } });
+  }
+
+  const contractSeeds = [
+    { number: "FIN-SEED-0001", customer: customers[0], order: orders[0], branch: mainBranch, status: "active" as const, installments: 12 },
+    { number: "FIN-SEED-0002", customer: customers[1], order: orders[1], branch: mainBranch, status: "completed" as const, installments: 6 },
+    { number: "FIN-SEED-0003", customer: customers[2], order: orders[2], branch: northBranch, status: "defaulted" as const, installments: 8 },
+    { number: "FIN-SEED-0004", customer: customers[3], order: orders[3], branch: northBranch, status: "cancelled" as const, installments: 4 },
+  ];
+  for (const seed of contractSeeds) {
+    const total = Number(seed.order.netAmount);
+    const contract = await prisma.financingContract.upsert({ where: { contractNumber: seed.number }, update: { status: seed.status, totalAmount: total, financingAmount: total - 5000 }, create: { contractNumber: seed.number, customerId: seed.customer.id, orderId: seed.order.id, branchId: seed.branch.id, createdBy: activeUser.id, totalAmount: total, downPayment: 5000, financingAmount: total - 5000, numberOfInstallments: seed.installments, installmentFrequency: "monthly", interestRate: 4.5, startDate: new Date("2026-01-15"), status: seed.status, notes: "Seed financing contract" } });
+    for (let number = 1; number <= seed.installments; number++) {
+      const amount = Number((Number(contract.financingAmount) / seed.installments).toFixed(2));
+      const paid = seed.status === "completed" ? amount : number === 1 && seed.status === "active" ? amount / 2 : 0;
+      await prisma.installment.upsert({ where: { contractId_installmentNumber: { contractId: contract.id, installmentNumber: number } }, update: { amount, paidAmount: paid, status: paid >= amount ? "paid" : number === 1 ? "due" : "upcoming" }, create: { contractId: contract.id, installmentNumber: number, dueDate: new Date(`2026-${String(Math.min(12, number)).padStart(2, "0")}-15`), amount, paidAmount: paid, status: paid >= amount ? "paid" : number === 1 ? "due" : "upcoming" } });
+    }
+  }
+
+  for (let index = 0; index < 5; index++) {
+    const inquiry = await prisma.customerInquiry.findFirst({ where: { customerId: customers[index].id, createdBy: activeUser.id } });
+    if (!inquiry) await prisma.customerInquiry.create({ data: { customerId: customers[index].id, address: `${index + 1} King Fahd Road`, phone: customers[index].phone, occupation: index % 2 ? "Business owner" : "Engineer", occupationAddress: "Riyadh Business District", idCardFrontImage: `seed/id-card-${index + 1}-front.jpg`, idCardBackImage: `seed/id-card-${index + 1}-back.jpg`, createdBy: activeUser.id } });
+  }
+
+  await prisma.notification.deleteMany({ where: { userId: activeUser.id, title: { startsWith: "Test notification " } } });
+  for (let index = 0; index < 8; index++) {
+    await prisma.notification.create({ data: { userId: activeUser.id, branchId: index % 2 ? northBranch.id : mainBranch.id, type: index % 2 ? "payment_reminder" : "reservation_expiring", channel: "in_app", priority: index === 0 ? "urgent" : "normal", title: `Test notification ${index + 1}`, titleAr: `إشعار تجريبي ${index + 1}`, message: "Seed notification for desktop list and unread-state testing", messageAr: "إشعار تجريبي لاختبار قائمة الإشعارات", status: index < 3 ? "pending" : "read", readAt: index < 3 ? undefined : new Date() } });
+  }
+
+  console.log("✅ Seeded users, suppliers, orders, purchases, transfers, financing, inquiries, and notifications");
+}
+
 async function main() {
   await seedDatabase();
   await seedReservations();
+  await seedDemoResources();
 }
 
 if (require.main === module) {

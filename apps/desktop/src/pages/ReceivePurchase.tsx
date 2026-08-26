@@ -112,7 +112,7 @@ function PendingList({
         )}
 
         {!isLoading && !isError && list.map(p => {
-          const pending = p.items.filter(i => !i.receivedAt).length;
+          const pending = (p.items ?? []).filter(i => !i.motorcycleId).length;
           return (
             <div
               key={p.id}
@@ -255,8 +255,8 @@ function ReceiveDetail({ purchaseId, lang }: { purchaseId: string; lang: Lang })
   // refs for keyboard navigation between VIN inputs
   const inputRefs = useRef<Record<string, React.RefObject<HTMLInputElement | null>>>({});
 
-  const pendingItems = (purchase?.items ?? []).filter(i => !i.receivedAt);
-  const doneItems = (purchase?.items ?? []).filter(i => i.receivedAt);
+  const pendingItems = (purchase?.items ?? []).filter(i => !i.motorcycleId);
+  const doneItems = (purchase?.items ?? []).filter(i => i.motorcycleId);
 
   const selectedIds = Object.entries(checked).filter(([, v]) => v).map(([k]) => k);
   const readyCount = selectedIds.filter(id => (vins[id] ?? '').trim().length >= 5).length;
