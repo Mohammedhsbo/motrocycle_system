@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag } from 'lucide-react';
-import { orders, type OrderListItem, type OrderStatus } from '../api';
+import { ShoppingBag } from 'lucide-react';
+import { orders, type OrderStatus } from '../api';
 
 type Lang = 'en' | 'ar';
 
@@ -97,11 +97,11 @@ export default function OrdersPOS({ lang }: Props) {
   };
 
   return (
-    <div className="pos-body" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <div className="pos-body orders-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       {/* Left panel - order list */}
-      <div className="pos-list-panel">
+      <div className="pos-list-panel orders-directory">
         {/* Panel header */}
-        <div className="panel-header">
+        <div className="panel-header orders-panel-header">
           <ShoppingBag size={18} style={{ color: 'var(--blue-light)' }} />
           <span className="panel-title">{t.title}</span>
           <span
@@ -116,15 +116,7 @@ export default function OrdersPOS({ lang }: Props) {
         </div>
 
         {/* Status filters */}
-        <div
-          style={{
-            padding: '0.75rem',
-            borderBottom: '1px solid var(--pos-border)',
-            display: 'flex',
-            gap: '0.375rem',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="orders-filters">
           {(['all', 'draft', 'confirmed', 'processing', 'awaiting_delivery', 'completed', 'cancelled'] as const).map(
             (status) => (
               <button
@@ -145,7 +137,7 @@ export default function OrdersPOS({ lang }: Props) {
         </div>
 
         {/* Order list */}
-        <div className="po-list">
+        <div className="po-list orders-grid">
           {isLoading && (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-3)' }}>
               {t.loading}
@@ -167,7 +159,7 @@ export default function OrdersPOS({ lang }: Props) {
             ordersList.map((order) => (
               <div
                 key={order.id}
-                className={`po-card ${selectedOrderId === order.id ? 'selected' : ''}`}
+                className={`po-card order-grid-card ${selectedOrderId === order.id ? 'selected' : ''}`}
                 onClick={() => handleOrderClick(order.id)}
               >
                 <div
@@ -225,21 +217,6 @@ export default function OrdersPOS({ lang }: Props) {
         </div>
       </div>
 
-      {/* Right panel - placeholder */}
-      <div className="pos-detail-panel">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            color: 'var(--text-3)',
-            fontSize: '0.875rem',
-          }}
-        >
-          {isRtl ? 'اختر طلباً لعرض التفاصيل' : 'Select an order to view details'}
-        </div>
-      </div>
     </div>
   );
 }

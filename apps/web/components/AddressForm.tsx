@@ -41,7 +41,7 @@ export function AddressForm({ mode, initialData, onSubmit, onCancel, isLoading }
       city: "",
       region: "",
       postalCode: "",
-      country: "Saudi Arabia",
+      country: "Egypt",
       isDefault: false,
       notes: "",
     },

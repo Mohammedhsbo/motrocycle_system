@@ -12,7 +12,7 @@ import type {
 import { PrismaService } from "../prisma/prisma.service.js";
 import { TokenStoreService } from "../token-store/token-store.service.js";
 import { AppError } from "../common/errors/app-error.js";
-import { REFRESH_TOKEN_TTL_SECONDS } from "../config/auth.config.js";
+import { REFRESH_TOKEN_TTL_SECONDS, getGoogleOAuthConfig } from "../config/auth.config.js";
 import { decodeToken, generateAccessToken, generateRefreshToken, verifyToken } from "../utils/jwt.js";
 import type { TokenPrincipal } from "../utils/jwt.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
@@ -93,6 +93,130 @@ export class AuthService {
       name: user.name,
       email: user.email,
       phone: user.phone ?? input.phone,
+    };
+  }
+
+  getGoogleAuthUrl(): string {
+    const config = getGoogleOAuthConfig();
+    const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    url.searchParams.append("client_id", config.clientId);
+    url.searchParams.append("redirect_uri", config.callbackUrl);
+    url.searchParams.append("response_type", "code");
+    url.searchParams.append("scope", "openid email profile");
+    url.searchParams.append("access_type", "offline");
+    url.searchParams.append("prompt", "consent");
+    return url.toString();
+  }
+
+  async handleGoogleCallback(code: string, ip: string) {
+    const config = getGoogleOAuthConfig();
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        redirect_uri: config.callbackUrl,
+        grant_type: "authorization_code",
+      }).toString(),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new AppError("OAUTH_ERROR", 400, "Failed to exchange authorization code");
+    }
+
+    const tokenData = await tokenResponse.json();
+    if (!tokenData.id_token) {
+      throw new AppError("OAUTH_ERROR", 400, "No id_token in Google response");
+    }
+
+    const payloadBase64 = tokenData.id_token.split('.')[1];
+    const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
+    const googleUser = JSON.parse(payloadJson);
+    
+    if (!googleUser.email || !googleUser.sub) {
+      throw new AppError("OAUTH_ERROR", 400, "Google profile missing required fields");
+    }
+
+    let customer = await this.prisma.customer.findUnique({
+      where: { googleId: googleUser.sub }
+    });
+
+    if (customer) {
+      if (!customer.isActive) {
+        throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
+      }
+      return this.issueCustomerTokens(customer.id);
+    }
+
+    customer = await this.prisma.customer.findFirst({
+      where: { email: { equals: googleUser.email, mode: "insensitive" } }
+    });
+
+    if (customer) {
+      if (customer.googleId && customer.googleId !== googleUser.sub) {
+         throw new AppError("GOOGLE_ACCOUNT_CONFLICT", 409, "This email is linked to a different Google account");
+      }
+      if (!customer.isActive) {
+        throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
+      }
+      
+      await this.prisma.customer.update({
+        where: { id: customer.id },
+        data: { 
+          googleId: googleUser.sub,
+          authProvider: "google" 
+        }
+      });
+      return this.issueCustomerTokens(customer.id);
+    }
+
+    return {
+      status: "needs_phone" as const,
+      pendingGoogleProfile: {
+        googleId: googleUser.sub,
+        email: googleUser.email,
+        name: googleUser.name || googleUser.email.split('@')[0],
+      }
+    };
+  }
+
+  async completeGoogleProfile(googleId: string, email: string, name: string, phone: string, ip: string) {
+    const phoneExists = await this.prisma.customer.findFirst({ where: { phone } });
+    if (phoneExists) {
+      throw new AppError("PHONE_EXISTS", 409, "Phone number already exists");
+    }
+
+    // Also need to check if user table has this phone? Actually customer register checks both, so let's check user too
+    const userPhoneExists = await this.prisma.user.findFirst({ where: { phone } });
+    if (userPhoneExists) {
+      throw new AppError("PHONE_EXISTS", 409, "Phone number already exists");
+    }
+
+    const customer = await this.prisma.customer.create({
+      data: {
+        name,
+        email,
+        phone,
+        googleId,
+        authProvider: "google",
+        isActive: true,
+      }
+    });
+
+    return this.issueCustomerTokens(customer.id);
+  }
+
+  private async issueCustomerTokens(customerId: string) {
+    const access = generateAccessToken(customerId, "customer");
+    const refresh = generateRefreshToken(customerId, "customer");
+    await this.tokenStore.saveRefreshToken(customerId, refresh.tokenId, refresh.token, refresh.expiresInSeconds);
+    
+    return {
+      status: "authenticated" as const,
+      accessToken: access.token,
+      refreshToken: refresh.token,
     };
   }
 
@@ -308,6 +432,10 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new AppError("TOKEN_INVALID", 401, "Invalid or expired token");
+    }
+
+    if (!user.passwordHash) {
+      throw new AppError("OAUTH_ACCOUNT_NO_PASSWORD", 400, "This account uses Google sign-in. Set a password from account settings to enable password login.");
     }
 
     const passwordMatches = await verifyPassword(input.currentPassword, user.passwordHash);

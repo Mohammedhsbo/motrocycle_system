@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS, getJwtSecret } from "../config/auth.config.js";
 
-export type TokenType = "access" | "refresh";
+export type TokenType = "access" | "refresh" | "pending_profile";
 
 /**
  * Which table `sub` points at. Staff accounts live in `User`, e-commerce
@@ -17,6 +17,10 @@ export interface AuthTokenPayload {
   jti: string;
   type: TokenType;
   principal: TokenPrincipal;
+  googleProfile?: {
+    email: string;
+    name: string;
+  };
 }
 
 export interface GeneratedToken {
@@ -30,6 +34,7 @@ function signToken(
   type: TokenType,
   expiresInSeconds: number,
   principal: TokenPrincipal,
+  extraPayload?: Record<string, unknown>
 ): GeneratedToken {
   const tokenId = randomUUID();
   const token = jwt.sign(
@@ -38,6 +43,7 @@ function signToken(
       jti: tokenId,
       type,
       principal,
+      ...extraPayload,
     },
     getJwtSecret(),
     { expiresIn: expiresInSeconds },
@@ -52,6 +58,13 @@ export function generateAccessToken(subject: string, principal: TokenPrincipal =
 
 export function generateRefreshToken(subject: string, principal: TokenPrincipal = "user") {
   return signToken(subject, "refresh", REFRESH_TOKEN_TTL_SECONDS, principal);
+}
+
+export function generatePendingProfileToken(googleId: string, email: string, name: string) {
+  // Use a short 10-minute expiry
+  return signToken(googleId, "pending_profile", 10 * 60, "customer", {
+    googleProfile: { email, name }
+  });
 }
 
 export function verifyToken(token: string, expectedType: TokenType): AuthTokenPayload {
@@ -70,6 +83,7 @@ export function verifyToken(token: string, expectedType: TokenType): AuthTokenPa
     jti: decoded.jti,
     type: decoded.type,
     principal: decoded.principal ?? "user",
+    googleProfile: decoded.googleProfile,
   };
 }
 

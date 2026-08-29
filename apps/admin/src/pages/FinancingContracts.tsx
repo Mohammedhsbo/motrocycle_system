@@ -76,7 +76,7 @@ export default function FinancingContracts({ lang }: Props) {
   const i18n = t[lang];
   const isRtl = lang === 'ar';
   const navigate = useNavigate();
-  const { branches, branchId } = useBranch();
+  const { branchId } = useBranch();
   const [statusFilter, setStatusFilter] = useState<FinancingContractStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -92,13 +92,15 @@ export default function FinancingContracts({ lang }: Props) {
   };
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['financing-contracts', statusFilter, debouncedSearch, customerId, branchId, startDateFrom, startDateTo],
+    queryKey: ['financing-contracts', statusFilter, debouncedSearch, customerId, startDateFrom, startDateTo],
     queryFn: () =>
       financingContracts.list({
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: debouncedSearch || undefined,
         customerId,
-        branchId: branchId ?? undefined,
+        // branchId intentionally omitted — the server scopes by the JWT user's
+        // own branchId for non-super_admin users; sending it here is a no-op
+        // and matches the site-wide decision to not forward hardcoded branchIds.
         startDateFrom: startDateFrom || undefined,
         startDateTo: startDateTo || undefined,
         limit: 50,
@@ -141,7 +143,7 @@ export default function FinancingContracts({ lang }: Props) {
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem', display: 'flex', gap: '.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <CustomerSearch lang={lang} onSelect={customer => { setCustomerId(customer.id); setCustomerName(customer.name); }} trigger={<button type="button" className="btn btn-secondary">{customerName || 'Customer'}</button>} />
         {customerId && <button className="btn btn-outline" onClick={() => { setCustomerId(undefined); setCustomerName(''); }}>Clear customer</button>}
-        <select className="input" value={branchId ?? ''} disabled><option value="">{branches.find(branch => branch.id === branchId)?.nameEn ?? 'Branch'}</option></select>
+        <select className="input" value={branchId ?? ''} disabled><option value="">Main Branch</option></select>
         <input className="input" type="date" value={startDateFrom} onChange={event => setStartDateFrom(event.target.value)} />
         <input className="input" type="date" value={startDateTo} onChange={event => setStartDateTo(event.target.value)} />
       </div>

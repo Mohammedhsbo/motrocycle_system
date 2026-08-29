@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -169,8 +170,7 @@ export class OrdersController {
   }
 
   @Post(':id/cancel')
-  @UseGuards(PermissionsGuard)
-  @RequirePermission(Resource.ORDER, Action.DELETE)
+  @UseGuards(JwtAuthGuard)
   async cancel(
     @Param('id') id: string,
     @Body() body: CancelOrderDto,
@@ -179,6 +179,16 @@ export class OrdersController {
     const user = req.user;
     const isCustomer = user.roleName === 'customer';
     const isSuperAdmin = user.roleName === 'super_admin';
+
+    // Manual permission check for staff to not relax the rule
+    if (!isCustomer && !isSuperAdmin) {
+      const hasPermission = user.permissions?.some(
+        (p: any) => p.resource === Resource.ORDER && p.action === Action.DELETE
+      );
+      if (!hasPermission) {
+        throw new ForbiddenException('Insufficient permissions');
+      }
+    }
 
     await this.ordersService.cancel(
       id,

@@ -9,7 +9,6 @@ import { PrismaModule } from "./prisma/prisma.module.js";
 import { TokenStoreModule } from "./token-store/token-store.module.js";
 import { UsersModule } from "./users/users.module.js";
 import { RolesModule } from "./roles/roles.module.js";
-
 import { UploadModule } from "./upload/upload.module.js";
 import { MotorcyclesModule } from "./motorcycles/motorcycles.module.js";
 import { SocketModule } from "./socket/index.js";
@@ -33,6 +32,15 @@ import { ConfigurationModule } from "./configuration/configuration.module.js";
 import { IntegrationsModule } from "./integrations/integrations.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { CustomerInquiriesModule } from "./customer-inquiries/customer-inquiries.module.js";
+import { CustomerFinancingModule } from "./customer-financing/customer-financing.module.js";
+import { InquiriesModule } from "./inquiries/inquiries.module.js";
+import { SalesModule } from "./sales/sales.module.js";
+import { SalesRequestsModule } from "./sales-requests/sales-requests.module.js";
+import { PosReservationsModule } from "./pos-reservations/pos-reservations.module.js";
+import { PosInstallmentsModule } from "./pos-installments/pos-installments.module.js";
+import { DesktopPermissionsModule } from "./desktop-permissions/desktop-permissions.module.js";
+import { AttendanceModule } from "./attendance/attendance.module.js";
+
 
 @Module({
   imports: [
@@ -73,6 +81,14 @@ import { CustomerInquiriesModule } from "./customer-inquiries/customer-inquiries
     IntegrationsModule,
     HealthModule,
     CustomerInquiriesModule,
+    CustomerFinancingModule,
+    InquiriesModule,
+    SalesModule,
+    SalesRequestsModule,
+    PosReservationsModule,
+    PosInstallmentsModule,
+    DesktopPermissionsModule,
+    AttendanceModule,
   ],
   providers: [RequestLoggerMiddleware],
 })

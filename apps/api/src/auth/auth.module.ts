@@ -9,4 +9,4 @@ import { PermissionsGuard } from "./guards/permissions.guard.js";
   providers: [AuthService, JwtAuthGuard, PermissionsGuard],
   exports: [JwtAuthGuard, PermissionsGuard],
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -17,6 +17,8 @@
   },
   "nav": {
     "motorcycles": "Motorcycles",
+    "brands": "Brands",
+    "articles": "Articles",
     "account": "My Account",
     "login": "Login",
     "register": "Register",
@@ -24,7 +26,25 @@
     "profile": "Profile",
     "addresses": "Addresses",
     "changePassword": "Change Password",
-    "contact": "Contact Us"
+    "contact": "Contact Us",
+    "branches": "Branches",
+    "orders": "My orders",
+    "financing": "Installment requests",
+    "reservations": "Reservations"
+  },
+  "account": {
+    "loading": "Loading...",
+    "eyebrow": "Customer account",
+    "title": "Manage your account",
+    "customer": "Customer",
+    "profile": "My details",
+    "profileDescription": "Review and update your personal details",
+    "orders": "My orders",
+    "ordersDescription": "Track your motorcycle purchase orders",
+    "financing": "Installment requests",
+    "financingDescription": "Review your installment requests and contracts",
+    "reservations": "Reservations",
+    "reservationsDescription": "Track your current and past reservations"
   },
   "auth": {
     "login": "Login",
@@ -58,7 +78,9 @@
       "submit": "Create Account",
       "success": "Account created successfully!",
       "alreadyHaveAccount": "Already have an account?",
-      "loginLink": "Login here"
+      "loginLink": "Login here",
+      "orContinueWith": "Or continue with",
+      "googleSignUp": "Sign up with Google"
     },
     "profile": {
       "title": "My Profile",
@@ -90,13 +112,13 @@
       "addressLine": "Address Line",
       "addressLinePlaceholder": "Street address, building number, apartment",
       "city": "City",
-      "cityPlaceholder": "e.g., Riyadh",
+      "cityPlaceholder": "e.g., Cairo",
       "region": "Region/Province",
-      "regionPlaceholder": "e.g., Riyadh Region",
+      "regionPlaceholder": "e.g., Cairo Governorate",
       "postalCode": "Postal Code",
       "postalCodePlaceholder": "e.g., 12345",
       "country": "Country",
-      "countryPlaceholder": "e.g., Saudi Arabia",
+      "countryPlaceholder": "e.g., Egypt",
       "notes": "Delivery Notes (Optional)",
       "notesPlaceholder": "Additional instructions for delivery",
       "isDefault": "Set as default address",
@@ -224,7 +246,7 @@
     "startDate": "Start Date"
   },
   "header": {
-    "brandName": "MotorCycle",
+    "brandName": "Awlad Ghanem Motorcycles",
     "home": "Home",
     "financing": "Financing",
     "searchInventory": "Search inventory",
@@ -235,7 +257,7 @@
     "switchToArabic": "العربية"
   },
   "footer": {
-    "brandName": "MotorCycle",
+    "brandName": "Awlad Ghanem Motorcycles",
     "tagline": "Verified motorcycle inventory, secure reservations, and branch-backed dealership support.",
     "explore": "Explore",
     "reservations": "Reservations",
@@ -244,7 +266,7 @@
     "flexibleReservations": "Flexible reservations",
     "branchAvailability": "Branch availability",
     "customerSupport": "Customer account support",
-    "rights": "© {year} MotorCycle System. All rights reserved."
+    "rights": "© {year} Awlad Ghanem Motorcycles. All rights reserved."
   },
   "catalog": {
     "resultsCount": "{count} motorcycles found",
@@ -278,7 +300,7 @@
   "home": {
     "badge": "Premium verified inventory",
     "title": "Find Your Next Ride.",
-    "description": "Explore branch-backed motorcycles with real availability, secure reservations, and a polished buying experience connected to the Motrocycle System backend.",
+    "description": "Explore branch-backed motorcycles with real availability, secure reservations, and a polished buying experience from Awlad Ghanem Motorcycles.",
     "explore": "Explore Motorcycles",
     "reserve": "Book a Reservation",
     "featuredBikes": "Featured bikes",
@@ -299,7 +321,36 @@
     "emptyUnavailable": "Inventory is temporarily unavailable.",
     "emptyUnavailableDescription": "Please try again shortly while we reconnect to the inventory service.",
     "emptyNoneAvailable": "No motorcycles are available right now.",
-    "emptyNoneAvailableDescription": "Check back after inventory is added through the admin dashboard."
+    "emptyNoneAvailableDescription": "Check back after inventory is added through the admin dashboard.",
+    "installmentOffer": "Starting installment offer",
+    "perMonth": "per month for {months} months",
+    "engine": "Engine",
+    "color": "Color",
+    "price": "Price",
+    "verified": "Verified",
+    "details": "Details",
+    "hero": {
+      "newHeadline": "All roads start here",
+      "newSubheadline": "A diverse collection of the best brands at the best prices and highest quality",
+      "rightHeadline": "Get ready for your next adventure!",
+      "rightSubheadline": "Choose the right motorcycle or scooter for you from the largest selection to suit all tastes",
+      "discountValue": "30%",
+      "discountLabel": "Discount on bike price",
+      "installmentLabel": "Installment over",
+      "installmentValue": "24",
+      "installmentMonths": "Months",
+      "installmentDownpayment": "Down payment",
+      "yearsInstallment": "Installment systems with repayment up to",
+      "yearsValue": "5",
+      "yearsLabel": "Years",
+      "trustTitle": "For all governorates:",
+      "trust1": "Genuine warranty on the bike",
+      "trust2": "After-sales service and certified maintenance",
+      "trust3": "Safe delivery to your doorstep",
+      "brandsStrip": "Available Brands",
+      "brandsMore": "View All",
+      "brandsAll": "All"
+    }
   },
   "motorcycleDetails": {
     "backToInventory": "Back to inventory",
@@ -338,10 +389,19 @@
     "successMessage": "Thank you! Your message has been sent.",
     "contactInfo": "Contact Information",
     "addressLabel": "Address",
-    "addressValue": "123 Motorcycle Street, Riyadh, Saudi Arabia",
+    "addressValue": "123 Motorcycle Street, Cairo, Egypt",
     "phoneLabel": "Phone",
-    "phoneValue": "+966 11 000 0000",
+    "phoneValue": "+20 2 0000 0000",
     "emailLabel": "Email",
     "emailValue": "info@motorcycle.com"
+  },
+  "branches": {
+    "eyebrow": "Awlad Ghanem showrooms",
+    "title": "Find your nearest branch",
+    "description": "Explore our active branches and contact the Awlad Ghanem team before you visit.",
+    "branchLabel": "Active branch",
+    "openMap": "Open location in Maps",
+    "emptyTitle": "No branches are available",
+    "emptyDescription": "Please check back soon for our branch locations."
   }
 }

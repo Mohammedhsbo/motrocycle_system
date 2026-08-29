@@ -138,7 +138,7 @@ export default function OrderDetailPOS({ lang }: Props) {
 
   if (isLoading) {
     return (
-      <div className="pos-detail-panel" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+      <div className="pos-detail-panel order-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
         <div
           style={{
             display: 'flex',
@@ -156,7 +156,7 @@ export default function OrderDetailPOS({ lang }: Props) {
 
   if (isError || !order) {
     return (
-      <div className="pos-detail-panel" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+      <div className="pos-detail-panel order-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
         <div
           style={{
             display: 'flex',
@@ -179,11 +179,11 @@ export default function OrderDetailPOS({ lang }: Props) {
   }
 
   return (
-    <div className="pos-detail-panel" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <div className="pos-detail-panel order-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       {/* Back button */}
       <button
         onClick={() => navigate('/orders')}
-        className="btn btn-ghost"
+        className="btn btn-ghost order-detail-back"
         style={{ marginBottom: '1.5rem' }}
       >
         <ArrowLeft size={16} />
@@ -191,7 +191,7 @@ export default function OrderDetailPOS({ lang }: Props) {
       </button>
 
       {/* Order header */}
-      <div className="pos-card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card order-detail-hero" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
           <div>
             <div
@@ -232,8 +232,8 @@ export default function OrderDetailPOS({ lang }: Props) {
       </div>
 
       {/* Customer & Branch info */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="pos-card" style={{ padding: '1rem' }}>
+      <div className="order-info-grid">
+        <div className="pos-card order-info-card" style={{ padding: '1rem' }}>
           <div
             style={{
               display: 'flex',
@@ -254,7 +254,7 @@ export default function OrderDetailPOS({ lang }: Props) {
               {t.customer}
             </span>
           </div>
-          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{order.customer.name}</div>
+          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{order.customer?.name ?? '—'}</div>
           <div
             style={{
               fontSize: '0.875rem',
@@ -263,14 +263,14 @@ export default function OrderDetailPOS({ lang }: Props) {
               marginBottom: '0.25rem',
             }}
           >
-            {order.customer.phone}
+            {order.customer?.phone ?? '—'}
           </div>
-          {order.customer.email && (
+          {order.customer?.email && (
             <div style={{ fontSize: '0.875rem', color: 'var(--text-2)' }}>
               {order.customer.email}
             </div>
           )}
-          {order.customer.defaultAddress && (
+          {order.customer?.defaultAddress && (
             <div
               style={{
                 fontSize: '0.75rem',
@@ -289,7 +289,7 @@ export default function OrderDetailPOS({ lang }: Props) {
           )}
         </div>
 
-        <div className="pos-card" style={{ padding: '1rem' }}>
+        <div className="pos-card order-info-card" style={{ padding: '1rem' }}>
           <div
             style={{
               display: 'flex',
@@ -311,7 +311,7 @@ export default function OrderDetailPOS({ lang }: Props) {
             </span>
           </div>
           <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>
-            {lang === 'ar' ? order.branch.nameAr : order.branch.nameEn}
+            {lang === 'ar' ? (order.branch?.nameAr ?? '—') : (order.branch?.nameEn ?? '—')}
           </div>
           <div
             style={{
@@ -322,13 +322,13 @@ export default function OrderDetailPOS({ lang }: Props) {
             }}
           >
             <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t.createdBy}</div>
-            <div>{order.user.name}</div>
+            <div>{order.user?.name ?? '—'}</div>
           </div>
         </div>
       </div>
 
       {/* Order items */}
-      <div className="pos-card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card order-items-panel" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div
           style={{
             display: 'flex',
@@ -368,9 +368,9 @@ export default function OrderDetailPOS({ lang }: Props) {
                     }}
                   >
                     {lang === 'ar'
-                      ? item.motorcycle.brand.nameAr
-                      : item.motorcycle.brand.nameEn}{' '}
-                    {item.motorcycle.model}
+                      ? (item.motorcycle?.brand?.nameAr ?? '—')
+                      : (item.motorcycle?.brand?.nameEn ?? '—')}{' '}
+                    {item.motorcycle?.model ?? ''}
                   </div>
                   <div
                     style={{
@@ -409,9 +409,9 @@ export default function OrderDetailPOS({ lang }: Props) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem' }}>
+      <div className="order-bottom-grid">
         {/* Customer order history */}
-        <div className="pos-card" style={{ padding: '1.25rem' }}>
+        <div className="pos-card order-history-panel" style={{ padding: '1.25rem' }}>
           <div
             style={{
               display: 'flex',
@@ -486,7 +486,7 @@ export default function OrderDetailPOS({ lang }: Props) {
 
         {/* Order summary */}
         <div>
-          <div className="pos-card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+          <div className="pos-card order-summary-panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
             <div
               style={{
                 display: 'flex',

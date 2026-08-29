@@ -90,7 +90,7 @@ export function CatalogClient({ initialItems, initialMeta, brands, categories, l
         <aside className="h-fit rounded-lg border border-zinc-200 bg-white p-5 shadow-sm lg:sticky lg:top-24">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-black"><Filter size={18} /> {t("filters")}</h2>
-            <button onClick={resetFilters} className="inline-flex items-center gap-1 text-xs font-bold text-zinc-500 hover:text-red-700">
+            <button onClick={resetFilters} className="inline-flex items-center gap-1 text-xs font-bold text-zinc-500 hover:text-blue-700">
               <RotateCcw size={14} /> {t("reset")}
             </button>
           </div>
@@ -127,7 +127,7 @@ export function CatalogClient({ initialItems, initialMeta, brands, categories, l
           </div>
 
           {error && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-5 text-red-900">
+            <div className="mb-6 rounded-lg border border-red-200 bg-blue-50 p-5 text-red-900">
               <p className="font-bold">{t("errorLoadFailed")}</p>
               <p className="mt-1 text-sm">{error}</p>
             </div>

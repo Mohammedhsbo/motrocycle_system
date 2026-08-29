@@ -12,6 +12,8 @@ interface Motorcycle {
   model: string;
   year: number;
   price: number;
+  reservationDepositAmount?: number | null;
+  reservationDepositPercentage?: number | null;
   brand: {
     nameAr: string;
     nameEn: string;
@@ -24,6 +26,8 @@ interface ReservationFormProps {
   customerId: string;
   onSubmit: (data: { paidAmount: number; notes?: string }) => Promise<void>;
   isSubmitting: boolean;
+  defaultDepositAmount?: number | null;
+  defaultDepositPercentage?: number | null;
 }
 
 export function ReservationForm({
@@ -31,6 +35,8 @@ export function ReservationForm({
   customerId,
   onSubmit,
   isSubmitting,
+  defaultDepositAmount,
+  defaultDepositPercentage,
 }: ReservationFormProps) {
   const t = useTranslations("reservations");
   const tCommon = useTranslations("common");
@@ -40,13 +46,22 @@ export function ReservationForm({
   const [error, setError] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const MIN_DEPOSIT_PERCENT = 0.1;
-  const MIN_DEPOSIT_AMOUNT = 1000;
+  // Calculate minimum deposit using motorcycle-specific config or Settings fallback
+  const depositAmount = motorcycle.reservationDepositAmount ?? defaultDepositAmount;
+  const depositPercentage = motorcycle.reservationDepositPercentage ?? defaultDepositPercentage;
 
-  const minDeposit = Math.max(
-    motorcycle.price * MIN_DEPOSIT_PERCENT,
-    MIN_DEPOSIT_AMOUNT
-  );
+  let minDeposit = 0;
+  let hasConfiguredDeposit = false;
+
+  if (depositAmount) {
+    minDeposit = depositAmount;
+    hasConfiguredDeposit = true;
+  } else if (depositPercentage) {
+    minDeposit = (motorcycle.price * depositPercentage) / 100;
+    hasConfiguredDeposit = true;
+  }
+  // If neither amount nor percentage is configured, minDeposit stays 0 and user enters manually
+
   const remainingAmount = paidAmount
     ? motorcycle.price - parseFloat(paidAmount)
     : motorcycle.price;
@@ -58,7 +73,7 @@ export function ReservationForm({
       return t("errors.depositMustBePositive");
     }
 
-    if (numAmount < minDeposit) {
+    if (hasConfiguredDeposit && numAmount < minDeposit) {
       return t("errors.depositTooLow", {
         amount: minDeposit.toLocaleString(),
       });
@@ -146,11 +161,17 @@ export function ReservationForm({
               placeholder={t("depositPlaceholder")}
               required
             />
-            <p className="text-sm text-gray-600 mt-2">
-              {t("minimumDeposit", {
-                amount: minDeposit.toLocaleString(),
-              })}
-            </p>
+            {hasConfiguredDeposit ? (
+              <p className="text-sm text-gray-600 mt-2">
+                {t("minimumDeposit", {
+                  amount: minDeposit.toLocaleString(),
+                })}
+              </p>
+            ) : (
+              <p className="text-sm text-amber-600 mt-2">
+                لم يتم تحديد حد أدنى للحجز — الرجاء إدخال مبلغ الحجز المطلوب (يجب أن يكون أقل من السعر الإجمالي).
+              </p>
+            )}
           </div>
 
           {paidAmount && !validateDeposit(paidAmount) && (
@@ -219,6 +240,7 @@ export function ReservationForm({
                     <li>{t("notice.expires7Days")}</li>
                     <li>{t("notice.mustCompletePayment")}</li>
                     <li>{t("notice.motorcycleReserved")}</li>
+                    <li>إلغاء الحجز يخصم 300 جنيه مصري من المبلغ المدفوع.</li>
                     <li>{t("notice.depositNonRefundable")}</li>
                   </ul>
                 </div>

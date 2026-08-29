@@ -137,11 +137,11 @@ export default function ReservationsPOS({ lang }: Props) {
   };
 
   return (
-    <div className="pos-body" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <div className="pos-body reservations-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       {/* Left panel - reservation list */}
-      <div className="pos-list-panel">
+      <div className="pos-list-panel reservations-directory">
         {/* Panel header */}
-        <div className="panel-header">
+        <div className="panel-header reservations-panel-header">
           <Bookmark size={18} style={{ color: 'var(--blue-light)' }} />
           <span className="panel-title">{t.title}</span>
           <span
@@ -156,15 +156,7 @@ export default function ReservationsPOS({ lang }: Props) {
         </div>
 
         {/* Status filters */}
-        <div
-          style={{
-            padding: '0.75rem',
-            borderBottom: '1px solid var(--pos-border)',
-            display: 'flex',
-            gap: '0.375rem',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="reservations-filters">
           {(['all', 'active', 'expired', 'cancelled', 'converted'] as const).map((status) => (
             <button
               key={status}
@@ -183,7 +175,7 @@ export default function ReservationsPOS({ lang }: Props) {
         </div>
 
         {/* Reservation list */}
-        <div className="pos-list">
+        <div className="pos-list reservations-grid">
           {isLoading && <DataTableState kind="loading" lang={lang} />}
           {!isLoading && reservationsList.length === 0 && <DataTableState kind="empty" lang={lang} />}
           {reservationsList.map((reservation) => {
@@ -191,7 +183,7 @@ export default function ReservationsPOS({ lang }: Props) {
             return (
               <div
                 key={reservation.id}
-                className="pos-list-item"
+                className="pos-list-item reservation-grid-card"
                 onClick={() => handleReservationClick(reservation.id)}
               >
                 {/* Reservation number & status */}
@@ -279,25 +271,6 @@ export default function ReservationsPOS({ lang }: Props) {
         </div>
       </div>
 
-      {/* Right panel - empty state */}
-      <div className="pos-detail-panel">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            color: 'var(--text-3)',
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <Bookmark size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-            <div style={{ fontSize: '0.9375rem' }}>
-              {lang === 'ar' ? 'اختر حجزاً لعرض التفاصيل' : 'Select a reservation to view details'}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

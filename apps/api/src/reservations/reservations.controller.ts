@@ -231,7 +231,7 @@ export class ReservationsController {
 
     return {
       success: true,
-      data: null,
+      data: result,
     };
   }
 

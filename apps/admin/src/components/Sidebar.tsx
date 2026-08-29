@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PackageSearch, ShoppingCart, Users, ArrowLeftRight, ShoppingBag, X, FileText, CreditCard, Wallet, Mail, BarChart2, Settings, Flag, Building2, History, Key, Tag, Bike, ListTree } from 'lucide-react';
+import { LayoutDashboard, PackageSearch, ShoppingCart, Users, ArrowLeftRight, ShoppingBag, X, FileText, CreditCard, Wallet, Mail, BarChart2, Settings, Flag, Building2, History, Key, Tag, Bike, ListTree, Clock } from 'lucide-react';
 import { useBranch } from '../contexts/BranchContext';
 
 interface SidebarProps {
@@ -11,45 +11,28 @@ interface SidebarProps {
 const nav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', labelAr: 'لوحة التحكم', exact: true },
   { to: '/reports', icon: BarChart2, label: 'Reports', labelAr: 'التقارير' },
-  { to: '/suppliers', icon: PackageSearch, label: 'Suppliers', labelAr: 'الموردون' },
   { to: '/brands', icon: Tag, label: 'Brands', labelAr: 'العلامات التجارية' },
   { to: '/categories', icon: ListTree, label: 'Categories', labelAr: 'الفئات' },
   { to: '/motorcycles', icon: Bike, label: 'Motorcycles', labelAr: 'الدراجات النارية' },
-  { to: '/purchases', icon: ShoppingCart, label: 'Purchases', labelAr: 'المشتريات' },
   { to: '/customers', icon: Users, label: 'Customers', labelAr: 'العملاء' },
   { to: '/orders', icon: ShoppingBag, label: 'Orders', labelAr: 'الطلبات' },
-  { to: '/letters', icon: Mail, label: 'Letters', labelAr: 'الخطابات' },
-  { to: '/invoices', icon: FileText, label: 'Invoices', labelAr: 'الفواتير' },
   { to: '/payments', icon: CreditCard, label: 'Payments', labelAr: 'الدفعات' },
-  { to: '/financing', icon: Wallet, label: 'Financing', labelAr: 'التمويل' },
-  { to: '/installments', icon: Wallet, label: 'Installments', labelAr: 'التقسيط' },
-  { to: '/transfers', icon: ArrowLeftRight, label: 'Transfers', labelAr: 'التحويلات' },
-  { to: '/configuration', icon: Settings, label: 'Configuration', labelAr: 'الإعدادات' },
-  { to: '/feature-flags', icon: Flag, label: 'Feature Flags', labelAr: 'الميزات' },
-  { to: '/branches', icon: Building2, label: 'Branches', labelAr: 'الفروع' },
-  { to: '/configuration-audit', icon: History, label: 'Config Audit', labelAr: 'سجل الإعدادات' },
-  { to: '/integrations', icon: Settings, label: 'Integrations', labelAr: 'التكامل' },
-  { to: '/api-keys', icon: Key, label: 'API Keys', labelAr: 'مفاتيح API' },
+  { to: '/financing', icon: Wallet, label: 'Financing Contracts', labelAr: 'عقود التمويل' },
+  { to: '/installment-requests', icon: Wallet, label: 'Installment Requests', labelAr: 'طلبات التقسيط' },
+  { to: '/financing-companies', icon: Building2, label: 'Financing Companies', labelAr: 'شركات التمويل' },
+  { to: '/installment-durations', icon: Clock, label: 'Installment Durations', labelAr: 'مدد التقسيط' },
 ];
 
 export default function Sidebar({ lang, onToggleLang, onLogout }: SidebarProps) {
   const isRtl = lang === 'ar';
-  const { branches, branchId, setBranchId } = useBranch();
+  const { branchId, setBranchId } = useBranch();
 
   return (
-    <aside className="sidebar" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <aside className="sidebar" style={{ direction: isRtl ? 'rtl' : 'ltr', backgroundColor: 'var(--accent-primary)', color: 'white', borderRight: 'none' }}>
       {/* Logo */}
-      <div style={{ marginBottom: '2rem', paddingLeft: '0.5rem' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-          borderRadius: '0.75rem', padding: '0.75rem 1rem',
-        }}>
-          <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>🏍</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>MotoSystem</div>
-            <div style={{ fontSize: '0.7rem', opacity: 0.7 }}>Admin Panel</div>
-          </div>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ background: 'white', padding: '0.75rem 1.5rem', borderRadius: '0.75rem', display: 'inline-flex', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+          <img src="/logo.png" alt="MotoSystem" style={{ height: '36px', objectFit: 'contain' }} />
         </div>
       </div>
 
@@ -66,11 +49,11 @@ export default function Sidebar({ lang, onToggleLang, onLogout }: SidebarProps) 
               borderRadius: 'var(--radius-md)',
               textDecoration: 'none', fontWeight: 500,
               fontSize: '0.875rem', transition: 'var(--transition)',
-              color: isActive ? 'white' : 'var(--text-secondary)',
+              color: isActive ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.75)',
               background: isActive
-                ? 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(139,92,246,0.2))'
+                ? 'white'
                 : 'transparent',
-              borderLeft: isActive ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              borderLeft: 'none',
             })}
           >
             <Icon size={18} />
@@ -79,22 +62,19 @@ export default function Sidebar({ lang, onToggleLang, onLogout }: SidebarProps) 
         ))}
       </nav>
 
-      <select className="input" value={branchId ?? ''} onChange={event => event.target.value && setBranchId(event.target.value)}>
-        {branches.map(branch => <option key={branch.id} value={branch.id}>{isRtl ? branch.nameAr : branch.nameEn}</option>)}
-      </select>
 
       {/* Language toggle */}
       <button
         onClick={onToggleLang}
-        className="btn btn-outline"
-        style={{ marginTop: '1rem', width: '100%' }}
+        className="btn"
+        style={{ marginTop: '1rem', width: '100%', border: '1px solid rgba(255,255,255,0.3)', color: 'white', background: 'rgba(255,255,255,0.1)' }}
       >
         {isRtl ? 'English' : 'عربي'}
       </button>
       <button
         onClick={onLogout}
-        className="btn btn-outline"
-        style={{ marginTop: '0.5rem', width: '100%' }}
+        className="btn"
+        style={{ marginTop: '0.5rem', width: '100%', border: '1px solid rgba(255,255,255,0.3)', color: 'white', background: 'rgba(255,255,255,0.1)' }}
       >
         {isRtl ? 'تسجيل الخروج' : 'Sign out'}
       </button>

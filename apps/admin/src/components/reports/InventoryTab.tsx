@@ -7,7 +7,7 @@ interface Props {
   preset: string;
   startDate: string;
   endDate: string;
-  branchId: string;
+  branchId?: string;
   lang: 'en' | 'ar';
 }
 

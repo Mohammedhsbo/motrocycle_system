@@ -18,7 +18,15 @@ interface MotorcycleData {
   };
 }
 
-export function AddToCartButton({ motorcycle }: { motorcycle: MotorcycleData }) {
+export function AddToCartButton({
+  motorcycle,
+  label = "Add to Cart",
+  className = "rounded-md border border-zinc-950 px-5 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-950 hover:text-white flex items-center justify-center gap-2",
+}: {
+  motorcycle: MotorcycleData;
+  label?: string;
+  className?: string;
+}) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
@@ -58,10 +66,10 @@ export function AddToCartButton({ motorcycle }: { motorcycle: MotorcycleData }) 
     <button 
       onClick={handleAddToCart}
       disabled={isAdding}
-      className="rounded-md border border-zinc-950 px-5 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-950 hover:text-white flex items-center justify-center gap-2"
+      className={className}
     >
       <ShoppingBag size={18} />
-      {isAdding ? "Adding..." : "Add to Cart"}
+      {isAdding ? "Adding..." : label}
     </button>
   );
 }

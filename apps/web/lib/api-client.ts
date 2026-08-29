@@ -44,7 +44,7 @@ async function fetchApi<T>(
   const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
   const headers = new Headers(options.headers);
-  if (!headers.has("Content-Type")) {
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -55,6 +55,7 @@ async function fetchApi<T>(
   }
 
   const response = await fetch(`${API_BASE}/${normalizeEndpoint(endpoint)}`, {
+    credentials: "include",
     ...options,
     headers,
   });

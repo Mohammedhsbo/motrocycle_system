@@ -71,7 +71,6 @@ export default function Reports({ lang }: Props) {
   const [isCustomDate, setIsCustomDate] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [branchId, setBranchId] = useState('');
 
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -144,18 +143,6 @@ export default function Reports({ lang }: Props) {
             />
           </>
         )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRtl ? '0' : 'auto', marginRight: isRtl ? 'auto' : '0' }}>
-          <Filter size={18} style={{ color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder={i18n.filters.branch} 
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className="input"
-            style={{ minWidth: '150px' }}
-          />
-        </div>
       </div>
 
       {/* Tabs */}
@@ -183,16 +170,16 @@ export default function Reports({ lang }: Props) {
       {/* Tab Content */}
       <div style={{ minHeight: '400px' }}>
         {activeTab === 'executive' && (
-          <ExecutiveTab preset={preset} startDate={startDate} endDate={endDate} branchId={branchId} lang={lang} />
+          <ExecutiveTab preset={preset} startDate={startDate} endDate={endDate} lang={lang} />
         )}
         {activeTab === 'sales' && (
-          <SalesTab preset={preset} startDate={startDate} endDate={endDate} branchId={branchId} lang={lang} />
+          <SalesTab preset={preset} startDate={startDate} endDate={endDate} lang={lang} />
         )}
         {activeTab === 'financials' && (
-          <FinancialsTab preset={preset} startDate={startDate} endDate={endDate} branchId={branchId} lang={lang} />
+          <FinancialsTab preset={preset} startDate={startDate} endDate={endDate} lang={lang} />
         )}
         {activeTab === 'inventory' && (
-          <InventoryTab preset={preset} startDate={startDate} endDate={endDate} branchId={branchId} lang={lang} />
+          <InventoryTab preset={preset} startDate={startDate} endDate={endDate} lang={lang} />
         )}
       </div>
     </div>

@@ -21,11 +21,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async () => {
     try {
-      const token = getAuthToken();
+      let token = getAuthToken();
       if (!token) {
-        setUser(null);
-        setIsLoading(false);
-        return;
+        try {
+          const result = await apiClient.post<{ accessToken: string }>("/auth/refresh");
+          token = result.accessToken;
+          setAuthToken(token);
+        } catch (e) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
       }
 
       const userData = await apiClient.get<CurrentUserResponse>("/auth/me");

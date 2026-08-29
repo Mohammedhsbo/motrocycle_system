@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Bike, Receipt, AlertCircle, Clock, XCircle, CheckCircle, Edit3, MessageCircle } from 'lucide-react';
-import { reservations, pos, type ReservationStatus } from '../api';
+import { reservations, pos, financing, type ReservationStatus } from '../api';
 import ConvertToOrder from '../components/ConvertToOrder';
 import { buildWhatsAppUrl } from '../../../../packages/shared-types/src/whatsapp';
 
@@ -63,6 +63,14 @@ const T = {
     cancel: 'Cancel',
     confirm: 'Confirm',
     cancelling: 'Cancelling...',
+    installmentPlan: 'Installment Plan',
+    contractNumber: 'Contract Number',
+    financingAmount: 'Financing Amount',
+    months: 'Months',
+    status_active: 'Active',
+    status_completed: 'Completed',
+    status_defaulted: 'Defaulted',
+    status_cancelled: 'Cancelled',
   },
   ar: {
     back: 'العودة للحجوزات',
@@ -118,6 +126,14 @@ const T = {
     cancel: 'إلغاء',
     confirm: 'تأكيد',
     cancelling: 'جاري الإلغاء...',
+    installmentPlan: 'خطة التقسيط',
+    contractNumber: 'رقم العقد',
+    financingAmount: 'مبلغ التقسيط',
+    months: 'أشهر',
+    status_active: 'نشط',
+    status_completed: 'مكتمل',
+    status_defaulted: 'متعثر',
+    status_cancelled: 'ملغي',
   },
 };
 
@@ -158,6 +174,14 @@ export default function ReservationDetailPOS({ lang }: Props) {
     queryFn: () => reservations.getCustomerReservations(reservation!.customer.id, { limit: 10 }),
     enabled: !!reservation?.customer.id,
   });
+
+  const { data: financingData } = useQuery({
+    queryKey: ['customerFinancing', reservation?.customer.id],
+    queryFn: () => financing.list({ customerId: reservation!.customer.id, limit: 100 }),
+    enabled: !!reservation?.customer.id && !!reservation?.convertedOrder?.id,
+  });
+
+  const tiedFinancingContract = financingData?.items?.find(f => f.orderId === reservation?.convertedOrder?.id);
 
   const customerReservations = customerReservationsData?.items.filter((r) => r.id !== id) ?? [];
 
@@ -250,7 +274,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
   if (isLoading) {
     return (
-      <div className="pos-detail-panel" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+      <div className="pos-detail-panel reservation-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
         <div
           style={{
             display: 'flex',
@@ -268,7 +292,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
   if (isError || !reservation) {
     return (
-      <div className="pos-detail-panel" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+      <div className="pos-detail-panel reservation-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
         <div
           style={{
             display: 'flex',
@@ -297,11 +321,11 @@ export default function ReservationDetailPOS({ lang }: Props) {
   const canCancel = reservation.status === 'active';
 
   return (
-    <div className="pos-detail-panel" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <div className="pos-detail-panel reservation-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       {/* Back button */}
       <button
         onClick={() => navigate('/reservations')}
-        className="btn btn-ghost"
+        className="btn btn-ghost reservation-detail-back"
         style={{ marginBottom: '1.5rem' }}
       >
         <ArrowLeft size={16} />
@@ -309,7 +333,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
       </button>
 
       {/* Reservation header */}
-      <div className="pos-card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card reservation-detail-hero" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
           <div>
             <div
@@ -334,7 +358,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
       {/* Expiration alert */}
       {expirationDisplay && (
-        <div
+        <div className="reservation-expiration"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -360,7 +384,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
       {/* Actions */}
       {(
-        <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div className="pos-card reservation-actions" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem' }}>
             {t.actions}
           </div>
@@ -402,7 +426,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
       {showEdit && <div className="modal-backdrop"><div className="payment-modal"><button className="drawer-close" onClick={() => setShowEdit(false)}><XCircle size={18} /></button><h2>{isRtl ? 'تعديل الحجز' : 'Edit reservation'}</h2><label>{isRtl ? 'تاريخ الانتهاء' : 'Expires at'}<input type="datetime-local" value={editExpiresAt} onChange={event => setEditExpiresAt(event.target.value)} /></label><label>{isRtl ? 'ملاحظات' : 'Notes'}<textarea value={editNotes} onChange={event => setEditNotes(event.target.value)} /></label>{(updateMutation.isError || extendMutation.isError) && <div className="inline-error">{((updateMutation.error || extendMutation.error) as Error).message}</div>}<div className="modal-actions"><button className="secondary-action" onClick={() => setShowEdit(false)}>{isRtl ? 'إلغاء' : 'Cancel'}</button><button className="secondary-action" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>{isRtl ? 'حفظ التعديل' : 'Save changes'}</button><button className="primary-action" disabled={!editExpiresAt || extendMutation.isPending} onClick={() => extendMutation.mutate()}>{isRtl ? 'تمديد' : 'Extend'}</button></div></div></div>}
 
       {/* Customer info */}
-      <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card reservation-info-card reservation-customer-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <User size={16} style={{ color: 'var(--blue-light)' }} />
           <h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{t.customer}</h3>
@@ -410,19 +434,19 @@ export default function ReservationDetailPOS({ lang }: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.customer}</div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{reservation.customer.name}</div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{reservation.customer?.name ?? '—'}</div>
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.phone}</div>
-            <div style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{reservation.customer.phone}</div>
+            <div style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{reservation.customer?.phone ?? '—'}</div>
           </div>
-          {reservation.customer.email && (
+          {reservation.customer?.email && (
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.email}</div>
               <div style={{ fontSize: '0.875rem' }}>{reservation.customer.email}</div>
             </div>
           )}
-          {reservation.customer.defaultAddress && (
+          {reservation.customer?.defaultAddress && (
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.address}</div>
               <div style={{ fontSize: '0.875rem' }}>
@@ -435,7 +459,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
       </div>
 
       {/* Motorcycle info */}
-      <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card reservation-info-card reservation-motorcycle-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <Bike size={16} style={{ color: 'var(--blue-light)' }} />
           <h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{t.motorcycle}</h3>
@@ -444,7 +468,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.brand}</div>
             <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-              {lang === 'ar' ? reservation.motorcycle.brand.nameAr : reservation.motorcycle.brand.nameEn}
+              {lang === 'ar' ? (reservation.motorcycle?.brand?.nameAr ?? '—') : (reservation.motorcycle?.brand?.nameEn ?? '—')}
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -471,7 +495,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
       </div>
 
       {/* Payment summary */}
-      <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card reservation-info-card reservation-payment-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <Receipt size={16} style={{ color: 'var(--blue-light)' }} />
           <h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{t.paymentSummary}</h3>
@@ -511,13 +535,13 @@ export default function ReservationDetailPOS({ lang }: Props) {
       </div>
 
       {/* Details */}
-      <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="pos-card reservation-meta-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.branch}</div>
               <div style={{ fontSize: '0.875rem' }}>
-                {lang === 'ar' ? reservation.branch.nameAr : reservation.branch.nameEn}
+                {lang === 'ar' ? (reservation.branch?.nameAr ?? '—') : (reservation.branch?.nameEn ?? '—')}
               </div>
             </div>
             <div>
@@ -529,7 +553,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.createdBy}</div>
-            <div style={{ fontSize: '0.875rem' }}>{reservation.user.name}</div>
+            <div style={{ fontSize: '0.875rem' }}>{reservation.user?.name ?? '—'}</div>
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.createdOn}</div>
@@ -540,7 +564,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
       {/* Converted order */}
       {reservation.convertedOrder && (
-        <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div className="pos-card reservation-converted-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600 }}>
             {t.convertedOrder}
           </div>
@@ -564,7 +588,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
       {/* Notes */}
       {(reservation.notes || reservation.cancelReason) && (
-        <div className="pos-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div className="pos-card reservation-notes-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
             {reservation.cancelReason ? t.cancelReason : t.notes}
           </div>
@@ -574,9 +598,44 @@ export default function ReservationDetailPOS({ lang }: Props) {
         </div>
       )}
 
+      {/* Installment Plan */}
+      {tiedFinancingContract && (
+        <div className="pos-card reservation-installment-card" style={{ padding: '1rem', marginBottom: '1.5rem', borderLeft: '3px solid var(--blue-light)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <Receipt size={16} style={{ color: 'var(--blue-light)' }} />
+            <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{t.installmentPlan}</div>
+            <span className={`badge badge-${tiedFinancingContract.status}`} style={{ marginInlineStart: 'auto' }}>
+              {(t as any)[`status_${tiedFinancingContract.status}`] || tiedFinancingContract.status}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.contractNumber}</div>
+              <div style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.875rem', color: 'var(--blue-light)' }}>
+                {tiedFinancingContract.contractNumber}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.financingAmount}</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                  {formatCurrency(tiedFinancingContract.financingAmount)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{t.months}</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                  {tiedFinancingContract.numberOfInstallments}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Customer reservations */}
       {customerReservations.length > 0 && (
-        <div className="pos-card" style={{ padding: '1rem' }}>
+        <div className="pos-card reservation-history-card" style={{ padding: '1rem' }}>
           <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600 }}>
             {t.customerReservations}
           </div>

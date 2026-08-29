@@ -6,9 +6,11 @@ import { useViewingBranch } from '../contexts/ViewingBranchContext';
 
 interface MotorcycleSearchPOSProps {
   lang: 'en' | 'ar';
-  customer: any;
+  customer?: any;
   onSelect: (motorcycle: any) => void;
-  onBack: () => void;
+  onBack?: () => void;
+  branchId?: string;
+  selectedMotorcycleId?: string;
 }
 
 export default function MotorcycleSearchPOS({
@@ -37,7 +39,7 @@ export default function MotorcycleSearchPOS({
   }, []);
 
   useKeyboardNav({
-    onEscape: onBack,
+    onEscape: onBack || (() => {}),
     onEnter: () => {
       if (results[selectedIndex]) {
         onSelect(results[selectedIndex]);
@@ -61,13 +63,15 @@ export default function MotorcycleSearchPOS({
   return (
     <div className="space-y-4">
       {/* Customer Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="text-sm text-blue-600 font-semibold">
-          {isRtl ? 'العميل المحدد' : 'Selected Customer'}
+      {customer && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="text-sm text-blue-600 font-semibold">
+            {isRtl ? 'العميل المحدد' : 'Selected Customer'}
+          </div>
+          <div className="mt-1 font-bold">{customer.name}</div>
+          <div className="text-sm text-gray-600">{customer.phone}</div>
         </div>
-        <div className="mt-1 font-bold">{customer.name}</div>
-        <div className="text-sm text-gray-600">{customer.phone}</div>
-      </div>
+      )}
 
       {/* Search Input */}
       <div>

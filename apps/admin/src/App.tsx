@@ -3,16 +3,16 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Activity, Banknote, Bike, Building2, CircleDollarSign, CreditCard, FileText, KeyRound, LayoutGrid, Package, Receipt, Settings, ShoppingBag, Store, Users, WalletCards, ArrowRightLeft, Plug } from 'lucide-react';
 import Sidebar from './components/Sidebar';
-import Suppliers from './pages/Suppliers';
+import FinancingContracts from './pages/FinancingContracts';
+import FinancingContractDetail from './pages/FinancingContractDetail';
+import FinancingContractCreate from './pages/FinancingContractCreate';
+import InstallmentRequests from './pages/InstallmentRequests';
+import FinancingCompanies from './pages/FinancingCompanies';
+import InstallmentDurations from './pages/InstallmentDurations';
 import Brands from './pages/Brands';
 import Categories from './pages/Categories';
 import Motorcycles from './pages/Motorcycles';
 import MotorcycleForm from './pages/MotorcycleForm';
-import Purchases from './pages/Purchases';
-import PurchaseForm from './pages/PurchaseForm';
-import PurchaseDetail from './pages/PurchaseDetail';
-import Invoices from './pages/Invoices';
-import InvoiceDetail from './pages/InvoiceDetail';
 import Payments from './pages/Payments';
 import PaymentForm from './pages/PaymentForm';
 import PaymentDetail from './pages/PaymentDetail';
@@ -21,22 +21,10 @@ import CustomerDetail from './pages/CustomerDetail';
 import CustomerForm from './pages/CustomerForm';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
-import FinancingContracts from './pages/FinancingContracts';
-import FinancingContractDetail from './pages/FinancingContractDetail';
-import FinancingContractCreate from './pages/FinancingContractCreate';
-import Installments from './pages/Installments';
-import Transfers from './pages/Transfers';
-import TransferCreate from './pages/TransferCreate';
-import Letters from './pages/Letters';
-import LetterDetail from './pages/LetterDetail';
-import LetterCreate from './pages/LetterCreate';
 import Reports from './pages/Reports';
 import Configuration from './pages/Configuration';
-import FeatureFlags from './pages/FeatureFlags';
 import Branches from './pages/Branches';
 import ConfigurationAudit from './pages/ConfigurationAudit';
-import Integrations from './pages/Integrations';
-import APIKeys from './pages/APIKeys';
 import Login from './pages/Login';
 import { clearToken, getToken, auth, reports } from './api';
 import Badge from './components/Badge';
@@ -62,16 +50,14 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
     brand: 'MotoSystem Admin Panel', overview: 'Overview', keyStats: 'Key stats', thisMonth: 'This month', navigate: 'Navigate', quickLinks: 'Quick links', last24: 'Last 24 hours', recent: 'Recent activity', viewReports: 'View reports', noActivity: 'No recent activity', currentBranch: 'Current branch', egp: 'EGP',
     activeBranches: 'Active branches', availableMotorcycles: 'Available motorcycles', ordersMonth: 'Orders this month', activeFinancing: 'Active financing', overdue: 'Overdue installments', collected: 'Collected this month',
   };
-  const { branchId, branches } = useBranch();
+  useBranch(); // kept to satisfy context; branch concept is hidden from UI
   const executive = useQuery({
-    queryKey: ['dashboard-executive', branchId],
-    queryFn: () => reports.getExecutiveDashboard({ preset: 'this_month', branches: branchId ?? undefined }),
-    enabled: !!branchId,
+    queryKey: ['dashboard-executive'],
+    queryFn: () => reports.getExecutiveDashboard({ preset: 'this_month' }),
   });
   const operational = useQuery({
-    queryKey: ['dashboard-operational', branchId],
-    queryFn: () => reports.getOperationalDashboard({ preset: 'this_month', branches: branchId ?? undefined }),
-    enabled: !!branchId,
+    queryKey: ['dashboard-operational'],
+    queryFn: () => reports.getOperationalDashboard({ preset: 'this_month' }),
   });
   const stats = executive.data;
   const activity = [
@@ -79,24 +65,16 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
     ...(operational.data?.recentPayments ?? []).map(item => ({ ...item, type: 'payment' as const, label: item.paymentReference, detail: item.customerName, value: item.amount })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
   const quickLinks = [
-    { label: 'Suppliers', path: '/suppliers', icon: Package, tone: 'blue' },
     { label: 'Brands', path: '/brands', icon: Bike, tone: 'neutral' },
-    { label: 'Purchases', path: '/purchases', icon: ShoppingBag, tone: 'warning' },
     { label: 'Customers', path: '/customers', icon: Users, tone: 'success' },
     { label: 'Orders', path: '/orders', icon: Store, tone: 'blue' },
-    { label: 'Transfers', path: '/transfers', icon: ArrowRightLeft, tone: 'warning' },
     { label: 'Financing', path: '/financing', icon: CreditCard, tone: 'success' },
-    { label: 'Invoices', path: '/invoices', icon: Receipt, tone: 'blue' },
     { label: 'Payments', path: '/payments', icon: WalletCards, tone: 'success' },
     { label: 'Branches', path: '/branches', icon: Building2, tone: 'blue' },
-    { label: 'Letters', path: '/letters', icon: FileText, tone: 'warning' },
     { label: 'Configuration', path: '/configuration', icon: Settings, tone: 'neutral' },
-    { label: 'Integrations', path: '/integrations', icon: Plug, tone: 'neutral' },
-    { label: 'API Keys', path: '/api-keys', icon: KeyRound, tone: 'neutral' },
     { label: 'Reports', path: '/reports', icon: LayoutGrid, tone: 'blue' },
   ];
   const statCards = stats ? [
-    { label: labels.activeBranches, value: branches.filter(branch => branch.isActive).length, icon: Building2, tone: 'blue' },
     { label: labels.availableMotorcycles, value: stats.inventory.available, icon: Bike, tone: 'success' },
     { label: labels.ordersMonth, value: stats.sales.orderCount, icon: ShoppingBag, tone: 'blue' },
     { label: labels.activeFinancing, value: stats.financing.activeContracts, icon: CreditCard, tone: 'success' },
@@ -112,7 +90,7 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
           <h1>{isRtl ? 'لوحة التحكم' : 'Dashboard'}</h1>
           <p className="text-muted">{isRtl ? 'نظرة سريعة على عمليات الفرع' : 'A clear view of today’s operations and this month’s performance.'}</p>
         </div>
-        <span className="dashboard-scope">{branches.find(branch => branch.id === branchId)?.[isRtl ? 'nameAr' : 'nameEn'] ?? labels.currentBranch}</span>
+        <span className="dashboard-scope">{isRtl ? 'الفرع الرئيسي' : 'Main Branch'}</span>
       </div>
 
       <section className="dashboard-section">
@@ -122,7 +100,7 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
 
       <section className="dashboard-section">
         <div className="section-heading"><div><p className="eyebrow">{labels.navigate}</p><h2>{labels.quickLinks}</h2></div></div>
-        <div className="dashboard-links">{quickLinks.map(link => { const Icon = link.icon; return <Link to={link.path} className="card dashboard-link" key={link.path}><span className={`dashboard-link-icon dashboard-tone-${link.tone}`}><Icon size={19} /></span><span>{isRtl ? ({ Suppliers: 'الموردون', Purchases: 'المشتريات', Customers: 'العملاء', Orders: 'الطلبات', Transfers: 'التحويلات', Financing: 'التمويل', Invoices: 'الفواتير', Payments: 'المدفوعات', Branches: 'الفروع', Letters: 'الخطابات', Configuration: 'الإعدادات', Integrations: 'التكاملات', 'API Keys': 'مفاتيح API', Reports: 'التقارير' } as Record<string, string>)[link.label] : link.label}</span></Link>; })}</div>
+        <div className="dashboard-links">{quickLinks.map(link => { const Icon = link.icon; return <Link to={link.path} className="card dashboard-link" key={link.path}><span className={`dashboard-link-icon dashboard-tone-${link.tone}`}><Icon size={19} /></span><span>{isRtl ? ({ Customers: 'العملاء', Orders: 'الطلبات', Financing: 'التمويل', Payments: 'المدفوعات', Branches: 'الفروع', Configuration: 'الإعدادات', Reports: 'التقارير' } as Record<string, string>)[link.label] ?? link.label : link.label}</span></Link>; })}</div>
       </section>
 
       <section className="dashboard-section">
@@ -161,17 +139,11 @@ export default function App() {
               <div className="main-content">
             <Routes>
               <Route path="/" element={<Dashboard lang={lang} />} />
-              <Route path="/suppliers" element={<Suppliers lang={lang} />} />
               <Route path="/brands" element={<Brands lang={lang} />} />
               <Route path="/categories" element={<Categories lang={lang} />} />
               <Route path="/motorcycles" element={<Motorcycles lang={lang} />} />
               <Route path="/motorcycles/new" element={<MotorcycleForm lang={lang} />} />
               <Route path="/motorcycles/:id/edit" element={<MotorcycleForm lang={lang} />} />
-              <Route path="/purchases" element={<Purchases lang={lang} />} />
-              <Route path="/purchases/new" element={<PurchaseForm lang={lang} />} />
-              <Route path="/purchases/:id" element={<PurchaseDetail lang={lang} />} />
-              <Route path="/invoices" element={<Invoices lang={lang} />} />
-              <Route path="/invoices/:id" element={<InvoiceDetail lang={lang} />} />
               <Route path="/payments" element={<Payments lang={lang} />} />
               <Route path="/payments/new" element={<PaymentForm lang={lang} />} />
               <Route path="/payments/:id" element={<PaymentDetail lang={lang} />} />
@@ -183,20 +155,13 @@ export default function App() {
               <Route path="/financing" element={<FinancingContracts lang={lang} />} />
               <Route path="/financing/new" element={<FinancingContractCreate lang={lang} />} />
               <Route path="/financing/:id" element={<FinancingContractDetail lang={lang} />} />
-              <Route path="/installments" element={<Installments lang={lang} />} />
-              <Route path="/letters" element={<Letters lang={lang} />} />
-              <Route path="/letters/new" element={<LetterCreate lang={lang} />} />
-              <Route path="/letters/:id" element={<LetterDetail lang={lang} />} />
+              <Route path="/installment-requests" element={<InstallmentRequests lang={lang} />} />
+              <Route path="/financing-companies" element={<FinancingCompanies lang={lang} />} />
+              <Route path="/installment-durations" element={<InstallmentDurations lang={lang} />} />
               <Route path="/reports" element={<Reports lang={lang} />} />
               <Route path="/configuration" element={<Configuration lang={lang} />} />
-              <Route path="/feature-flags" element={<FeatureFlags lang={lang} />} />
               <Route path="/branches" element={<Branches lang={lang} />} />
               <Route path="/configuration-audit" element={<ConfigurationAudit lang={lang} />} />
-              <Route path="/integrations" element={<Integrations lang={lang} />} />
-              <Route path="/api-keys" element={<APIKeys lang={lang} />} />
-              <Route path="/transfers" element={<Transfers lang={lang} />} />
-              <Route path="/transfers/new" element={<TransferCreate lang={lang} />} />
-              <Route path="/transfers/:id" element={<Transfers lang={lang} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
               </div>

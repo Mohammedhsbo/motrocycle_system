@@ -54,7 +54,13 @@ export class StorageService {
       const url = access === "public" ? this.buildUrl(key) : await this.createPresignedUrl(key);
       return { url, filename: key };
     } catch (error) {
-      this.logger.error(`Failed to upload file to S3: ${error}`);
+      const err = error as any;
+      this.logger.error(
+        `S3 upload failed — name: ${err?.name}, message: ${err?.message}, ` +
+        `httpStatus: ${err?.$metadata?.httpStatusCode}, requestId: ${err?.$metadata?.requestId}, ` +
+        `cfRayId: ${err?.$metadata?.extendedRequestId ?? 'n/a'}`,
+        err?.stack,
+      );
       throw new Error('UPLOAD_FAILED');
     }
   }

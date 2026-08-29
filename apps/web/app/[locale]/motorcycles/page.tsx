@@ -32,10 +32,10 @@ export default async function MotorcyclesPage({
     <div className="bg-zinc-50">
       <section className="bg-zinc-950 py-12 text-white">
         <div className="section-shell">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-400">Live dealership inventory</p>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-400">Live dealership inventory</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Motorcycles</h1>
           <p className="mt-4 max-w-2xl text-zinc-300">
-            Search real backend inventory by brand, category, price, year, and model. Availability is controlled by the Motrocycle System backend.
+            Search real backend inventory by brand, category, price, year, and model. Availability is controlled by the Awlad Ghanem Motorcycles inventory.
           </p>
         </div>
       </section>

@@ -8,52 +8,28 @@ import { apiClient, ApiError } from "@/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/Card";
 import { Button } from "@/components/Button";
 import Link from "next/link";
+import { Clock, CheckCircle, XCircle } from "lucide-react";
 
-type FinancingContractStatus = "active" | "completed" | "defaulted" | "cancelled";
-
-interface FinancingContract {
+interface InstallmentRequest {
   id: string;
-  contractNumber: string;
-  customer: {
-    id: string;
-    name: string;
-    phone: string;
-  };
-  order: {
-    id: string;
-    orderNumber: string;
-    status: string;
-  };
-  branch: {
-    id: string;
-    nameEn: string;
-    nameAr: string;
-  };
-  totalAmount: number;
+  status: "pending" | "approved" | "rejected";
+  motorcyclePrice: number;
   downPayment: number;
-  financingAmount: number;
-  numberOfInstallments: number;
-  interestRate: number;
-  startDate: string;
-  status: FinancingContractStatus;
+  monthlyInstallment: number;
   createdAt: string;
-  approvedAt?: string;
-  completedAt?: string;
-}
-
-interface FinancingSummary {
-  activeContracts: number;
-  totalFinanced: number;
-  totalPaid: number;
-  totalRemaining: number;
-  nextInstallment: {
-    id: string;
-    dueDate: string;
-    amount: number;
-    contractId: string;
-  } | null;
-  overdueInstallments: number;
-  overdueAmount: number;
+  rejectionReason?: string | null;
+  financingCompany: {
+    name: string;
+  };
+  duration: {
+    months: number;
+  };
+  motorcycle: {
+    model: string;
+    brand: {
+      name: string;
+    };
+  };
 }
 
 export default function FinancingPage() {
@@ -62,8 +38,7 @@ export default function FinancingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [contracts, setContracts] = useState<FinancingContract[]>([]);
-  const [summary, setSummary] = useState<FinancingSummary | null>(null);
+  const [requests, setRequests] = useState<InstallmentRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,21 +58,12 @@ export default function FinancingPage() {
       setIsLoading(true);
       setError(null);
 
-      const customerId = user?.id;
-      if (!customerId) return;
-
-      const [contractsResponse, summaryResponse] = await Promise.all([
-        apiClient.get<{ data: FinancingContract[]; meta: any }>(
-          `/customers/${customerId}/financing-contracts`
-        ),
-        apiClient.get<FinancingSummary>(`/customers/${customerId}/financing-summary`),
-      ]);
-
-      setContracts(contractsResponse.data || []);
-      setSummary(summaryResponse);
+      // apiClient.get already unwraps { success, data } → returns data directly
+      const data = await apiClient.get<InstallmentRequest[]>("/installment-requests/mine");
+      setRequests(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching financing data:", err);
-      setError(err instanceof ApiError ? err.message : "Failed to load financing data");
+      console.error("Error fetching financing requests:", err);
+      setError(err instanceof ApiError ? err.message : "Failed to load requests");
     } finally {
       setIsLoading(false);
     }
@@ -119,193 +85,96 @@ export default function FinancingPage() {
     }).format(amount);
   };
 
-  const getStatusBadge = (status: FinancingContractStatus) => {
-    const styles: Record<FinancingContractStatus, string> = {
-      active: "bg-green-100 text-green-800",
-      completed: "bg-blue-100 text-blue-800",
-      defaulted: "bg-red-100 text-red-800",
-      cancelled: "bg-gray-100 text-gray-800",
-    };
-
-    const labels: Record<FinancingContractStatus, string> = {
-      active: t("statusActive"),
-      completed: t("statusCompleted"),
-      defaulted: t("statusDefaulted"),
-      cancelled: t("statusCancelled"),
-    };
-
-    return (
-      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>
-        {labels[status] || status}
-      </span>
-    );
+  const statusConfig = {
+    pending: { label: "Waiting Approval", icon: Clock, bg: "bg-amber-100", text: "text-amber-800" },
+    approved: { label: "Approved", icon: CheckCircle, bg: "bg-green-100", text: "text-green-800" },
+    rejected: { label: "Rejected", icon: XCircle, bg: "bg-red-100", text: "text-red-800" },
   };
 
   if (authLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-center text-gray-600">{tCommon("loading")}</p>
-        </div>
+      <div className="flex justify-center items-center py-16">
+        <p className="text-zinc-500">{tCommon("loading")}</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-6">
-              <p className="text-red-600">{error}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="p-6">
+          <p className="text-red-600">{error}</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">{t("title")}</h1>
+    <div>
+      <h1 className="text-2xl font-bold mb-6 text-zinc-900">My Installment Requests</h1>
 
-        {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600 mb-1">{t("activeContracts")}</div>
-                <div className="text-2xl font-bold">{summary.activeContracts}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600 mb-1">{t("totalFinanced")}</div>
-                <div className="text-2xl font-bold">{formatCurrency(summary.totalFinanced)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600 mb-1">{t("totalPaid")}</div>
-                <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalPaid)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600 mb-1">{t("totalRemaining")}</div>
-                <div className="text-2xl font-bold text-orange-600">{formatCurrency(summary.totalRemaining)}</div>
-              </CardContent>
-            </Card>
+      <div className="space-y-4">
+        {requests.length === 0 ? (
+          <div className="text-center py-16 bg-zinc-50 rounded-2xl border border-zinc-100">
+            <Clock className="mx-auto h-12 w-12 text-zinc-300 mb-3" />
+            <p className="text-zinc-500 font-medium">You have no installment requests.</p>
           </div>
-        )}
-
-        {summary?.nextInstallment && (
-          <Card className="mb-8 border-blue-200 bg-blue-50">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">{t("nextInstallment")}</h3>
-                  <p className="text-gray-700">
-                    {t("dueDate")}: {formatDate(summary.nextInstallment.dueDate)}
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600 mt-2">
-                    {formatCurrency(summary.nextInstallment.amount)}
-                  </p>
+        ) : (
+          requests.map((request) => {
+            const cfg = statusConfig[request.status] || statusConfig.pending;
+            const StatusIcon = cfg.icon;
+            return (
+              <div
+                key={request.id}
+                className="border border-zinc-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all bg-white"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-lg text-zinc-900">
+                      {request.motorcycle?.brand?.name} {request.motorcycle?.model}
+                    </h3>
+                    <p className="text-sm text-zinc-500 mt-0.5">
+                      Requested on {formatDate(request.createdAt)}
+                    </p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+                    <StatusIcon size={14} />
+                    {cfg.label}
+                  </span>
                 </div>
-                <Link href={`/account/financing/${summary.nextInstallment.contractId}`}>
-                  <Button variant="primary">{t("viewDetails")}</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {summary && summary.overdueInstallments > 0 && (
-          <Card className="mb-8 border-red-200 bg-red-50">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 text-red-800">{t("overdueTitle")}</h3>
-                  <p className="text-red-700">
-                    {t("overdueMessage", { count: summary.overdueInstallments })}
-                  </p>
-                  <p className="text-xl font-bold text-red-600 mt-2">
-                    {formatCurrency(summary.overdueAmount)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("myContracts")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {contracts.length === 0 ? (
-              <p className="text-center text-gray-600 py-8">{t("noContracts")}</p>
-            ) : (
-              <div className="space-y-4">
-                {contracts.map((contract) => (
-                  <div
-                    key={contract.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{contract.contractNumber}</h3>
-                        <p className="text-sm text-gray-600">
-                          {t("order")}: {contract.order.orderNumber}
-                        </p>
-                      </div>
-                      {getStatusBadge(contract.status)}
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                      <div>
-                        <div className="text-xs text-gray-600">{t("totalAmount")}</div>
-                        <div className="font-semibold">{formatCurrency(contract.totalAmount)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-600">{t("downPayment")}</div>
-                        <div className="font-semibold text-green-600">
-                          {formatCurrency(contract.downPayment)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-600">{t("financingAmount")}</div>
-                        <div className="font-semibold text-blue-600">
-                          {formatCurrency(contract.financingAmount)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-600">{t("installments")}</div>
-                        <div className="font-semibold">{contract.numberOfInstallments}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm text-gray-600">
-                        {t("startDate")}: {formatDate(contract.startDate)}
-                      </div>
-                      <Link href={`/account/financing/${contract.id}`}>
-                        <Button variant="outline" size="sm">
-                          {t("viewDetails")}
-                        </Button>
-                      </Link>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-zinc-50 rounded-lg">
+                  <div>
+                    <div className="text-xs text-zinc-500 font-medium">Financing Company</div>
+                    <div className="font-semibold text-zinc-900 mt-0.5">{request.financingCompany?.name ?? '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500 font-medium">Down Payment</div>
+                    <div className="font-semibold text-zinc-900 mt-0.5">
+                      {request.downPayment != null ? formatCurrency(request.downPayment) : '-'}
                     </div>
                   </div>
-                ))}
+                  <div>
+                    <div className="text-xs text-zinc-500 font-medium">Monthly Installment</div>
+                    <div className="font-semibold text-blue-700 mt-0.5">
+                      {request.monthlyInstallment != null ? formatCurrency(request.monthlyInstallment) : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500 font-medium">Duration</div>
+                    <div className="font-semibold text-zinc-900 mt-0.5">{request.duration?.months ?? '-'} Months</div>
+                  </div>
+                </div>
+
+                {request.status === 'rejected' && request.rejectionReason && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                    <strong>Reason:</strong> {request.rejectionReason}
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

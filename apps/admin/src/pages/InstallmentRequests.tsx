@@ -1,0 +1,306 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle, XCircle, Search, RefreshCw, FileText, Eye } from 'lucide-react';
+import { customerFinancing, type InstallmentRequest } from '../api';
+import Modal from '../components/Modal';
+import Badge from '../components/Badge';
+
+interface Props { lang: 'en' | 'ar' }
+
+const t = {
+  en: {
+    title: 'Installment Requests', subtitle: 'Review and process customer installment applications',
+    search: 'Search by customer name...',
+    status: 'Status', date: 'Date', customer: 'Customer', motorcycle: 'Motorcycle',
+    downPayment: 'Down Payment', amount: 'Installment Amount', duration: 'Duration (months)',
+    actions: 'Actions', all: 'All Statuses', pending: 'Pending', approved: 'Approved',
+    rejected: 'Rejected', review: 'Review Request', approve: 'Approve', reject: 'Reject',
+    rejectionReason: 'Rejection Reason (optional)', submit: 'Submit', cancel: 'Cancel',
+    noData: 'No installment requests found.', loading: 'Loading...', error: 'Failed to load requests.',
+    viewDetails: 'View Details', buyerInfo: 'Buyer Information', guarantorInfo: 'Guarantor Information',
+    documents: 'Documents', financeInfo: 'Financing Details', buyerName: 'Name', buyerPhone: 'Phone',
+    buyerEmail: 'Email', buyerAddress: 'Address', buyerOccupation: 'Occupation',
+    docBuyerId: 'Buyer National ID', docSalary: 'Salary Slip', docApartment: 'Apartment Contract',
+    docBuyerId: 'Buyer National ID', docSalary: 'Salary Slip', docApartment: 'Apartment Contract',
+    docGuarantorId: 'Guarantor National ID', retry: 'Retry', company: 'Company', monthsUnit: 'Months',
+    confirmApprove: 'Are you sure you want to approve this installment request?',
+    confirmReject: 'Are you sure you want to reject this installment request?'
+  },
+  ar: {
+    title: 'طلبات التقسيط', subtitle: 'مراجعة ومعالجة طلبات تقسيط العملاء',
+    search: 'بحث باسم العميل...',
+    status: 'الحالة', date: 'التاريخ', customer: 'العميل', motorcycle: 'الدراجة',
+    downPayment: 'الدفعة الأولى', amount: 'مبلغ القسط', duration: 'المدة (أشهر)',
+    actions: 'الإجراءات', all: 'كل الحالات', pending: 'قيد المراجعة', approved: 'مقبول',
+    rejected: 'مرفوض', review: 'مراجعة الطلب', approve: 'قبول', reject: 'رفض',
+    rejectionReason: 'سبب الرفض (اختياري)', submit: 'تأكيد', cancel: 'إلغاء',
+    noData: 'لا توجد طلبات تقسيط.', loading: 'جاري التحميل...', error: 'فشل تحميل الطلبات.',
+    viewDetails: 'عرض التفاصيل', buyerInfo: 'بيانات المشتري', guarantorInfo: 'بيانات الضامن',
+    documents: 'المستندات', financeInfo: 'تفاصيل التمويل', buyerName: 'الاسم', buyerPhone: 'رقم الهاتف',
+    buyerEmail: 'البريد الإلكتروني', buyerAddress: 'العنوان', buyerOccupation: 'الوظيفة',
+    docBuyerId: 'صورة بطاقة المشتري', docSalary: 'صورة مرتب/معاش', docApartment: 'عقد الإقامة',
+    docGuarantorId: 'صورة بطاقة الضامن', retry: 'إعادة المحاولة', company: 'شركة التمويل', monthsUnit: 'أشهر',
+    confirmApprove: 'هل أنت متأكد من قبول طلب التقسيط؟',
+    confirmReject: 'هل أنت متأكد من رفض طلب التقسيط؟'
+  },
+};
+
+export default function InstallmentRequests({ lang }: Props) {
+  const i18n = t[lang];
+  const isRtl = lang === 'ar';
+  const qc = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<InstallmentRequest | null>(null);
+  const [modalMode, setModalMode] = useState<'approve' | 'reject' | 'view' | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const query = useQuery({
+    queryKey: ['installment-requests', statusFilter],
+    queryFn: () => customerFinancing.listRequests(statusFilter || undefined),
+  });
+  
+  const reviewMut = useMutation({
+    mutationFn: ({ id, status, reason }: { id: string, status: 'approved' | 'rejected', reason?: string }) => 
+      customerFinancing.reviewRequest(id, { status, rejectionReason: reason }),
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['installment-requests'] }); 
+      closeModal(); 
+    },
+    onError: (error: Error) => setFormError(error.message)
+  });
+
+  useEffect(() => { if (query.error) setFormError(query.error.message); }, [query.error]);
+  
+  function openReview(req: InstallmentRequest, mode: 'approve' | 'reject') { 
+    setSelected(req); 
+    setModalMode(mode); 
+    setRejectionReason('');
+    setFormError(null); 
+  }
+
+  function openView(req: InstallmentRequest) {
+    setSelected(req);
+    setModalMode('view');
+    setFormError(null);
+  }
+  
+  function closeModal() { 
+    setModalMode(null); 
+    setSelected(null); 
+    setFormError(null); 
+  }
+  
+  function submit(event: FormEvent) { 
+    event.preventDefault(); 
+    if (!selected || !modalMode) return;
+    setFormError(null); 
+    reviewMut.mutate({ id: selected.id, status: modalMode === 'approve' ? 'approved' : 'rejected', reason: rejectionReason });
+  }
+
+  const rows = (query.data ?? [])
+    .filter(req => {
+      if (!search) return true;
+      const term = search.toLowerCase();
+      const cName = req.customer ? `${req.customer.firstName} ${req.customer.lastName}`.toLowerCase() : '';
+      const mName = req.motorcycle ? req.motorcycle.model.toLowerCase() : '';
+      return cName.includes(term) || mName.includes(term);
+    });
+    
+  const isBusy = reviewMut.isPending;
+
+  return <div className="page-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h1>{i18n.title}</h1>
+        <p className="text-muted" style={{ fontSize: '0.875rem' }}>{i18n.subtitle}</p>
+      </div>
+    </div>
+    
+    <div className="card mb-4" style={{ padding: '0.75rem 1rem' }}>
+      <div className="flex items-center gap-2">
+        <Search size={16} style={{ color: 'var(--text-muted)' }} />
+        <input className="input-field" style={{ flex: 1, border: 'none', background: 'transparent', padding: '0.25rem 0' }} placeholder={i18n.search} value={search} onChange={event => setSearch(event.target.value)} />
+        <select className="input-field" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+          <option value="">{i18n.all}</option>
+          <option value="pending">{i18n.pending}</option>
+          <option value="approved">{i18n.approved}</option>
+          <option value="rejected">{i18n.rejected}</option>
+        </select>
+        <button onClick={() => query.refetch()} className="btn btn-outline" style={{ padding: '0.375rem' }} title="Refresh"><RefreshCw size={14} /></button>
+      </div>
+    </div>
+    
+    <div className="table-container">
+      {query.isLoading ? <div className="center-content"><div className="spinner" /><span>{i18n.loading}</span></div> 
+      : query.isError ? <div className="center-content" style={{ color: 'var(--error)' }}><span>{i18n.error}</span><button className="btn btn-outline mt-4" onClick={() => query.refetch()}>{i18n.retry}</button></div> 
+      : rows.length === 0 ? <div className="center-content"><FileText size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} /><span>{i18n.noData}</span></div> 
+      : <table>
+          <thead>
+            <tr>
+              <th>{i18n.date}</th>
+              <th>{i18n.customer}</th>
+              <th>{i18n.motorcycle}</th>
+              <th>{i18n.downPayment}</th>
+              <th>{i18n.amount}</th>
+              <th>{i18n.duration}</th>
+              <th>{i18n.status}</th>
+              <th>{i18n.actions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(req => (
+              <tr key={req.id}>
+                <td>{new Date(req.createdAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US')}</td>
+                <td>{req.customer ? `${req.customer.firstName} ${req.customer.lastName}` : '-'}</td>
+                <td>{req.motorcycle ? req.motorcycle.model : '-'}</td>
+                <td>{req.downPayment != null ? req.downPayment.toLocaleString() : '-'}</td>
+                <td>{req.installmentAmount != null ? req.installmentAmount.toLocaleString() : '-'}</td>
+                <td>{req.durationMonths ?? '-'}</td>
+                <td>
+                  <Badge 
+                    status={req.status === 'pending' ? 'inactive' : req.status === 'approved' ? 'active' : 'error'} 
+                    label={req.status === 'pending' ? i18n.pending : req.status === 'approved' ? i18n.approved : i18n.rejected} 
+                    lang={lang} 
+                  />
+                </td>
+                <td>
+                  <div className="flex gap-2">
+                    <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem' }} onClick={() => openView(req)} title={i18n.viewDetails}>
+                      <Eye size={14} />
+                    </button>
+                    {req.status === 'pending' && (
+                      <>
+                        <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem', borderColor: 'var(--success)', color: 'var(--success)' }} onClick={() => openReview(req, 'approve')} title={i18n.approve}>
+                          <CheckCircle size={14} />
+                        </button>
+                        <button className="btn" style={{ padding: '0.375rem 0.625rem', background: 'var(--error-bg)', color: 'var(--error)' }} onClick={() => openReview(req, 'reject')} title={i18n.reject}>
+                          <XCircle size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>}
+    </div>
+    
+    {modalMode && selected && (
+      <Modal 
+        title={modalMode === 'view' ? i18n.viewDetails : modalMode === 'approve' ? i18n.approve : i18n.reject} 
+        onClose={closeModal} 
+        footer={
+          modalMode === 'view' ? (
+            <div className="flex gap-2 justify-end w-full">
+              <button className="btn btn-outline" onClick={closeModal}>{i18n.cancel}</button>
+              {selected.status === 'pending' && (
+                <>
+                  <button className="btn btn-outline" style={{ borderColor: 'var(--success)', color: 'var(--success)' }} onClick={() => setModalMode('approve')}>{i18n.approve}</button>
+                  <button className="btn" style={{ background: 'var(--error-bg)', color: 'var(--error)' }} onClick={() => setModalMode('reject')}>{i18n.reject}</button>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <button className="btn btn-outline" onClick={() => setModalMode('view')} disabled={isBusy}>{i18n.cancel}</button>
+              <button className="btn" style={{ background: modalMode === 'approve' ? 'var(--success)' : 'var(--error)', color: 'white' }} onClick={submit as any} disabled={isBusy}>
+                {isBusy && <span className="spinner" style={{ width: 16, height: 16 }} />}
+                {i18n.submit}
+              </button>
+            </>
+          )
+        }
+      >
+        {modalMode === 'view' ? (
+          <div className="grid gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="card" style={{ padding: '1rem', border: '1px solid var(--border-color)', boxShadow: 'none' }}>
+                <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><FileText size={18} /> {i18n.buyerInfo}</h3>
+                <div className="grid gap-3 text-sm">
+                  <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.buyerName}:</span> <span className="font-medium">{selected.buyerName}</span></div>
+                  <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.buyerPhone}:</span> <span className="font-medium" dir="ltr">{selected.buyerPhone}</span></div>
+                  <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.buyerEmail}:</span> <span className="font-medium">{selected.buyerEmail || '-'}</span></div>
+                  <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.buyerAddress}:</span> <span className="font-medium">{selected.buyerAddress || '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted">{i18n.buyerOccupation}:</span> <span className="font-medium">{selected.buyerOccupation || '-'}</span></div>
+                </div>
+              </div>
+              <div className="card" style={{ padding: '1rem', border: '1px solid var(--border-color)', boxShadow: 'none' }}>
+                <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><FileText size={18} /> {i18n.guarantorInfo}</h3>
+                <div className="grid gap-3 text-sm">
+                  <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.buyerName}:</span> <span className="font-medium">{selected.guarantorName}</span></div>
+                  <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.buyerPhone}:</span> <span className="font-medium" dir="ltr">{selected.guarantorPhone}</span></div>
+                  <div className="flex justify-between"><span className="text-muted">{i18n.buyerAddress}:</span> <span className="font-medium">{selected.guarantorAddress || '-'}</span></div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card" style={{ padding: '1rem', border: '1px solid var(--border-color)', boxShadow: 'none' }}>
+              <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><FileText size={18} /> {i18n.financeInfo}</h3>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.company}:</span> <span className="font-medium">{selected.financingCompany?.name || '-'}</span></div>
+                <div className="flex justify-between border-b pb-2" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.duration}:</span> <span className="font-medium">{selected.durationMonths ?? selected.duration?.months ?? '-'} {i18n.monthsUnit}</span></div>
+                <div className="flex justify-between border-b pb-2 md:border-b-0 md:pb-0" style={{ borderColor: 'var(--border-color)' }}><span className="text-muted">{i18n.downPayment}:</span> <span className="font-medium">{selected.downPayment != null ? selected.downPayment.toLocaleString() : '-'} EGP</span></div>
+                <div className="flex justify-between"><span className="text-muted">{i18n.amount}:</span> <span className="font-medium">{selected.installmentAmount != null ? selected.installmentAmount.toLocaleString() : selected.monthlyInstallment != null ? selected.monthlyInstallment.toLocaleString() : '-'} EGP</span></div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '1rem', border: '1px solid var(--border-color)', boxShadow: 'none' }}>
+              <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><FileText size={18} /> {i18n.documents}</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {selected.buyerNationalIdImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">{i18n.docBuyerId}</span>
+                    <a href={selected.buyerNationalIdImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.buyerNationalIdImage} alt="Buyer ID" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
+                {selected.salarySlipImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">{i18n.docSalary}</span>
+                    <a href={selected.salarySlipImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.salarySlipImage} alt="Salary Slip" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
+                {selected.apartmentContractImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">{i18n.docApartment}</span>
+                    <a href={selected.apartmentContractImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.apartmentContractImage} alt="Apartment Contract" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
+                {selected.guarantorNationalIdImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">{i18n.docGuarantorId}</span>
+                    <a href={selected.guarantorNationalIdImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.guarantorNationalIdImage} alt="Guarantor ID" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={submit}>
+            {formError && <div className="login-error" style={{ marginBottom: '1rem' }}>{formError}</div>}
+            <p style={{ marginBottom: '1rem' }}>
+              {modalMode === 'approve' ? i18n.confirmApprove : i18n.confirmReject}
+            </p>
+            
+            {modalMode === 'reject' && (
+              <div className="input-group">
+                <label className="input-label">{i18n.rejectionReason}</label>
+                <textarea className="input-field" rows={3} value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} />
+              </div>
+            )}
+          </form>
+        )}
+      </Modal>
+    )}
+  </div>;
+}

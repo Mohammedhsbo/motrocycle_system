@@ -119,10 +119,10 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
   const categoryOptions = useMemo(() => categoryQuery.data ?? [], [categoryQuery.data]);
 
   return (
-    <section className="desktop-page" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button type="button" className="secondary-action" onClick={() => navigate('/inventory')}>
+    <section className="desktop-page inventory-form-page" dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className="page-heading inventory-form-heading">
+        <div className="inventory-form-title">
+          <button type="button" className="secondary-action inventory-back-button" onClick={() => navigate('/inventory')}>
             <ArrowLeft size={16} />
           </button>
           <div>
@@ -132,10 +132,14 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
         </div>
       </div>
 
-      <form onSubmit={submit} className="surface-panel" style={{ maxWidth: 980, margin: '0 auto' }}>
-        {error && <div className="inline-error" style={{ marginBottom: 16 }}>{error}</div>}
+      <form onSubmit={submit} className="surface-panel inventory-form-panel" style={{ maxWidth: 980, margin: '0 auto' }}>
+        <div className="inventory-form-panel-heading">
+          <div><span className="eyebrow">{isRtl ? 'بيانات المركبة' : 'Vehicle profile'}</span><h2>{isRtl ? 'مواصفات الدراجة' : 'Motorcycle specifications'}</h2><p>{isRtl ? 'أدخل بيانات دقيقة لتسهيل البيع والمخزون.' : 'Add precise details so the motorcycle is ready for sales and inventory.'}</p></div>
+          <span className="inventory-form-status">{editing ? (isRtl ? 'تعديل' : 'Editing') : (isRtl ? 'جديد' : 'New')}</span>
+        </div>
+        {error && <div className="inline-error inventory-form-error">{error}</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 16 }}>
+        <div className="inventory-fields">
           <label className="field-label">
             <span>VIN *</span>
             <input className="text-input" value={form.vin ?? ''} onChange={event => setForm(current => ({ ...current, vin: event.target.value.toUpperCase() }))} readOnly={editing} required />
@@ -197,7 +201,7 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
           </label>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <div className="inventory-form-actions">
           <button type="button" className="secondary-action" onClick={() => navigate('/inventory')}>
             {isRtl ? 'إلغاء' : 'Cancel'}
           </button>

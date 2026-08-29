@@ -9,9 +9,12 @@ const productionOnly = [
   "S3_SECRET_KEY",
   "S3_ENDPOINT",
   "REDIS_URL",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_CALLBACK_URL",
 ];
 
-const stagingOnly = ["DATABASE_URL", "JWT_SECRET", "CORS_ORIGIN"];
+const stagingOnly = ["DATABASE_URL", "JWT_SECRET", "CORS_ORIGIN", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_CALLBACK_URL"];
 
 function isPlaceholder(value: string | undefined) {
   if (!value) return true;

@@ -1,4 +1,4 @@
-import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ConfigurationService } from './configuration.service.js';
 import { ConfigurationCacheService } from './configuration-cache.service.js';
@@ -174,7 +174,18 @@ export class ConfigurationAdminService {
   }
 
   // Branch Configuration Management
-  async getBranchConfiguration(branchId: string) {
+  async getBranchConfiguration(
+    branchId: string,
+    userBranchId: string | null,
+    isSuperAdmin: boolean,
+  ) {
+    if (!isSuperAdmin && branchId !== userBranchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only access configuration for your own branch',
+      });
+    }
+
     return this.prisma.branchConfiguration.findMany({
       where: {
         branchId,
@@ -196,9 +207,18 @@ export class ConfigurationAdminService {
     branchId: string,
     dto: UpdateBranchConfigurationDto,
     userId: string,
+    userBranchId: string | null,
+    isSuperAdmin: boolean,
     ipAddress?: string,
     userAgent?: string,
   ) {
+    if (!isSuperAdmin && branchId !== userBranchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only manage configuration for your own branch',
+      });
+    }
+
     const results = [];
 
     for (const config of dto.configurations) {
@@ -404,7 +424,18 @@ export class ConfigurationAdminService {
   }
 
   // Working Hours Management
-  async getWorkingHours(branchId: string) {
+  async getWorkingHours(
+    branchId: string,
+    userBranchId: string | null,
+    isSuperAdmin: boolean,
+  ) {
+    if (!isSuperAdmin && branchId !== userBranchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only access working hours for your own branch',
+      });
+    }
+
     return this.prisma.workingHours.findMany({
       where: {
         branchId,
@@ -422,7 +453,16 @@ export class ConfigurationAdminService {
     branchId: string,
     dtos: WorkingHoursUpdateDto[],
     userId: string,
+    userBranchId: string | null,
+    isSuperAdmin: boolean,
   ) {
+    if (!isSuperAdmin && branchId !== userBranchId) {
+      throw new ForbiddenException({
+        code: 'BRANCH_SCOPE_VIOLATION',
+        message: 'You can only manage working hours for your own branch',
+      });
+    }
+
     const results = [];
 
     for (const dto of dtos) {

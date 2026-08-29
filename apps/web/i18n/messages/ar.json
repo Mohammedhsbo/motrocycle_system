@@ -24,7 +24,27 @@
     "profile": "الملف الشخصي",
     "addresses": "العناوين",
     "changePassword": "تغيير كلمة المرور",
-    "contact": "اتصل بنا"
+    "contact": "اتصل بنا",
+    "brands": "الماركات",
+    "articles": "المقالات",
+    "branches": "فروعنا",
+    "orders": "طلباتي",
+    "financing": "طلبات التقسيط",
+    "reservations": "الحجوزات"
+  },
+  "account": {
+    "loading": "جاري التحميل...",
+    "eyebrow": "حساب العميل",
+    "title": "إدارة حسابك",
+    "customer": "العميل",
+    "profile": "بياناتي",
+    "profileDescription": "راجع بياناتك الشخصية وحدّثها",
+    "orders": "طلباتي",
+    "ordersDescription": "تابع طلبات شراء الدراجات النارية",
+    "financing": "طلبات التقسيط",
+    "financingDescription": "راجع طلبات وعقود التقسيط",
+    "reservations": "الحجوزات",
+    "reservationsDescription": "تابع حجوزاتك الحالية والسابقة"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -58,7 +78,9 @@
       "submit": "إنشاء الحساب",
       "success": "تم إنشاء الحساب بنجاح!",
       "alreadyHaveAccount": "لديك حساب بالفعل؟",
-      "loginLink": "سجل دخولك هنا"
+      "loginLink": "سجل دخولك هنا",
+      "orContinueWith": "أو تابع باستخدام",
+      "googleSignUp": "التسجيل عبر Google"
     },
     "profile": {
       "title": "ملفي الشخصي",
@@ -90,13 +112,13 @@
       "addressLine": "العنوان",
       "addressLinePlaceholder": "عنوان الشارع، رقم المبنى، الشقة",
       "city": "المدينة",
-      "cityPlaceholder": "مثلاً: الرياض",
+      "cityPlaceholder": "مثلاً: القاهرة",
       "region": "المنطقة/الإقليم",
-      "regionPlaceholder": "مثلاً: منطقة الرياض",
+      "regionPlaceholder": "مثلاً: محافظة القاهرة",
       "postalCode": "الرمز البريدي",
       "postalCodePlaceholder": "مثلاً: 12345",
       "country": "الدولة",
-      "countryPlaceholder": "مثلاً: المملكة العربية السعودية",
+      "countryPlaceholder": "مثلاً: مصر",
       "notes": "ملاحظات التوصيل (اختياري)",
       "notesPlaceholder": "تعليمات إضافية للتوصيل",
       "isDefault": "تعيين كعنوان افتراضي",
@@ -130,14 +152,14 @@
     "color": "اللون",
     "currentStatus": "الحالة الحالية",
     "depositAmount": "مبلغ العربون",
-    "depositLabel": "مبلغ العربون (ريال)",
+    "depositLabel": "مبلغ العربون (جنيه مصري)",
     "depositPlaceholder": "أدخل مبلغ العربون",
-    "minimumDeposit": "الحد الأدنى للعربون: {amount} ريال",
+    "minimumDeposit": "الحد الأدنى للعربون: {amount} جنيه مصري",
     "totalPrice": "السعر الإجمالي",
     "paidAmount": "المبلغ المدفوع",
     "remainingAmount": "المبلغ المتبقي",
     "remaining": "المتبقي",
-    "currency": "ريال",
+    "currency": "جنيه مصري",
     "notesLabel": "ملاحظات",
     "notesPlaceholder": "أضف أي ملاحظات أو متطلبات خاصة",
     "optional": "اختياري",
@@ -194,7 +216,7 @@
       "motorcycleAlreadyReserved": "تم حجز هذه الدراجة النارية بالفعل",
       "invalidDeposit": "مبلغ عربون غير صحيح",
       "depositMustBePositive": "يجب أن يكون العربون أكبر من الصفر",
-      "depositTooLow": "الحد الأدنى للعربون هو {amount} ريال",
+      "depositTooLow": "الحد الأدنى للعربون هو {amount} جنيه مصري",
       "depositTooHigh": "لا يمكن أن يتجاوز العربون سعر الدراجة النارية",
       "mustAgreeToTerms": "يجب الموافقة على الشروط والأحكام"
     }
@@ -224,7 +246,7 @@
     "startDate": "تاريخ البدء"
   },
   "header": {
-    "brandName": "MotorCycle",
+    "brandName": "أولاد غانم",
     "home": "الرئيسية",
     "financing": "التقسيط",
     "searchInventory": "البحث في المخزون",
@@ -235,7 +257,7 @@
     "switchToArabic": "العربية"
   },
   "footer": {
-    "brandName": "MotorCycle",
+    "brandName": "أولاد غانم",
     "tagline": "مخزون دراجات نارية موثوق، حجوزات آمنة، ودعم متجر معتمد.",
     "explore": "استكشف",
     "reservations": "الحجوزات",
@@ -244,7 +266,7 @@
     "flexibleReservations": "حجوزات مرنة",
     "branchAvailability": "توافر الفروع",
     "customerSupport": "دعم حساب العميل",
-    "rights": "© {year} MotorCycle System. جميع الحقوق محفوظة."
+    "rights": "© {year} أولاد غانم. جميع الحقوق محفوظة."
   },
   "catalog": {
     "resultsCount": "{count} دراجة نارية موجودة",
@@ -278,7 +300,7 @@
   "home": {
     "badge": "مخزون موثوق ومميز",
     "title": "ابحث عن رحلتك القادمة.",
-    "description": "استكشف دراجات نارية مدعومة من الفروع مع توفر حقيقي، وحجوزات آمنة، وتجربة شراء أنيقة متصلة بنظام Motrocycle System.",
+    "description": "استكشف دراجات نارية متاحة فعلياً من فروع أولاد غانم، مع حجوزات آمنة وتجربة شراء سهلة.",
     "explore": "استكشف الدراجات النارية",
     "reserve": "احجز حجزاً",
     "featuredBikes": "دراجات مميزة",
@@ -299,7 +321,36 @@
     "emptyUnavailable": "المخزون غير متاح حالياً.",
     "emptyUnavailableDescription": "يرجى المحاولة مرة أخرى قريباً بينما نعيد الاتصال بخدمة المخزون.",
     "emptyNoneAvailable": "لا توجد دراجات نارية متاحة الآن.",
-    "emptyNoneAvailableDescription": "عد لاحقاً بعد إضافة المخزون عبر لوحة تحكم الإدارة."
+    "emptyNoneAvailableDescription": "عد لاحقاً بعد إضافة المخزون عبر لوحة تحكم الإدارة.",
+    "installmentOffer": "ابدأ بالتقسيط من",
+    "perMonth": "شهرياً لمدة {months} شهراً",
+    "engine": "المحرك",
+    "color": "اللون",
+    "price": "السعر",
+    "verified": "موثّق",
+    "details": "التفاصيل",
+    "hero": {
+      "newHeadline": "كل الطرق تبدأ من هنا",
+      "newSubheadline": "مجموعة متنوعة من أفضل الماركات بأفضل الأسعار وأعلى جودة",
+      "rightHeadline": "استعد لمغامرتك القادمة !",
+      "rightSubheadline": "اختر الموتوسيكل أو الاسكوتر المناسب لك من أكبر تشكيلة تناسب جميع الأذواق",
+      "discountValue": "30%",
+      "discountLabel": "خصم من سعر المكنة",
+      "installmentLabel": "قسط على",
+      "installmentValue": "24",
+      "installmentMonths": "شهر",
+      "installmentDownpayment": "بمقدم",
+      "yearsInstallment": "أنظمة تقسيط بفترات سداد تصل لـ",
+      "yearsValue": "5",
+      "yearsLabel": "سنوات",
+      "trustTitle": "لعملاء جميع المحافظات:",
+      "trust1": "ضمان حقيقي على المكنة",
+      "trust2": "خدمة ما بعد البيع وصيانة معتمدة",
+      "trust3": "توصيل آمن حتى باب البيت",
+      "brandsStrip": "الماركات المتوفرة",
+      "brandsMore": "عرض الكل",
+      "brandsAll": "الكل"
+    }
   },
   "motorcycleDetails": {
     "backToInventory": "العودة إلى المخزون",
@@ -338,10 +389,19 @@
     "successMessage": "شكراً! تم إرسال رسالتك بنجاح.",
     "contactInfo": "معلومات التواصل",
     "addressLabel": "العنوان",
-    "addressValue": "شارع الدراجات النارية 123، الرياض، المملكة العربية السعودية",
+    "addressValue": "شارع الدراجات النارية 123، القاهرة، مصر",
     "phoneLabel": "هاتف",
-    "phoneValue": "+966 11 000 0000",
+    "phoneValue": "+20 2 0000 0000",
     "emailLabel": "بريد إلكتروني",
     "emailValue": "info@motorcycle.com"
+  },
+  "branches": {
+    "eyebrow": "معارض أولاد غانم",
+    "title": "زور أقرب فرع إليك",
+    "description": "تعرّف على فروعنا النشطة وتواصل مع فريق أولاد غانم قبل زيارتك.",
+    "branchLabel": "فرع نشط",
+    "openMap": "فتح الموقع على الخريطة",
+    "emptyTitle": "لا توجد فروع متاحة حالياً",
+    "emptyDescription": "يرجى العودة قريباً لمعرفة مواقع فروعنا."
   }
 }

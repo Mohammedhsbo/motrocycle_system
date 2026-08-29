@@ -39,6 +39,8 @@ export interface BranchSummary {
   nameAr: string;
   nameEn: string;
   isActive?: boolean;
+  address?: string | null;
+  phone?: string | null;
 }
 
 export interface RoleSummary {
@@ -164,7 +166,10 @@ export const auth = {
 };
 
 export const branches = {
-  list: () => apiFetch<{ items: BranchSummary[]; total: number }>('/branches?isActive=true&limit=100'),
+  list: (all?: boolean) => apiFetch<{ items: BranchSummary[]; total: number }>(`/branches?limit=100${all ? '' : '&isActive=true'}`),
+  create: (data: Partial<BranchSummary>) => apiFetch<BranchSummary>('/branches', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<BranchSummary>) => apiFetch<BranchSummary>(`/branches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch<void>(`/branches/${id}`, { method: 'DELETE' }),
 };
 
 export const roles = {
@@ -395,20 +400,18 @@ export interface CategorySummary {
 }
 
 export const brands = {
-  list: (params?: { isActive?: boolean; limit?: number }) => {
+  list: (params?: { isActive?: boolean }) => {
     const query = new URLSearchParams();
     if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
-    if (params?.limit) query.set('limit', String(params.limit));
     return apiFetch<BrandSummary[]>(`/brands?${query}`);
   },
 };
 
 export const categories = {
-  list: (params?: { isActive?: boolean; flat?: boolean; limit?: number }) => {
+  list: (params?: { isActive?: boolean; flat?: boolean }) => {
     const query = new URLSearchParams();
     if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
     if (params?.flat !== undefined) query.set('flat', String(params.flat));
-    if (params?.limit) query.set('limit', String(params.limit));
     return apiFetch<CategorySummary[]>(`/categories?${query}`);
   },
 };
@@ -1014,3 +1017,311 @@ export const configuration = {
   checkFeature: (flagKey: string) =>
     apiFetch<{ flagKey: string; isEnabled: boolean }>(`/config/feature/${flagKey}/status`),
 };
+
+// ─── Financing Companies ──────────────────────────────────
+export interface FinancingCompanyRecord {
+  id: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FinancingCompanyInput {
+  name: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+/** Public list (active only) — usable in POS dropdowns, Sales page, etc. */
+export const financingCompanies = {
+  list: () => apiFetch<FinancingCompanyRecord[]>('/financing-companies'),
+  listAll: () => apiFetch<FinancingCompanyRecord[]>('/admin/financing-companies'),
+  create: (data: FinancingCompanyInput) =>
+    apiFetch<FinancingCompanyRecord>('/admin/financing-companies', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<FinancingCompanyInput>) =>
+    apiFetch<FinancingCompanyRecord>(`/admin/financing-companies/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  remove: (id: string) =>
+    apiFetch<{ id: string }>(`/admin/financing-companies/${id}`, { method: 'DELETE' }),
+};
+
+// ─── New Inquiries (POS) ──────────────────────────────────
+export type InquiryDocumentType = 'PENSION' | 'COMMERCIAL_REGISTRY' | 'NEITHER';
+
+export interface InquiryRecord {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  documentType: InquiryDocumentType;
+  documentImage?: string;
+  idCardFrontImage?: string;
+  idCardBackImage?: string;
+  guarantorIdFrontImage?: string;
+  guarantorIdBackImage?: string;
+  guarantorSignatureImage?: string;
+  downPayment?: number;
+  motorcycleId?: string;
+  motorcycle?: MotorcycleSearchResult;
+  createdBy?: string;
+  createdAt: string;
+}
+
+export interface InquiryInput {
+  customerName: string;
+  customerPhone: string;
+  documentType: InquiryDocumentType;
+  downPayment?: number;
+  motorcycleId?: string;
+  documentImage?: File;
+  idCardFrontImage?: File;
+  idCardBackImage?: File;
+  guarantorIdFrontImage?: File;
+  guarantorIdBackImage?: File;
+  guarantorSignatureImage?: File;
+}
+
+export const inquiries = {
+  list: () => apiFetch<InquiryRecord[]>('/inquiries'),
+  create: (input: InquiryInput) => {
+    const form = new FormData();
+    form.set('customerName', input.customerName);
+    form.set('customerPhone', input.customerPhone);
+    form.set('documentType', input.documentType);
+    if (input.downPayment !== undefined) form.set('downPayment', String(input.downPayment));
+    if (input.motorcycleId) form.set('motorcycleId', input.motorcycleId);
+    
+    if (input.documentImage) form.set('documentImage', input.documentImage);
+    if (input.idCardFrontImage) form.set('idCardFrontImage', input.idCardFrontImage);
+    if (input.idCardBackImage) form.set('idCardBackImage', input.idCardBackImage);
+    if (input.guarantorIdFrontImage) form.set('guarantorIdFrontImage', input.guarantorIdFrontImage);
+    if (input.guarantorIdBackImage) form.set('guarantorIdBackImage', input.guarantorIdBackImage);
+    if (input.guarantorSignatureImage) form.set('guarantorSignatureImage', input.guarantorSignatureImage);
+    
+    return apiFetch<InquiryRecord>('/inquiries', { method: 'POST', body: form });
+  },
+};
+
+
+// ─── Sales API ────────────────────────────────────────────
+export type SalePaymentMethod = 'CASH' | 'VISA';
+
+export interface SaleRecord {
+  id: string;
+  motorcycleId: string;
+  motorcycle: MotorcycleSearchResult;
+  customerName: string;
+  customerPhone: string;
+  customerIdImage?: string;
+  salePrice: number;
+  paymentMethod: SalePaymentMethod;
+  branchId?: string;
+  createdAt: string;
+}
+
+export interface SaleInput {
+  motorcycleId: string;
+  customerName: string;
+  customerPhone: string;
+  salePrice: number;
+  paymentMethod: SalePaymentMethod;
+  customerIdImage?: File;
+}
+
+export const sales = {
+  list: (branchId?: string) => {
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return apiFetch<SaleRecord[]>(`/sales${params}`);
+  },
+  get: (id: string) => apiFetch<SaleRecord>(`/sales/${id}`),
+  create: (input: SaleInput) => {
+    const form = new FormData();
+    form.set('motorcycleId', input.motorcycleId);
+    form.set('customerName', input.customerName);
+    form.set('customerPhone', input.customerPhone);
+    form.set('salePrice', String(input.salePrice));
+    form.set('paymentMethod', input.paymentMethod);
+    if (input.customerIdImage) form.set('customerIdImage', input.customerIdImage);
+    return apiFetch<SaleRecord>('/sales', { method: 'POST', body: form });
+  },
+};
+
+// ─── Sales Requests (Installments) ─────────────────────────
+export interface SaleRequestRecord {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  motorcycleId: string;
+  financingCompanyId: string;
+  requestedAmount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+}
+
+export interface SaleRequestInput {
+  customerName: string;
+  customerPhone: string;
+  motorcycleId: string;
+  financingCompanyId: string;
+  requestedAmount: number;
+}
+
+export const salesRequests = {
+  list: (branchId?: string) => {
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return apiFetch<SaleRequestRecord[]>(`/sales-requests${params}`);
+  },
+  create: (input: SaleRequestInput) => 
+    apiFetch<SaleRequestRecord>('/sales-requests', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    }),
+};
+
+// ─── POS Reservations ─────────────────────────────────────
+export interface PosReservationRecord {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  motorcycleId: string;
+  holdAmount: number;
+  reservationDate: string;
+  status: 'ACTIVE' | 'CANCELLED' | 'COMPLETED';
+  createdAt: string;
+}
+
+export interface PosReservationInput {
+  customerName: string;
+  customerPhone: string;
+  motorcycleId: string;
+  holdAmount: number;
+}
+
+export const posReservations = {
+  list: (branchId?: string) => {
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return apiFetch<PosReservationRecord[]>(`/pos-reservations${params}`);
+  },
+  create: (input: PosReservationInput) =>
+    apiFetch<PosReservationRecord>('/pos-reservations', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    }),
+  cancel: (id: string) =>
+    apiFetch<{ id: string; status: string; refundAmount: number; penaltyApplied: boolean }>(`/pos-reservations/${id}/cancel`, {
+      method: 'POST'
+    }),
+};
+
+// ─── POS Installment Plans ─────────────────────────────────────
+export interface PosInstallment {
+  id: string;
+  dueDate: string;
+  amount: number;
+  paidAmount: number;
+  status: 'UNPAID' | 'PARTIAL' | 'PAID';
+  paidAt?: string;
+}
+
+export interface PosInstallmentPlanRecord {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  motorcycle: MotorcycleSearchResult;
+  totalAmount: number;
+  paidAmount: number;
+  remainingBalance: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED';
+  installments: PosInstallment[];
+}
+
+export const posInstallments = {
+  list: (branchId?: string, query?: string) => {
+    let params = '?';
+    if (branchId) params += `branchId=${branchId}&`;
+    if (query) params += `query=${encodeURIComponent(query)}&`;
+    return apiFetch<PosInstallmentPlanRecord[]>(`/pos-installments${params}`);
+  },
+  generate: (input: { saleRequestId: string; months: number; interestRate: number }) =>
+    apiFetch<PosInstallmentPlanRecord>('/pos-installments/generate', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    }),
+};
+
+// ─── Desktop Permissions ────────────────────────────────────────────
+export interface DesktopPagePermission {
+  pageKey: string;
+  canView: boolean;
+  canEdit: boolean;
+}
+
+export const desktopPermissions = {
+  /** Get the calling user's own desktop permissions */
+  getMe: () => apiFetch<DesktopPagePermission[]>('/desktop-permissions/me'),
+  /** Get permissions for a specific user (super_admin only) */
+  getForUser: (userId: string) => apiFetch<DesktopPagePermission[]>(`/desktop-permissions/${userId}`),
+  /** Bulk-set permissions for a user (super_admin only) */
+  setForUser: (userId: string, permissions: DesktopPagePermission[]) =>
+    apiFetch<DesktopPagePermission[]>(`/desktop-permissions/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    }),
+  /** Reset all permissions for a user to defaults (super_admin only) */
+  resetForUser: (userId: string) =>
+    apiFetch<void>(`/desktop-permissions/${userId}/reset`, { method: 'DELETE' }),
+};
+
+// ─── Attendance ─────────────────────────────────────────────────────
+export interface AttendanceRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  branchId: string | null;
+  branchNameEn: string | null;
+  branchNameAr: string | null;
+  checkIn: string;
+  checkOut: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface AttendanceListResult {
+  items: AttendanceRecord[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const attendance = {
+  checkIn: (notes?: string) =>
+    apiFetch<AttendanceRecord>('/attendance/check-in', { method: 'POST', body: JSON.stringify({ notes }) }),
+  checkOut: (notes?: string) =>
+    apiFetch<AttendanceRecord>('/attendance/check-out', { method: 'POST', body: JSON.stringify({ notes }) }),
+  getMe: (params?: { page?: number; limit?: number; startDate?: string; endDate?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    return apiFetch<AttendanceListResult>(`/attendance/me?${q}`);
+  },
+  listAll: (params?: { userId?: string; page?: number; limit?: number; startDate?: string; endDate?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.userId) q.set('userId', params.userId);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    return apiFetch<AttendanceListResult>(`/attendance?${q}`);
+  },
+};
+

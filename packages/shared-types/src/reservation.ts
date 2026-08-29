@@ -15,7 +15,7 @@ export const MAX_RESERVATION_DAYS = 90;
 export const MIN_DEPOSIT_PERCENT = 0.1;
 
 /** Hard minimum deposit amount (EGP) */
-export const MIN_DEPOSIT_AMOUNT_SAR = 1000;
+export const MIN_DEPOSIT_AMOUNT_EGP = 1000;
 
 // ---------------------------------------------------------------------------
 // Zod Schemas — core entity
@@ -74,6 +74,7 @@ export type UpdateReservationRequest = z.infer<typeof updateReservationSchema>;
 
 export const cancelReservationSchema = z.object({
   reason: z.string().max(1000).optional(),
+  requestRefund: z.boolean().optional().default(false),
 });
 
 export type CancelReservationRequest = z.infer<typeof cancelReservationSchema>;
@@ -100,7 +101,7 @@ export type ExtendReservationRequest = z.infer<typeof extendReservationSchema>;
  *
  * Rules:
  * - Must be > 0
- * - Must be >= minimum (max of 10% of totalPrice or MIN_DEPOSIT_AMOUNT_SAR)
+ * - Must be >= minimum (max of 10% of totalPrice or MIN_DEPOSIT_AMOUNT_EGP)
  * - Cannot exceed totalPrice
  *
  * @returns null if valid, or an error code string if invalid
@@ -114,7 +115,7 @@ export function validateDepositAmount(
 
   const minByPercent = totalPrice * MIN_DEPOSIT_PERCENT;
   const minimumDeposit = Math.min(
-    Math.max(minByPercent, MIN_DEPOSIT_AMOUNT_SAR),
+    Math.max(minByPercent, MIN_DEPOSIT_AMOUNT_EGP),
     totalPrice, // deposit can equal totalPrice (full payment)
   );
 

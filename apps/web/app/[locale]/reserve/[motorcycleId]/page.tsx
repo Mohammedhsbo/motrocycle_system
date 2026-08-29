@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, ApiError } from "@/lib/api-client";
+import { getStoreSettings } from "@/lib/financing-api";
 import { ReservationForm } from "@/components/ReservationForm";
 import { Button } from "@/components/Button";
 
@@ -17,6 +18,8 @@ interface Motorcycle {
   color?: string;
   price: number;
   status: string;
+  reservationDepositAmount?: number | null;
+  reservationDepositPercentage?: number | null;
   brand: {
     id: string;
     nameAr: string;
@@ -34,6 +37,7 @@ export default function ReservePage() {
   const motorcycleId = params.motorcycleId as string;
 
   const [motorcycle, setMotorcycle] = useState<Motorcycle | null>(null);
+  const [settings, setSettings] = useState<{ defaultDepositAmount?: number | null; defaultDepositPercentage?: number | null } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +58,16 @@ export default function ReservePage() {
       setIsLoading(true);
       setError(null);
 
-      const data = await apiClient.get<Motorcycle>(`/motorcycles/${motorcycleId}`);
-      setMotorcycle(data);
+      const [motoData, settingsData] = await Promise.all([
+        apiClient.get<Motorcycle>(`/motorcycles/${motorcycleId}`),
+        getStoreSettings().catch(() => null),
+      ]);
+
+      setMotorcycle(motoData);
+      setSettings(settingsData);
 
       // Check if motorcycle is available
-      if (data.status !== "available") {
+      if (motoData.status !== "available") {
         setError(t("errors.motorcycleNotAvailable"));
       }
     } catch (err) {
@@ -191,6 +200,8 @@ export default function ReservePage() {
             customerId={user!.id}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            defaultDepositAmount={settings?.defaultDepositAmount ?? null}
+            defaultDepositPercentage={settings?.defaultDepositPercentage ?? null}
           />
         )}
       </div>

@@ -29,7 +29,7 @@ import {
   getDiscountLimits,
   canApplyDiscount,
   MIN_DEPOSIT_PERCENT,
-  MIN_DEPOSIT_AMOUNT_SAR,
+  MIN_DEPOSIT_AMOUNT_EGP,
 } from '@motorcycle-system/shared-types';
 import type { AuthenticatedUser } from '../common/types/authenticated-request.js';
 
@@ -529,7 +529,7 @@ export class POSService {
       depositAmount = dto.depositAmount;
       const minDeposit = Math.max(
         totalAmount * (MIN_DEPOSIT_PERCENT / 100),
-        MIN_DEPOSIT_AMOUNT_SAR,
+        MIN_DEPOSIT_AMOUNT_EGP,
       );
 
       if (depositAmount < minDeposit) {

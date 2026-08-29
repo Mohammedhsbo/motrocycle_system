@@ -4,9 +4,11 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
+  Req,
   ParseFilePipeBuilder,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { RequirePermission } from "../auth/decorators/permissions.decorator.js";
@@ -52,5 +54,25 @@ export class UploadController {
         mimeType: file.mimetype,
       },
     };
+  }
+
+  @Post("customer")
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor("file"))
+  async uploadCustomerFile(
+    @Req() request: any,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /(jpeg|jpg|png|webp)$/i })
+        .addMaxSizeValidator({ maxSize: MAX_FILE_SIZE })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY, fileIsRequired: true }),
+    )
+    file: Express.Multer.File,
+  ) {
+    if (!request.user?.isCustomer) {
+      throw new ForbiddenException({ code: "CUSTOMER_AUTH_REQUIRED", message: "Customer authentication required" });
+    }
+    const result = await this.storageService.uploadFile(file);
+    return { success: true, data: { url: result.url, filename: result.filename, size: file.size, mimeType: file.mimetype } };
   }
 }

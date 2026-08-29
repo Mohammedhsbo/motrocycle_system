@@ -1401,6 +1401,20 @@ export const customerFinancing = {
     if (params?.limit) q.set('limit', String(params.limit));
     return apiFetch<PaginatedResult<Installment & { contract: { id: string; contractNumber: string } }>>(`/customers/${customerId}/installments?${q}`);
   },
+  listCompanies: () => apiFetch<FinancingCompany[]>('/admin/financing-companies'),
+  createCompany: (data: Partial<FinancingCompany>) => apiFetch<FinancingCompany>('/admin/financing-companies', { method: 'POST', body: JSON.stringify(data) }),
+  updateCompany: (id: string, data: Partial<FinancingCompany>) => apiFetch<FinancingCompany>(`/admin/financing-companies/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCompany: (id: string) => apiFetch<void>(`/admin/financing-companies/${id}`, { method: 'DELETE' }),
+  listRequests: (status?: string) => {
+    const q = new URLSearchParams();
+    if (status) q.set('status', status);
+    return apiFetch<InstallmentRequest[]>(`/admin/installment-requests?${q}`);
+  },
+  reviewRequest: (id: string, data: { status: 'approved' | 'rejected'; rejectionReason?: string }) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  listDurations: () => apiFetch<InstallmentDuration[]>('/admin/installment-durations'),
+  createDuration: (data: Partial<InstallmentDuration>) => apiFetch<InstallmentDuration>('/admin/installment-durations', { method: 'POST', body: JSON.stringify(data) }),
+  updateDuration: (id: string, data: Partial<InstallmentDuration>) => apiFetch<InstallmentDuration>(`/admin/installment-durations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteDuration: (id: string) => apiFetch<void>(`/admin/installment-durations/${id}`, { method: 'DELETE' }),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -2079,3 +2093,60 @@ export const configuration = {
       modifiedBy?: string;
     }>(`/config/value/${key}`),
 };
+
+// ─────────────────────────────────────────────────────────
+// Customer Financing (Installments & Companies)
+// ─────────────────────────────────────────────────────────
+export interface FinancingCompany {
+  id: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InstallmentDuration {
+  id: string;
+  months: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InstallmentRequest {
+  id: string;
+  customerId: string;
+  motorcycleId: string;
+  financingCompanyId: string;
+  installmentDurationId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  buyerName: string;
+  buyerPhone: string;
+  buyerEmail?: string | null;
+  buyerAddress?: string | null;
+  buyerOccupation?: string | null;
+  buyerNationalIdImage: string;
+  salarySlipImage: string;
+  apartmentContractImage: string;
+  guarantorName: string;
+  guarantorPhone: string;
+  guarantorAddress?: string | null;
+  guarantorNationalIdImage: string;
+  motorcyclePrice: number;
+  downPayment: number;
+  monthlyInstallment: number;
+  // Fallbacks for older records
+  durationMonths?: number;
+  installmentAmount?: number;
+  rejectionReason?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  customer?: any;
+  motorcycle?: any;
+  financingCompany?: any;
+  duration?: any;
+}
+

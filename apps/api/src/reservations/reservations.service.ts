@@ -17,7 +17,7 @@ import {
   CancelReservationRequest,
   ExtendReservationRequest,
   MIN_DEPOSIT_PERCENT,
-  MIN_DEPOSIT_AMOUNT_SAR,
+  MIN_DEPOSIT_AMOUNT_EGP,
   DEFAULT_RESERVATION_DAYS,
   MAX_RESERVATION_DAYS,
 } from '@motorcycle-system/shared-types';
@@ -189,7 +189,7 @@ export class ReservationsService {
 
           const minDeposit = Math.max(
             totalPrice * MIN_DEPOSIT_PERCENT,
-            MIN_DEPOSIT_AMOUNT_SAR,
+            MIN_DEPOSIT_AMOUNT_EGP,
           );
 
           if (paidAmount < minDeposit) {
@@ -899,7 +899,7 @@ export class ReservationsService {
         async (tx) => {
           // Lock reservation
           const reservationRaw = await tx.$queryRaw<Array<any>>`
-            SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId"
+            SELECT r.id, r."reservationNumber", r.status, r."motorcycleId", r."customerId", r."branchId", r."paidAmount"
             FROM "Reservation" r
             WHERE r.id = ${id}::uuid
             FOR UPDATE
@@ -940,7 +940,10 @@ export class ReservationsService {
           // Update reservation status
           await tx.reservation.update({
             where: { id },
-            data: { status: 'cancelled' },
+            data: {
+              status: 'cancelled',
+              penaltyAmount: data.requestRefund && reservation.paidAmount > 0 ? 300 : 0,
+            },
           });
 
           // Update motorcycle to available
@@ -961,6 +964,7 @@ export class ReservationsService {
             },
             after: {
               status: 'cancelled',
+              penaltyAmount: data.requestRefund && reservation.paidAmount > 0 ? 300 : 0,
               reason: data.reason,
             },
           });
@@ -979,7 +983,12 @@ export class ReservationsService {
             });
           }
 
-          return { success: true };
+          const penaltyAmount = data.requestRefund && Number(reservation.paidAmount) > 0 ? 300 : 0;
+          return {
+            success: true,
+            penaltyAmount,
+            refundableAmount: Math.max(Number(reservation.paidAmount) - penaltyAmount, 0),
+          };
         },
         {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

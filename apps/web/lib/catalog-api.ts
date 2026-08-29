@@ -19,6 +19,11 @@ export interface Branch {
   id: string;
   nameAr: string;
   nameEn: string;
+  address?: string | null;
+  phone?: string | null;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Motorcycle {
@@ -32,7 +37,10 @@ export interface Motorcycle {
   descriptionEn?: string | null;
   price: number;
   status: string;
+  condition?: "NEW" | "IMPORTED" | string | null;
   images: string[] | string | null;
+  reservationDepositAmount?: number | null;
+  reservationDepositPercentage?: number | null;
   brand: Brand;
   category: Category;
   branch: Branch;
@@ -109,8 +117,27 @@ export async function listCategories() {
   } as RequestInit);
 }
 
+export async function listBranches() {
+  const response = await apiClient.getWithMeta<Branch[]>("/branches?page=1&limit=100&isActive=true", {
+    next: { revalidate: 300 },
+  } as RequestInit);
+
+  return response.data ?? [];
+}
+
 export function displayName(item: { nameEn: string; nameAr: string }, locale: string) {
   return locale === "ar" ? item.nameAr : item.nameEn;
+}
+
+export function conditionLabel(condition: string | null | undefined, locale: string) {
+  const normalized = (condition ?? "").toString().trim().toUpperCase();
+  if (normalized === "NEW" || normalized === "ZERO") {
+    return locale === "ar" ? "زيرو" : "Zero";
+  }
+  if (normalized === "IMPORTED" || normalized === "IMPORT") {
+    return locale === "ar" ? "استيراد" : "Imported";
+  }
+  return locale === "ar" ? "زيرو" : "Zero";
 }
 
 export function formatCurrency(value: number) {

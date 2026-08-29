@@ -11,7 +11,13 @@ import {
 } from "@motorcycle-system/shared-types";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe.js";
 import type { AuthenticatedRequest } from "../common/types/authenticated-request.js";
-import { getCookieOptions, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_SECONDS } from "../config/auth.config.js";
+import { getCookieOptions, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_SECONDS, PENDING_PROFILE_COOKIE } from "../config/auth.config.js";
+import { generatePendingProfileToken, verifyToken } from "../utils/jwt.js";
+import { z } from "zod";
+
+const completeProfileSchema = z.object({
+  phone: z.string().min(1, "Phone is required"),
+});
 import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
 import { AuthService } from "./auth.service.js";
 import { AppError } from "../common/errors/app-error.js";
@@ -72,6 +78,76 @@ export class AuthController {
         accessToken: result.accessToken,
         user: result.user,
       },
+    };
+  }
+
+  @Get("google")
+  googleAuth(@Res() response: Response) {
+    response.redirect(this.authService.getGoogleAuthUrl());
+  }
+
+  @Get("google/callback")
+  async googleCallback(@Req() request: Request, @Res() response: Response) {
+    const code = request.query.code as string;
+    if (!code) {
+      return response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=oauth_failed`);
+    }
+
+    try {
+      const result = await this.authService.handleGoogleCallback(code, this.getIp(request));
+
+      if (result.status === "needs_phone") {
+        const token = generatePendingProfileToken(
+          result.pendingGoogleProfile.googleId,
+          result.pendingGoogleProfile.email,
+          result.pendingGoogleProfile.name
+        );
+        response.cookie(PENDING_PROFILE_COOKIE, token.token, getCookieOptions(token.expiresInSeconds));
+        return response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth/complete-profile`);
+      }
+
+      response.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, getCookieOptions(REFRESH_TOKEN_TTL_SECONDS));
+      return response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/account/profile`);
+    } catch (error) {
+      console.error("Google OAuth error:", error);
+      return response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=oauth_failed`);
+    }
+  }
+
+  @Post("google/complete-profile")
+  @UsePipes(new ZodValidationPipe(completeProfileSchema))
+  @HttpCode(HttpStatus.OK)
+  async completeGoogleProfile(@Body() body: { phone: string }, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
+    const pendingToken = request.cookies?.[PENDING_PROFILE_COOKIE] as string | undefined;
+    if (!pendingToken) {
+      throw new AppError("OAUTH_ERROR", 400, "Missing or expired pending profile token");
+    }
+
+    let payload;
+    try {
+      payload = verifyToken(pendingToken, "pending_profile");
+    } catch {
+      throw new AppError("OAUTH_ERROR", 400, "Invalid or expired pending profile token");
+    }
+
+    if (!payload.googleProfile) {
+      throw new AppError("OAUTH_ERROR", 400, "Invalid pending profile payload");
+    }
+
+    const result = await this.authService.completeGoogleProfile(
+      payload.sub,
+      payload.googleProfile.email,
+      payload.googleProfile.name,
+      body.phone,
+      this.getIp(request)
+    );
+
+    response.clearCookie(PENDING_PROFILE_COOKIE, getCookieOptions(0));
+    response.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, getCookieOptions(REFRESH_TOKEN_TTL_SECONDS));
+
+    return {
+      success: true,
+      data: null
     };
   }
 

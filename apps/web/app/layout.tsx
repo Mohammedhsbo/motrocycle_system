@@ -4,13 +4,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "MotorCycle | Premium Motorcycle Dealership",
-    template: "%s | MotorCycle",
+    default: " مؤسسه أولاد غانم | Awlad Ghanem Motorcycles",
+    template: "%s | مؤسسه أولاد غانم",
   },
-  description: "Explore premium motorcycles, verified inventory, reservations, and dealership services.",
+  description: "Awlad Ghanem Motorcycles: browse motorcycles, reserve your choice, and apply for installments in EGP.",
   openGraph: {
-    title: "MotorCycle | Premium Motorcycle Dealership",
-    description: "Find your next ride from verified motorcycle inventory.",
+    title: "مؤسسه أولاد غانم | Awlad Ghanem Motorcycles",
+    description: "Find your next motorcycle from verified live inventory.",
     type: "website",
   },
 };

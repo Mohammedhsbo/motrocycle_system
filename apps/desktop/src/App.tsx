@@ -2,8 +2,8 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { BrowserRouter, NavLink, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRightLeft, BarChart3, Bell, Bike, Building2, CircleDollarSign, ClipboardList, FileImage, LogOut, Menu, Package, Plus, Printer, RefreshCw, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
-import { auth, branches, getToken, getUser, setUser, clearToken, clearUser, notifications, pos, type DesktopUser } from './api';
+import { ArrowRightLeft, BarChart3, Bell, Bike, Building2, CircleDollarSign, ClipboardList, Clock, FileImage, LogOut, Menu, Package, Plus, Printer, RefreshCw, Shield, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
+import { auth, branches, desktopPermissions, getToken, getUser, setUser, clearToken, clearUser, notifications, pos, type DesktopUser } from './api';
 import { useViewingBranch, ViewingBranchProvider } from './contexts/ViewingBranchContext';
 import LoginScreen from './LoginScreen';
 import ReceivePurchase from './pages/ReceivePurchase';
@@ -14,19 +14,15 @@ import CreateReservation from './pages/CreateReservation';
 import ReservationsPOS from './pages/ReservationsPOS';
 import ReservationDetailPOS from './pages/ReservationDetailPOS';
 import './index.css';
-import POSMain from './pages/POSMain';
 import Inventory from './pages/Inventory';
-import InventoryForm from './pages/InventoryForm';
+import InventoryDetail from './pages/InventoryDetail';
 import Customers from './pages/Customers';
 import Installments from './pages/Installments';
+import InstallmentDetail from './pages/InstallmentDetail';
 import Reports from './pages/Reports';
 import Notifications from './pages/Notifications';
 import Suppliers from './pages/Suppliers';
-import Purchases from './pages/Purchases';
-import PurchaseCreate from './pages/PurchaseCreate';
-import PurchaseDetail from './pages/PurchaseDetail';
 import PrinterSettings from './pages/PrinterSettings';
-import ActiveReservations from './pages/ActiveReservations';
 import OfflineSync from './pages/OfflineSync';
 import TransactionHistory from './pages/TransactionHistory';
 import AccountManagement from './pages/AccountManagement';
@@ -34,6 +30,13 @@ import MyAccount from './pages/MyAccount';
 import CustomerInquiries from './pages/CustomerInquiries';
 import Transfers from './pages/Transfers';
 import TransferCreate from './pages/TransferCreate';
+import FinancingCompanies from './pages/FinancingCompanies';
+import Sales from './pages/Sales';
+import PosInstallments from './pages/PosInstallments';
+import DesktopPermissionsPage from './pages/DesktopPermissions';
+import Attendance from './pages/Attendance';
+import Branches from './pages/Branches';
+
 
 const qc = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
@@ -42,35 +45,36 @@ const qc = new QueryClient({
 type Lang = 'en' | 'ar';
 
 const navItems = [
-  { path: '/pos', icon: ShoppingCart, en: 'Point of Sale', ar: 'نقطة البيع' },
-  { path: '/dashboard', icon: BarChart3, en: 'Dashboard', ar: 'لوحة التحكم' },
-  { path: '/orders', icon: ClipboardList, en: 'Sales', ar: 'المبيعات' },
-  { path: '/reservations', icon: ClipboardList, en: 'Reservations', ar: 'الحجوزات' },
-  { path: '/active-reservations', icon: ClipboardList, en: 'Active lookup', ar: 'الحجوزات النشطة' },
-  { path: '/offline-sync', icon: RefreshCw, en: 'Offline sync', ar: 'المزامنة' },
-  { path: '/history', icon: ClipboardList, en: 'Transaction history', ar: 'سجل المعاملات' },
-  { path: '/receive', icon: Package, en: 'Receiving', ar: 'الاستلام' },
-  { path: '/purchases', icon: ShoppingCart, en: 'Purchases', ar: 'المشتريات' },
-  { path: '/inventory', icon: Bike, en: 'Inventory', ar: 'المخزون' },
-  { path: '/transfers', icon: ArrowRightLeft, en: 'Transfers', ar: 'التحويلات' },
-  { path: '/customers', icon: Users, en: 'Customers', ar: 'العملاء' },
-  { path: '/inquiries', icon: FileImage, en: 'Inquiries', ar: 'استعلامات' },
-  { path: '/installments', icon: WalletCards, en: 'Installments', ar: 'الأقساط' },
-  { path: '/reports', icon: BarChart3, en: 'Reports', ar: 'التقارير' },
-  { path: '/notifications', icon: Bell, en: 'Notifications', ar: 'الإشعارات' },
-  { path: '/suppliers', icon: Building2, en: 'Suppliers', ar: 'الموردون' },
-  { path: '/printers', icon: Printer, en: 'Printers', ar: 'الطابعات' },
+  { path: '/dashboard', icon: BarChart3, en: 'Dashboard', ar: 'لوحة التحكم', pageKey: 'dashboard' },
+  { path: '/sales', icon: ShoppingCart, en: 'Sales', ar: 'المبيعات', pageKey: 'sales' },
+  { path: '/pos-installments', icon: WalletCards, en: 'POS Installments', ar: 'أقساط المبيعات', pageKey: 'pos-installments' },
+  { path: '/orders', icon: ClipboardList, en: 'Orders', ar: 'الطلبات', pageKey: 'orders' },
+  { path: '/reservations', icon: ClipboardList, en: 'Reservations', ar: 'الحجوزات', pageKey: 'reservations' },
+  { path: '/offline-sync', icon: RefreshCw, en: 'Offline sync', ar: 'المزامنة', pageKey: 'offline-sync' },
+  { path: '/history', icon: ClipboardList, en: 'Transaction history', ar: 'سجل المعاملات', pageKey: 'history' },
+  { path: '/inventory', icon: Bike, en: 'Inventory', ar: 'المخزون', pageKey: 'inventory' },
+  { path: '/transfers', icon: ArrowRightLeft, en: 'Transfers', ar: 'التحويلات', pageKey: 'transfers' },
+  { path: '/customers', icon: Users, en: 'Customers', ar: 'العملاء', pageKey: 'customers' },
+  { path: '/inquiries', icon: FileImage, en: 'Inquiries', ar: 'استعلامات', pageKey: 'inquiries' },
+  { path: '/installments', icon: WalletCards, en: 'Installments', ar: 'الأقساط', pageKey: 'installments' },
+  { path: '/reports', icon: BarChart3, en: 'Reports', ar: 'التقارير', pageKey: 'reports' },
+  { path: '/notifications', icon: Bell, en: 'Notifications', ar: 'الإشعارات', pageKey: 'notifications' },
+  { path: '/suppliers', icon: Building2, en: 'Suppliers', ar: 'الموردون', pageKey: 'suppliers' },
+  { path: '/financing-companies', icon: CircleDollarSign, en: 'Financing Companies', ar: 'شركات التمويل', pageKey: 'financing-companies' },
+  { path: '/printers', icon: Printer, en: 'Printers', ar: 'الطابعات', pageKey: 'printers' },
+  { path: '/branches', icon: Building2, en: 'Branches management', ar: 'إدارة الفروع', adminOnly: true },
   { path: '/accounts', icon: Users, en: 'Account management', ar: 'إدارة الحسابات', adminOnly: true },
+  { path: '/desktop-permissions', icon: Shield, en: 'Permissions', ar: 'الصلاحيات', adminOnly: true },
+  { path: '/attendance', icon: Clock, en: 'Attendance', ar: 'الحضور والانصراف' },
   { path: '/my-account', icon: Users, en: 'My account', ar: 'حسابي' },
 ];
 
 const permissionForPath: Record<string, [string, string]> = {
-  '/receive': ['purchase', 'update'],
-  '/purchases': ['purchase', 'read'],
   '/installments': ['financing_contract', 'read'],
   '/reports': ['report', 'read'],
   '/suppliers': ['supplier', 'read'],
   '/transfers': ['transfer', 'read'],
+  '/financing-companies': ['setting', 'read'],
 };
 
 function canAccessPath(user: DesktopUser | null, path: string) {
@@ -115,7 +119,7 @@ function Dashboard({ lang }: { lang: Lang }) {
           <h1>{isRtl ? 'لوحة التحكم' : 'Dashboard'}</h1>
           <p>{isRtl ? 'تابع حركة الفرع وابدأ عملية بيع جديدة.' : 'Monitor the branch and start a new sale.'}</p>
         </div>
-        <NavLink className="primary-action" to="/pos"><Plus size={17} /> {isRtl ? 'بيع جديد' : 'New sale'}</NavLink>
+        <NavLink className="primary-action" to="/sales"><Plus size={17} /> {isRtl ? 'بيع جديد' : 'New sale'}</NavLink>
       </div>
       {isLoading && <div className="dashboard-grid">{[1, 2, 3, 4].map(item => <div className="metric-card skeleton" key={item} />)}</div>}
       {isError && <div className="state-panel"><p>{isRtl ? 'تعذر تحميل بيانات الفرع.' : 'Could not load branch data.'}</p><button className="secondary-action" onClick={() => refetch()}>{isRtl ? 'إعادة المحاولة' : 'Retry'}</button></div>}
@@ -145,9 +149,24 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
   const selectedBranchId = isSuperAdmin ? viewingBranchId ?? undefined : user.branchId ?? undefined;
   const activeLabel = navItems.find(item => location.pathname.startsWith(item.path));
   const unread = useQuery({ queryKey: ['desktop-notification-count'], queryFn: notifications.unreadCount, refetchInterval: 30_000 });
+
+  // Fetch desktop-specific permissions for non-super_admin users
+  const myPermsQuery = useQuery({
+    queryKey: ['my-desktop-perms'],
+    queryFn: desktopPermissions.getMe,
+    enabled: !isSuperAdmin,
+    staleTime: 60_000,
+  });
+
+  const isPageVisible = (pageKey: string | undefined): boolean => {
+    if (!pageKey) return true;         // items without pageKey are always shown
+    if (isSuperAdmin) return true;     // super_admin sees everything
+    if (!myPermsQuery.data) return true; // default: show while loading
+    const perm = myPermsQuery.data.find((p) => p.pageKey === pageKey);
+    return perm ? perm.canView : true; // default true if no record
+  };
+
   const restrictedPages = {
-    receive: gatedRoute(user, lang, '/receive', <ReceivePurchase lang={lang} />),
-    purchases: gatedRoute(user, lang, '/purchases', <Purchases lang={lang} />),
     installments: gatedRoute(user, lang, '/installments', <Installments lang={lang} />),
     reports: gatedRoute(user, lang, '/reports', <Reports lang={lang} />),
     suppliers: gatedRoute(user, lang, '/suppliers', <Suppliers lang={lang} />),
@@ -156,7 +175,7 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
   return <div className={`desktop-shell ${collapsed ? 'sidebar-collapsed' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
     <aside className="desktop-sidebar">
       <div className="brand-lockup"><button className="brand-emblem" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? (isRtl ? 'فتح القائمة' : 'Open dashboard menu') : (isRtl ? 'إغلاق القائمة' : 'Close dashboard menu')} title={collapsed ? (isRtl ? 'فتح القائمة' : 'Open menu') : (isRtl ? 'إغلاق القائمة' : 'Close menu')}><Bike size={20} /></button>{!collapsed && <div><strong>Moto<span>System</span></strong><small>{isRtl ? 'نظام الوكالة' : 'Dealership POS'}</small></div>}</div>
-      <nav className="desktop-nav">{navItems.filter(({ path, adminOnly }) => (!adminOnly || isSuperAdmin) && canAccessPath(user, path)).map(({ path, icon: Icon, en, ar }) => <NavLink key={path} to={path} className={({ isActive }) => `desktop-nav-link ${isActive ? 'active' : ''}`} title={collapsed ? (isRtl ? ar : en) : undefined}><Icon size={18} /><span>{isRtl ? ar : en}</span></NavLink>)}</nav>
+      <nav className="desktop-nav">{navItems.filter(({ path, adminOnly, pageKey }) => (!adminOnly || isSuperAdmin) && canAccessPath(user, path) && isPageVisible(pageKey)).map(({ path, icon: Icon, en, ar }) => <NavLink key={path} to={path} className={({ isActive }) => `desktop-nav-link ${isActive ? 'active' : ''}`} title={collapsed ? (isRtl ? ar : en) : undefined}><Icon size={18} /><span>{isRtl ? ar : en}</span></NavLink>)}</nav>
       <div className="sidebar-footer"><button className="desktop-nav-link logout-link" onClick={onLogout}><LogOut size={18} /><span>{isRtl ? 'تسجيل الخروج' : 'Sign out'}</span></button></div>
     </aside>
     <div className="desktop-main">
@@ -164,32 +183,33 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
       <main className="desktop-content"><Routes>
         <Route path="/" element={<Dashboard lang={lang} />} />
         <Route path="/dashboard" element={<Dashboard lang={lang} />} />
-        <Route path="/pos" element={<POSMain lang={lang} onBack={() => undefined} />} />
+        <Route path="/sales" element={<Sales lang={lang} />} />
+        <Route path="/pos-installments" element={<PosInstallments lang={lang} />} />
         <Route path="/orders" element={<OrdersPOS lang={lang} />} />
+
         <Route path="/orders/new" element={<CreateOrder lang={lang} />} />
         <Route path="/orders/:id" element={<OrderDetailPOS lang={lang} />} />
         <Route path="/reservations" element={<ReservationsPOS lang={lang} />} />
         <Route path="/reservations/new" element={<CreateReservation lang={lang} />} />
         <Route path="/reservations/:id" element={<ReservationDetailPOS lang={lang} />} />
-        <Route path="/active-reservations" element={<ActiveReservations lang={lang} branchId={selectedBranchId} />} />
         <Route path="/offline-sync" element={<OfflineSync lang={lang} />} />
         <Route path="/history" element={<TransactionHistory lang={lang} />} />
-        <Route path="/receive" element={restrictedPages.receive} />
-        <Route path="/purchases" element={restrictedPages.purchases} />
-        <Route path="/purchases/new" element={gatedRoute(user, lang, '/purchases', <PurchaseCreate lang={lang} />)} />
-        <Route path="/purchases/:id" element={gatedRoute(user, lang, '/purchases', <PurchaseDetail lang={lang} />)} />
         <Route path="/inventory" element={<Inventory lang={lang} branchId={selectedBranchId} />} />
-        <Route path="/inventory/new" element={<InventoryForm lang={lang} branchId={selectedBranchId} />} />
-        <Route path="/inventory/:id/edit" element={<InventoryForm lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/inventory/:id" element={<InventoryDetail lang={lang} />} />
         <Route path="/transfers" element={restrictedPages.transfers} />
         <Route path="/transfers/new" element={<TransferCreate lang={lang} />} />
         <Route path="/customers" element={<Customers lang={lang} />} />
         <Route path="/inquiries" element={<CustomerInquiries lang={lang} />} />
         <Route path="/installments" element={restrictedPages.installments} />
+        <Route path="/installments/:id" element={<InstallmentDetail lang={lang} />} />
         <Route path="/reports" element={isSuperAdmin ? <Reports lang={lang} branchId={viewingBranchId ?? undefined} /> : restrictedPages.reports} />
         <Route path="/notifications" element={<Notifications lang={lang} />} />
         <Route path="/suppliers" element={restrictedPages.suppliers} />
+        <Route path="/financing-companies" element={<FinancingCompanies lang={lang} />} />
+        {isSuperAdmin && <Route path="/branches" element={<Branches lang={lang} />} />}
         {isSuperAdmin && <Route path="/accounts" element={<AccountManagement lang={lang} />} />}
+        {isSuperAdmin && <Route path="/desktop-permissions" element={<DesktopPermissionsPage lang={lang} />} />}
+        <Route path="/attendance" element={<Attendance lang={lang} user={user} />} />
         <Route path="/my-account" element={<MyAccount lang={lang} />} />
         <Route path="*" element={<Dashboard lang={lang} />} />
       </Routes></main>

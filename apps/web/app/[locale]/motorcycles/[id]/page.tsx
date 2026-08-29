@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { ProductGallery } from "@/components/ProductGallery";
-import { displayName, formatCurrency, getMotorcycle, normalizeImages, publicVin } from "@/lib/catalog-api";
+import { conditionLabel, displayName, formatCurrency, getMotorcycle, normalizeImages, publicVin } from "@/lib/catalog-api";
 import { Calendar, Gauge, MapPin, Palette, ShieldCheck } from "lucide-react";
-import { AddToCartButton } from "@/components/AddToCartButton";
+import { BuyNowButton } from "@/components/BuyNowButton";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -46,6 +46,7 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
 
   const title = `${displayName(motorcycle.brand, locale)} ${motorcycle.model}`;
   const images = normalizeImages(motorcycle.images);
+  const condition = conditionLabel(motorcycle.condition, locale);
   const description = locale === "ar" ? motorcycle.descriptionAr || motorcycle.descriptionEn : motorcycle.descriptionEn || motorcycle.descriptionAr;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -70,9 +71,16 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
           <Link href="/motorcycles" className="text-sm font-bold text-zinc-300 hover:text-white">{t("backToInventory")}</Link>
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-red-400">{displayName(motorcycle.brand, locale)}</p>
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-400">{displayName(motorcycle.brand, locale)}</p>
               <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">{motorcycle.model}</h1>
-              <p className="mt-3 text-zinc-300">{motorcycle.year} · {motorcycle.engineSize ?? t("engineAvailable")} · {displayName(motorcycle.category, locale)}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-zinc-300">
+                <span>{motorcycle.year}</span>
+                <span>·</span>
+                <span>{motorcycle.engineSize ?? t("engineAvailable")}</span>
+                <span>·</span>
+                <span>{displayName(motorcycle.category, locale)}</span>
+                <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">{condition}</span>
+              </div>
             </div>
             <div className="rounded-lg bg-white p-5 text-zinc-950 shadow-xl">
               <p className="text-sm text-zinc-500">{t("price")}</p>
@@ -100,19 +108,27 @@ export default async function MotorcycleDetailsPage({ params }: PageProps) {
             <div className="mt-5 rounded-md bg-zinc-50 p-4 text-sm text-zinc-600">
               {t("vinReference")} <span className="font-mono font-bold text-zinc-950">{publicVin(motorcycle.vin)}</span>
             </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link href={`/reserve/${motorcycle.id}`} className="rounded-md bg-red-700 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-red-800">{t("reserveNow")}</Link>
-              <AddToCartButton motorcycle={{
-                id: motorcycle.id,
-                vin: motorcycle.vin,
-                model: motorcycle.model,
-                year: motorcycle.year,
-                price: motorcycle.price,
-                brand: {
-                  nameEn: motorcycle.brand.nameEn,
-                  nameAr: motorcycle.brand.nameAr
-                }
-              }} />
+            <div className="mt-6">
+              <BuyNowButton
+                motorcycle={{
+                  id: motorcycle.id,
+                  vin: motorcycle.vin,
+                  model: motorcycle.model,
+                  year: motorcycle.year,
+                  price: motorcycle.price,
+                  brand: {
+                    nameEn: motorcycle.brand.nameEn,
+                    nameAr: motorcycle.brand.nameAr,
+                  },
+                  image: normalizeImages(motorcycle.images)[0],
+                }}
+              />
+              <Link
+                href={`/reserve/${motorcycle.id}`}
+                className="mt-3 block rounded-md border border-zinc-300 bg-zinc-100 px-5 py-3 text-center text-sm font-bold text-zinc-900 transition hover:bg-zinc-200"
+              >
+                {locale === "ar" ? "احجز الموتوسيكل" : "Reserve Motorcycle"}
+              </Link>
             </div>
           </div>
 

@@ -20,6 +20,7 @@ import { FeatureFlagService } from './feature-flag.service.js';
 import { ConfigurationAdminService } from './configuration-admin.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { RequirePermission } from '../auth/decorators/permissions.decorator.js';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import {
@@ -43,7 +44,7 @@ import {
 type AuthRequest = AuthenticatedRequest;
 
 @Controller('admin/config')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiTags('Configuration Management')
 @ApiBearerAuth()
 export class ConfigurationAdminController {
@@ -76,6 +77,7 @@ export class ConfigurationAdminController {
   }
 
   @Get('schema')
+  @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async getConfigurationSchema() {
     return { success: true, data: await this.configService.getAllMetadata() };
   }
@@ -98,22 +100,22 @@ export class ConfigurationAdminController {
 
   // Branch Configuration
   @Get('branches/:branchId')
+  @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async getBranchConfiguration(
     @Req() req: AuthRequest,
     @Param('branchId') branchId: string,
   ) {
-    // TODO: Add branch access control
-    return { success: true, data: await this.adminService.getBranchConfiguration(branchId) };
+    return { success: true, data: await this.adminService.getBranchConfiguration(branchId, req.user.branchId, req.user.isSuperAdmin) };
   }
 
   @Patch('branches/:branchId')
+  @RequirePermission(Resource.CONFIGURATION, Action.UPDATE)
   async updateBranchConfiguration(
     @Req() req: AuthRequest,
     @Param('branchId') branchId: string,
     @Body() dto: UpdateBranchConfigurationDto,
   ) {
-    // TODO: Add branch access control
-    return { success: true, data: await this.adminService.updateBranchConfiguration(branchId, dto, req.user.id, req.ip, req.get('user-agent')) };
+    return { success: true, data: await this.adminService.updateBranchConfiguration(branchId, dto, req.user.id, req.user.branchId, req.user.isSuperAdmin, req.ip, req.get('user-agent')) };
   }
 
   @Get('branches')
@@ -124,6 +126,7 @@ export class ConfigurationAdminController {
 
   // Feature Flags
   @Get('feature-flags')
+  @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async listFeatureFlags(@Query() query: FeatureFlagQueryDto) {
     return { success: true, data: await this.featureFlagService.getAllFlags(query.scope, query.enabled_only) };
   }
@@ -149,6 +152,7 @@ export class ConfigurationAdminController {
 
   // Document Numbering
   @Get('numbering')
+  @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async getNumberingConfiguration(@Query() query: DocumentNumberingQueryDto) {
     return { success: true, data: await this.adminService.getDocumentNumbering(query.document_type, query.branch) };
   }
@@ -175,21 +179,27 @@ export class ConfigurationAdminController {
 
   // Working Hours
   @Get('working-hours/:branchId')
-  async getWorkingHours(@Param('branchId') branchId: string) {
-    return { success: true, data: await this.adminService.getWorkingHours(branchId) };
+  @RequirePermission(Resource.CONFIGURATION, Action.READ)
+  async getWorkingHours(
+    @Req() req: AuthRequest,
+    @Param('branchId') branchId: string
+  ) {
+    return { success: true, data: await this.adminService.getWorkingHours(branchId, req.user.branchId, req.user.isSuperAdmin) };
   }
 
   @Put('working-hours/:branchId')
+  @RequirePermission(Resource.CONFIGURATION, Action.UPDATE)
   async updateWorkingHours(
     @Req() req: AuthRequest,
     @Param('branchId') branchId: string,
     @Body(new ParseArrayPipe({ items: WorkingHoursUpdateDto })) dto: WorkingHoursUpdateDto[],
   ) {
-    return { success: true, data: await this.adminService.updateWorkingHours(branchId, dto, req.user.id) };
+    return { success: true, data: await this.adminService.updateWorkingHours(branchId, dto, req.user.id, req.user.branchId, req.user.isSuperAdmin) };
   }
 
   // Holidays
   @Get('holidays')
+  @RequirePermission(Resource.CONFIGURATION, Action.READ)
   async listHolidays(@Query('branch_id') branchId?: string) {
     return { success: true, data: await this.adminService.getHolidays(branchId) };
   }

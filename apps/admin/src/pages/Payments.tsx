@@ -84,7 +84,7 @@ export default function Payments({ lang }: Props) {
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const { branches, branchId } = useBranch();
+  const { branchId } = useBranch();
   const [customerId, setCustomerId] = useState<string>();
   const [customerName, setCustomerName] = useState('');
   const [methodFilter, setMethodFilter] = useState<PaymentMethod | 'all'>('all');
@@ -105,7 +105,9 @@ export default function Payments({ lang }: Props) {
         search: debouncedSearch || undefined,
         customerId,
         method: methodFilter === 'all' ? undefined : methodFilter,
-        branchId: branchId ?? undefined,
+        // branchId intentionally omitted — the server scopes by the JWT user's
+        // own branchId for non-super_admin users; sending it here is a no-op
+        // and matches the site-wide decision to not forward hardcoded branchIds.
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         limit: 50,
@@ -146,7 +148,7 @@ export default function Payments({ lang }: Props) {
         <CustomerSearch lang={lang} onSelect={customer => { setCustomerId(customer.id); setCustomerName(customer.name); }} trigger={<button type="button" className="btn btn-outline">{customerName || 'Customer'}</button>} />
         {customerId && <button className="btn btn-outline" onClick={() => { setCustomerId(undefined); setCustomerName(''); }}>Clear customer</button>}
         <select className="input" value={methodFilter} onChange={e => setMethodFilter(e.target.value as PaymentMethod | 'all')}><option value="all">All methods</option>{(['cash', 'card', 'bank_transfer', 'cheque'] as PaymentMethod[]).map(method => <option key={method} value={method}>{method}</option>)}</select>
-        <select className="input" value={branchId ?? ''} disabled><option value="">{branches.find(branch => branch.id === branchId)?.nameEn ?? 'Branch'}</option></select>
+        <select className="input" value={branchId ?? ''} disabled><option value="">Main Branch</option></select>
         <input className="input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
         <input className="input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
       </div>
