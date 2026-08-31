@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle, History, Package, ShoppingBag, User, XCircle } from 'lucide-react';
-import { orders, type OrderStatus } from '../api';
+import { pos, type OrderStatus } from '../api';
 
 type Lang = 'en' | 'ar';
 
@@ -89,24 +89,26 @@ interface Props {
 export default function OrderDetailPOS({ lang }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const listPath = location.pathname.startsWith('/transactions/') ? '/history' : '/installment-orders';
   const queryClient = useQueryClient();
   const t = T[lang];
   const isRtl = lang === 'ar';
 
   const { data: order, isLoading, isError } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => orders.get(id!),
+    queryFn: () => pos.getOrder(id!),
     enabled: !!id,
   });
 
   const { data: customerOrdersData } = useQuery({
     queryKey: ['customerOrders', order?.customer.id],
-    queryFn: () => orders.getCustomerOrders(order!.customer.id, { limit: 10 }),
+    queryFn: () => pos.listOrders({ search: order!.customer.phone, limit: 10 }),
     enabled: !!order?.customer.id,
   });
   const action = useMutation({
-    mutationFn: ({ kind, status }: { kind: 'confirm' | 'status' | 'cancel'; status?: OrderStatus }) => kind === 'confirm' ? orders.confirm(id!) : kind === 'cancel' ? orders.cancel(id!, 'Cancelled from POS') : orders.updateStatus(id!, status!),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['order', id] }); void queryClient.invalidateQueries({ queryKey: ['orders'] }); },
+    mutationFn: ({ kind, status }: { kind: 'confirm' | 'status' | 'cancel'; status?: OrderStatus }) => kind === 'cancel' ? pos.cancelOrder(id!) : pos.updateOrderStatus(id!, status!),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['order', id] }); void queryClient.invalidateQueries({ queryKey: listPath === '/history' ? ['desktop-transactions'] : ['installment-orders'] }); },
   });
 
   const customerOrders = customerOrdersData?.items.filter((o) => o.id !== id) ?? [];
@@ -170,7 +172,7 @@ export default function OrderDetailPOS({ lang }: Props) {
         >
           <AlertCircle size={40} />
           <div>{t.error}</div>
-          <button onClick={() => navigate('/orders')} className="btn btn-ghost">
+          <button onClick={() => navigate(listPath)} className="btn btn-ghost">
             {t.back}
           </button>
         </div>
@@ -182,7 +184,7 @@ export default function OrderDetailPOS({ lang }: Props) {
     <div className="pos-detail-panel order-detail-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       {/* Back button */}
       <button
-        onClick={() => navigate('/orders')}
+        onClick={() => navigate(listPath)}
         className="btn btn-ghost order-detail-back"
         style={{ marginBottom: '1.5rem' }}
       >
@@ -472,7 +474,7 @@ export default function OrderDetailPOS({ lang }: Props) {
                     {statusLabels[o.status][lang]}
                   </span>
                   <button
-                    onClick={() => navigate(`/orders/${o.id}`)}
+                    onClick={() => navigate(`/installment-orders/${o.id}`)}
                     className="btn btn-ghost"
                     style={{ padding: '0.375rem 0.625rem', fontSize: '0.8rem' }}
                   >

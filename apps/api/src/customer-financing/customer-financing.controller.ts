@@ -13,6 +13,7 @@ import {
   installmentDurationUpdateSchema,
   installmentRequestCreateSchema,
   installmentRequestReviewSchema,
+  installmentRequestUpdateSchema,
   installmentCalculationSchema,
   settingsUpdateSchema,
 } from "./customer-financing.schemas.js";
@@ -99,8 +100,28 @@ export class CustomerFinancingController {
   @RequirePermission(Resource.INSTALLMENT, Action.READ)
   listRequests(@Query("status") status?: "pending" | "approved" | "rejected") { return this.service.listRequests(status).then((data) => ({ success: true, data })); }
 
+  @Get("admin/installment-requests/:id")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission(Resource.INSTALLMENT, Action.READ)
+  getRequest(@Param("id", ParseUUIDPipe) id: string) { return this.service.getRequest(id).then((data) => ({ success: true, data })); }
+
   @Patch("admin/installment-requests/:id")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission(Resource.INSTALLMENT, Action.APPROVE)
   reviewRequest(@Param("id", ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(installmentRequestReviewSchema)) body: any) { return this.service.reviewRequest(id, body).then((data) => ({ success: true, data })); }
+
+  @Patch("admin/installment-requests/:id/details")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission(Resource.INSTALLMENT, Action.UPDATE)
+  updateRequest(@Param("id", ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(installmentRequestUpdateSchema)) body: any) { return this.service.updateRequest(id, body).then((data) => ({ success: true, data })); }
+
+  @Delete("admin/installment-requests/:id")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission(Resource.INSTALLMENT, Action.DELETE)
+  deleteRequest(@Param("id", ParseUUIDPipe) id: string) { return this.service.deleteRequest(id).then((data) => ({ success: true, data })); }
+
+  @Get("admin/installment-requests/:id/whatsapp")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission(Resource.INSTALLMENT, Action.READ)
+  whatsappRequest(@Param("id", ParseUUIDPipe) id: string) { return this.service.whatsappRequest(id).then((data) => ({ success: true, data })); }
 }

@@ -2,6 +2,7 @@ import {
   Inject,
   Controller,
   Get,
+  Patch,
   Post,
   Body,
   Param,
@@ -11,7 +12,10 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { POSService } from './pos.service.js';
 import { OfflineService } from './offline.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -114,6 +118,13 @@ export class POSController {
     };
   }
 
+  @Post('cash-sales')
+  @UseInterceptors(FileInterceptor('customerIdImage'))
+  @RequirePermission(Resource.ORDER, Action.CREATE)
+  async createCashSale(@Body() body: any, @UploadedFile() file: Express.Multer.File | undefined, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.createCashSale(body, req.user, file) };
+  }
+
   @Get('reservations/active')
   @RequirePermission(Resource.RESERVATION, Action.READ)
   @ApiDocumentation({ tags: ['POS - Sales'], summary: 'List active reservations', description: 'Desktop POS retrieves reservations eligible for checkout.', protected: true })
@@ -127,6 +138,66 @@ export class POSController {
       success: true,
       data,
     };
+  }
+
+  @Get('orders')
+  @RequirePermission(Resource.ORDER, Action.READ)
+  async listDesktopOrders(@Query() query: any, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.listDesktopOrders(query, req.user) };
+  }
+
+  @Post('orders')
+  @RequirePermission(Resource.ORDER, Action.CREATE)
+  async createDesktopOrder(@Body() body: any, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.createDesktopOrder(body, req.user) };
+  }
+
+  @Get('orders/:id')
+  @RequirePermission(Resource.ORDER, Action.READ)
+  async getDesktopOrder(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.getDesktopOrder(id, req.user) };
+  }
+
+  @Patch('orders/:id/status')
+  @RequirePermission(Resource.ORDER, Action.UPDATE)
+  async updateDesktopOrderStatus(@Param('id', ParseUUIDPipe) id: string, @Body() body: { status: string }, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.updateDesktopOrderStatus(id, body.status, req.user) };
+  }
+
+  @Post('orders/:id/cancel')
+  @RequirePermission(Resource.ORDER, Action.UPDATE)
+  async cancelDesktopOrder(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.cancelDesktopOrder(id, req.user) };
+  }
+
+  @Get('reservations')
+  @RequirePermission(Resource.RESERVATION, Action.READ)
+  async listDesktopReservations(@Query() query: any, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.listDesktopReservations(query, req.user) };
+  }
+
+  @Post('reservations/direct')
+  @RequirePermission(Resource.RESERVATION, Action.CREATE)
+  async createDirectReservation(@Body() body: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number }, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.createDirectReservation(body, req.user) };
+  }
+
+  @Get('reservations/:id')
+  @RequirePermission(Resource.RESERVATION, Action.READ)
+  async getDesktopReservation(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.getDesktopReservation(id, req.user) };
+  }
+
+  @Post('reservations/:id/cancel')
+  @RequirePermission(Resource.RESERVATION, Action.UPDATE)
+  async cancelDesktopReservation(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.cancelDesktopReservation(id, req.user) };
+  }
+
+  @Patch('reservations/:id')
+  @RequirePermission(Resource.RESERVATION, Action.UPDATE)
+  async updateDesktopReservation(@Param('id', ParseUUIDPipe) id: string, @Body() body: { expiresAt?: string; notes?: string }, @Req() req: AuthenticatedRequest) {
+    return { success: true, data: await this.posService.updateDesktopReservation(id, body, req.user) };
   }
 
   @Post('reservations/:id/convert')

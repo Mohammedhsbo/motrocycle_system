@@ -212,6 +212,111 @@ describe('POS API - Integration Tests', () => {
     });
   });
 
+  describe('Cash sales', () => {
+    it('should create a cash sale using the authenticated branch without requiring a body branchId', async () => {
+      const cashSaleMotorcycle = await prisma.motorcycle.create({
+        data: {
+          vin: 'TEST-VIN-CASH-001',
+          brandId,
+          categoryId,
+          model: 'CBR500R',
+          year: 2025,
+          color: 'Blue',
+          price: 12000,
+          costPrice: 12000,
+          status: 'available',
+          branchId,
+          images: [],
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/pos/cash-sales')
+        .set('Authorization', `Bearer ${cashierToken}`)
+        .field('motorcycleId', cashSaleMotorcycle.id)
+        .field('customerName', 'Walk-in Cash Customer')
+        .field('customerPhone', '+966500000001')
+        .field('salePrice', '12000')
+        .field('paymentMethod', 'CASH')
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.branchId).toBe(branchId);
+      expect(res.body.data.customerPhone).toBe('+966500000001');
+    });
+
+    it('should let a super_admin cash sale without a body branchId by deriving it from the motorcycle branch', async () => {
+      const cashSaleMotorcycle = await prisma.motorcycle.create({
+        data: {
+          vin: 'TEST-VIN-CASH-002',
+          brandId,
+          categoryId,
+          model: 'CBR650R',
+          year: 2025,
+          color: 'Black',
+          price: 15000,
+          costPrice: 15000,
+          status: 'available',
+          branchId,
+          images: [],
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/pos/cash-sales')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .field('motorcycleId', cashSaleMotorcycle.id)
+        .field('customerName', 'Super Admin Cash Customer')
+        .field('customerPhone', '+966500000002')
+        .field('salePrice', '15000')
+        .field('paymentMethod', 'CASH')
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.branchId).toBe(cashSaleMotorcycle.branchId);
+      expect(res.body.data.customerPhone).toBe('+966500000002');
+    });
+
+    it('should reject a staff cash sale that tries to override branchId with a different branch', async () => {
+      const cashSaleMotorcycle = await prisma.motorcycle.create({
+        data: {
+          vin: 'TEST-VIN-CASH-003',
+          brandId,
+          categoryId,
+          model: 'CBR700R',
+          year: 2025,
+          color: 'Silver',
+          price: 18000,
+          costPrice: 18000,
+          status: 'available',
+          branchId,
+          images: [],
+        },
+      });
+
+      const otherBranch = await prisma.branch.create({
+        data: {
+          nameAr: 'فرع آخر',
+          nameEn: 'Another Branch',
+          code: 'BR-OTHER',
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/pos/cash-sales')
+        .set('Authorization', `Bearer ${cashierToken}`)
+        .field('motorcycleId', cashSaleMotorcycle.id)
+        .field('customerName', 'Wrong Branch Customer')
+        .field('customerPhone', '+966500000003')
+        .field('salePrice', '18000')
+        .field('paymentMethod', 'CASH')
+        .field('branchId', otherBranch.id)
+        .expect(400);
+
+      expect(res.body.message).toMatch(/branch|Branch/i);
+    });
+  });
+
   describe('Transaction Validation', () => {
     it('should validate valid transaction', async () => {
       const res = await request(app.getHttpServer())

@@ -163,7 +163,7 @@ export default function CreateReservation({ lang }: Props) {
       return pos.createTransaction(data);
     },
     onSuccess: (reservation) => {
-      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['desktop-reservations'] });
       queryClient.invalidateQueries({ queryKey: ['motorcycles'] });
       setCreatedReservation({ id: reservation.id, reservationNumber: reservation.number });
     },

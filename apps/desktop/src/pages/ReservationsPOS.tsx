@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Clock } from 'lucide-react';
-import { reservations, type ReservationListItem, type ReservationStatus } from '../api';
+import { Bookmark, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { pos, type ReservationListItem, type ReservationStatus } from '../api';
 import { DataTableState } from '../components/DataTable';
 
 type Lang = 'en' | 'ar';
@@ -70,13 +70,15 @@ export default function ReservationsPOS({ lang }: Props) {
   const navigate = useNavigate();
 
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['reservations', statusFilter],
+    queryKey: ['desktop-reservations', statusFilter, page],
     queryFn: () =>
-      reservations.list({
+      pos.listReservations({
         status: statusFilter === 'all' ? undefined : statusFilter,
-        limit: 100,
+        page,
+        limit: 25,
       }),
   });
 
@@ -160,7 +162,7 @@ export default function ReservationsPOS({ lang }: Props) {
           {(['all', 'active', 'expired', 'cancelled', 'converted'] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setStatusFilter(status)}
+              onClick={() => { setStatusFilter(status); setPage(1); }}
               className="badge"
               style={{
                 cursor: 'pointer',
@@ -173,6 +175,16 @@ export default function ReservationsPOS({ lang }: Props) {
             </button>
           ))}
         </div>
+        {!isLoading && reservationsList.length > 0 && (
+          <div className="panel-heading" style={{ padding: '0.75rem 1rem' }}>
+            <span>{data?.total ?? 0}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button className="icon-button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} title="Previous"><ChevronLeft size={16} /></button>
+              <span>{page} / {data?.totalPages || 1}</span>
+              <button className="icon-button" disabled={page >= (data?.totalPages || 1)} onClick={() => setPage((value) => value + 1)} title="Next"><ChevronRight size={16} /></button>
+            </div>
+          </div>
+        )}
 
         {/* Reservation list */}
         <div className="pos-list reservations-grid">

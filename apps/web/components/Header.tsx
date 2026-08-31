@@ -21,9 +21,23 @@ export function Header() {
   // Check if we are on the home page (e.g., "/", "/ar", "/en")
   const isHome = pathname === "/" || pathname === `/${locale}`;
 
+  const persistLocaleCookie = (nextLocale: "ar" | "en") => {
+    document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+  };
+
   const toggleLocale = () => {
     const newLocale = locale === "ar" ? "en" : "ar";
-    window.location.href = `/${newLocale}`;
+    persistLocaleCookie(newLocale);
+    const nextPath = pathname.replace(/^\/(ar|en)/, "") || "/";
+    const suffix = `${window.location.search}${window.location.hash}`;
+    window.location.href = `/${newLocale}${nextPath}${suffix}`;
+  };
+
+  const switchLocale = (nextLocale: "ar" | "en") => {
+    persistLocaleCookie(nextLocale);
+    const nextPath = pathname.replace(/^\/(ar|en)/, "") || "/";
+    const suffix = `${window.location.search}${window.location.hash}`;
+    window.location.href = `/${nextLocale}${nextPath}${suffix}`;
   };
 
   const localeToggleLabel = locale === "ar" ? t("switchToEnglish") : t("switchToArabic");
@@ -73,8 +87,7 @@ export function Header() {
             <ul className="flex items-center gap-6 lg:gap-10">
               <li><Link href="/" className="text-base font-bold text-white transition hover:text-white/80">{tCommon("home")}</Link></li>
               <li><Link href="/motorcycles" className="text-base font-bold text-white transition hover:text-white/80">{tNav("motorcycles")}</Link></li>
-              <li><Link href="/motorcycles" className="text-base font-bold text-white transition hover:text-white/80">{tNav("brands")}</Link></li>
-              <li><Link href="/articles" className="text-base font-bold text-white transition hover:text-white/80">{tNav("articles")}</Link></li>
+              <li><Link href="/brands" className="text-base font-bold text-white transition hover:text-white/80">{tNav("brands")}</Link></li>
               <li><Link href="/contact" className="text-base font-bold text-white transition hover:text-white/80">{tNav("contact")}</Link></li>
             </ul>
           </nav>
@@ -198,6 +211,23 @@ export function Header() {
             <Link onClick={() => setOpen(false)} href="/contact" className="rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">{tNav("contact")}</Link>
             
             <div className="border-t pt-2 mt-1">
+              <div className="mb-2 grid grid-cols-2 gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); switchLocale("ar"); }}
+                  className={`rounded-md px-3 py-2 text-sm font-bold transition ${locale === "ar" ? "bg-blue-900 text-white" : "text-zinc-700 hover:bg-white"}`}
+                >
+                  AR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); switchLocale("en"); }}
+                  className={`rounded-md px-3 py-2 text-sm font-bold transition ${locale === "en" ? "bg-blue-900 text-white" : "text-zinc-700 hover:bg-white"}`}
+                >
+                  EN
+                </button>
+              </div>
+
               {isAuthenticated ? (
                 <>
                   <Link onClick={() => setOpen(false)} href="/account/profile" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50">

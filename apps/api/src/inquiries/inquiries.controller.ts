@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UploadedFiles, UseGuards, UseInterceptors, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req, UploadedFiles, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe.js";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
@@ -56,5 +56,17 @@ export class InquiriesController {
     return this.service
       .create(req.user, body, fileOptions)
       .then((data) => ({ success: true, data }));
+  }
+
+  @Post(":id/send-whatsapp")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  sendWhatsApp(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
+    return this.service.sendWhatsApp(id, req.user).then((data) => ({ success: true, data }));
+  }
+
+  @Post(":id/send-for-review")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  sendForReview(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
+    return this.service.sendForReview(id, req.user).then((data) => ({ success: true, data }));
   }
 }

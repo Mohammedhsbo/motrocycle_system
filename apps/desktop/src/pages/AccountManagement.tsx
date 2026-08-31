@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Edit3, Power, RefreshCw, Trash2, UserPlus, X } from 'lucide-react';
-import { branches, roles, users, type UpdateUserInput, type UserListItem } from '../api';
+import { branches, roles, users, type BranchSummary, type UpdateUserInput, type UserListItem } from '../api';
 
 export default function AccountManagement({ lang }: { lang: 'en' | 'ar' }) {
   const isRtl = lang === 'ar';
@@ -12,7 +12,10 @@ export default function AccountManagement({ lang }: { lang: 'en' | 'ar' }) {
   const [editing, setEditing] = useState<UserListItem | null>(null);
   const [editForm, setEditForm] = useState<UpdateUserInput>({});
   const userQuery = useQuery({ queryKey: ['account-users'], queryFn: users.list });
-  const branchQuery = useQuery({ queryKey: ['active-branches'], queryFn: branches.list });
+  const branchQuery = useQuery<{ items: BranchSummary[]; total: number }>({
+    queryKey: ['active-branches'],
+    queryFn: () => branches.list(true),
+  });
   const roleQuery = useQuery({ queryKey: ['assignable-roles'], queryFn: roles.list });
   const selectedRole = roleQuery.data?.find((role) => role.id === form.roleId);
   const createUser = useMutation({

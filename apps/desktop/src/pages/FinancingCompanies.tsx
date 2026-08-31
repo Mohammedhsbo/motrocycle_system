@@ -13,6 +13,7 @@ const T = {
     add: 'Add company',
     refresh: 'Refresh',
     name: 'Company name',
+    whatsappNumber: 'WhatsApp number',
     sortOrder: 'Sort order',
     active: 'Active',
     inactive: 'Inactive',
@@ -29,6 +30,8 @@ const T = {
     addTitle: 'New Financing Company',
     editTitle: 'Edit Financing Company',
     required: 'Name is required',
+    requiredWhatsApp: 'WhatsApp number is required',
+    invalidWhatsApp: 'WhatsApp number must be a valid phone number',
   },
   ar: {
     title: 'شركات التمويل',
@@ -37,6 +40,7 @@ const T = {
     add: 'إضافة شركة',
     refresh: 'تحديث',
     name: 'اسم الشركة',
+    whatsappNumber: 'رقم واتساب',
     sortOrder: 'الترتيب',
     active: 'نشطة',
     inactive: 'غير نشطة',
@@ -53,16 +57,21 @@ const T = {
     addTitle: 'شركة تمويل جديدة',
     editTitle: 'تعديل شركة التمويل',
     required: 'الاسم مطلوب',
+    requiredWhatsApp: 'رقم واتساب مطلوب',
+    invalidWhatsApp: 'رقم واتساب غير صحيح',
   },
 };
 
 interface FormState {
   name: string;
+  whatsappNumber: string;
   isActive: boolean;
   sortOrder: number;
 }
 
-const emptyForm: FormState = { name: '', isActive: true, sortOrder: 0 };
+const emptyForm: FormState = { name: '', whatsappNumber: '', isActive: true, sortOrder: 0 };
+const whatsappPattern = /^\+?[0-9\s-]{8,20}$/;
+
 
 export default function FinancingCompanies({ lang }: { lang: Lang }) {
   const t = T[lang];
@@ -114,7 +123,7 @@ export default function FinancingCompanies({ lang }: { lang: Lang }) {
 
   const openEdit = (company: FinancingCompanyRecord) => {
     setEditTarget(company);
-    setForm({ name: company.name, isActive: company.isActive, sortOrder: company.sortOrder });
+    setForm({ name: company.name, whatsappNumber: company.whatsappNumber ?? '', isActive: company.isActive, sortOrder: company.sortOrder });
     setFormError('');
     setShowForm(true);
   };
@@ -128,8 +137,11 @@ export default function FinancingCompanies({ lang }: { lang: Lang }) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { setFormError(t.required); return; }
+    if (!form.whatsappNumber.trim()) { setFormError(t.requiredWhatsApp); return; }
+    if (!whatsappPattern.test(form.whatsappNumber.trim())) { setFormError(t.invalidWhatsApp); return; }
     const payload: FinancingCompanyInput = {
       name: form.name.trim(),
+      whatsappNumber: form.whatsappNumber.trim(),
       isActive: form.isActive,
       sortOrder: form.sortOrder,
     };
@@ -196,6 +208,7 @@ export default function FinancingCompanies({ lang }: { lang: Lang }) {
               }}>
                 <th style={{ padding: '0.75rem 1rem', textAlign: isRtl ? 'right' : 'left', fontWeight: 600 }}>#</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: isRtl ? 'right' : 'left', fontWeight: 600 }}>{t.name}</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: isRtl ? 'right' : 'left', fontWeight: 600 }}>{t.whatsappNumber}</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600 }}>{isRtl ? 'الحالة' : 'Status'}</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600 }}>{t.sortOrder}</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: isRtl ? 'right' : 'left', fontWeight: 600 }}>{t.createdAt}</th>
@@ -283,6 +296,15 @@ export default function FinancingCompanies({ lang }: { lang: Lang }) {
                   placeholder={isRtl ? 'مثال: شركة الأهلي للتمويل' : 'e.g. Al-Ahli Financing Co.'}
                   required
                   autoFocus
+                />
+              </label>
+              <label>
+                <span>{t.whatsappNumber} *</span>
+                <input
+                  value={form.whatsappNumber}
+                  onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+                  placeholder={isRtl ? '+966...' : '+966...'}
+                  required
                 />
               </label>
               <label>

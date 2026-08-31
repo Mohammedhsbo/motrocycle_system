@@ -56,6 +56,9 @@ export async function resetDatabase() {
     prisma.installment.deleteMany(),
     prisma.financingContract.deleteMany(),
 
+    prisma.desktopReservation.deleteMany(),
+    prisma.desktopOrderItem.deleteMany(),
+    prisma.desktopOrder.deleteMany(),
     prisma.reservation.deleteMany(),
     prisma.orderItem.deleteMany(),
     prisma.order.deleteMany(),
@@ -66,6 +69,10 @@ export async function resetDatabase() {
     prisma.purchase.deleteMany(),
     prisma.supplier.deleteMany(),
 
+    prisma.posInstallmentPlan.deleteMany(),
+    prisma.saleRequest.deleteMany(),
+    prisma.posReservation.deleteMany(),
+    prisma.customerInquiry.deleteMany(),
     prisma.address.deleteMany(),
     prisma.customer.deleteMany(),
     prisma.motorcycle.deleteMany(),

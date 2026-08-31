@@ -67,7 +67,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <div className="w-full lg:w-[40%] z-40 relative flex justify-center lg:order-2 order-1">
               <div className="relative w-full max-w-xl mx-auto drop-shadow-[0_30px_50px_rgba(0,0,0,0.5)] lg:scale-125 lg:translate-y-8 animate-zoom-in" style={{ animationDelay: '100ms' }}>
                 {heroBike ? (
-                  <MotorcycleVisual src={heroImages[0]} alt={displayName(heroBike, locale)} className="w-full h-auto object-contain" priority />
+                  <MotorcycleVisual src={heroImages[0]} alt={`${displayName(heroBike.brand, locale)} ${heroBike.model}`} className="w-full h-auto object-contain" priority />
                 ) : (
                   <img src="/hero.png" alt="Hero" className="w-full h-auto object-contain" />
                 )}

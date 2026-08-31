@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { branches, purchases, suppliers, type PurchaseCreateInput } from '../api';
+import { branches, purchases, suppliers, type BranchSummary, type PurchaseCreateInput } from '../api';
 
 type Lang = 'en' | 'ar';
 
@@ -48,9 +48,9 @@ export default function PurchaseCreate({ lang }: { lang: Lang }) {
     queryFn: () => suppliers.list({ limit: 100, isActive: true }),
   });
 
-  const branchQuery = useQuery({
+  const branchQuery = useQuery<{ items: BranchSummary[]; total: number }>({
     queryKey: ['desktop-branches'],
-    queryFn: branches.list,
+    queryFn: () => branches.list(true),
   });
 
   const createMut = useMutation({

@@ -7,16 +7,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "@/i18n/routing";
 
 const buyerFields = [
-  { key: "buyerName", label: "اسم المشتري", type: "text" },
-  { key: "buyerPhone", label: "رقم الهاتف", type: "tel" },
+  { key: "buyerName", label: "اسم المشتري", type: "text", optional: false },
+  { key: "buyerPhone", label: "رقم الهاتف", type: "tel", optional: false },
   { key: "buyerEmail", label: "البريد الإلكتروني", type: "email", optional: true },
   { key: "buyerAddress", label: "العنوان", type: "text", optional: true },
   { key: "buyerOccupation", label: "الوظيفة", type: "text", optional: true },
 ] as const;
 
 const guarantorFields = [
-  { key: "guarantorName", label: "اسم الضامن", type: "text" },
-  { key: "guarantorPhone", label: "هاتف الضامن", type: "tel" },
+  { key: "guarantorName", label: "اسم الضامن", type: "text", optional: false },
+  { key: "guarantorPhone", label: "هاتف الضامن", type: "tel", optional: false },
   { key: "guarantorAddress", label: "عنوان الضامن", type: "text", optional: true },
 ] as const;
 

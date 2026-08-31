@@ -8,6 +8,9 @@ export const metadata: Metadata = {
     template: "%s | مؤسسه أولاد غانم",
   },
   description: "Awlad Ghanem Motorcycles: browse motorcycles, reserve your choice, and apply for installments in EGP.",
+  icons: {
+    icon: "/logo.png",
+  },
   openGraph: {
     title: "مؤسسه أولاد غانم | Awlad Ghanem Motorcycles",
     description: "Find your next motorcycle from verified live inventory.",
@@ -16,5 +19,9 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
 }

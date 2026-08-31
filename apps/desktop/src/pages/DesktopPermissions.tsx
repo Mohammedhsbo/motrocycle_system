@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Save, RotateCcw, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { users, desktopPermissions, type DesktopPagePermission, type UserListItem } from '../api';
@@ -81,14 +81,17 @@ function UserPermissionPanel({
   const [localPerms, setLocalPerms] = useState<DesktopPagePermission[] | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const permQuery = useQuery({
+  const permQuery = useQuery<DesktopPagePermission[]>({
     queryKey: ['desktop-perms', user.id],
     queryFn: () => desktopPermissions.getForUser(user.id),
     enabled: expanded,
-    onSuccess: (data: DesktopPagePermission[]) => {
-      if (!localPerms) setLocalPerms(data);
-    },
   });
+
+  useEffect(() => {
+    if (expanded && permQuery.data && localPerms === null) {
+      setLocalPerms(permQuery.data);
+    }
+  }, [expanded, permQuery.data, localPerms]);
 
   const saveMut = useMutation({
     mutationFn: () => desktopPermissions.setForUser(user.id, localPerms!),
@@ -108,7 +111,11 @@ function UserPermissionPanel({
     },
   });
 
-  const perms = localPerms ?? permQuery.data ?? [];
+  const perms: DesktopPagePermission[] = Array.isArray(localPerms)
+    ? localPerms
+    : Array.isArray(permQuery.data)
+      ? permQuery.data
+      : [];
 
   const handleChange = (updated: DesktopPagePermission) => {
   setLocalPerms((prev) => (Array.isArray(prev) ? prev.map((p) => (p.pageKey === updated.pageKey ? updated : p)) : []));

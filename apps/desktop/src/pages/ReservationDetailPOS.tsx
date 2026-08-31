@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Bike, Receipt, AlertCircle, Clock, XCircle, CheckCircle, Edit3, MessageCircle } from 'lucide-react';
-import { reservations, pos, financing, type ReservationStatus } from '../api';
+import { pos, financing, type ReservationStatus } from '../api';
 import ConvertToOrder from '../components/ConvertToOrder';
 import { buildWhatsAppUrl } from '../../../../packages/shared-types/src/whatsapp';
 
@@ -165,13 +165,13 @@ export default function ReservationDetailPOS({ lang }: Props) {
 
   const { data: reservation, isLoading, isError } = useQuery({
     queryKey: ['reservation', id],
-    queryFn: () => reservations.get(id!),
+    queryFn: () => pos.getReservation(id!),
     enabled: !!id,
   });
 
   const { data: customerReservationsData } = useQuery({
     queryKey: ['customerReservations', reservation?.customer.id],
-    queryFn: () => reservations.getCustomerReservations(reservation!.customer.id, { limit: 10 }),
+    queryFn: () => pos.listReservations({ limit: 10 }),
     enabled: !!reservation?.customer.id,
   });
 
@@ -189,32 +189,38 @@ export default function ReservationDetailPOS({ lang }: Props) {
     mutationFn: (notes?: string) => pos.convertReservation(id!, notes, conversionKey),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['reservation', id] });
-      queryClient.invalidateQueries({ queryKey: ['reservations'] });
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['desktop-reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['installment-orders'] });
       setShowConvertModal(false);
-      navigate(`/orders/${result.order.id}`);
+      navigate(`/installment-orders/${result.id}`);
     },
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => reservations.cancel(id!, cancelReason),
+    mutationFn: () => pos.cancelReservation(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservation', id] });
-      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['desktop-reservations'] });
       setShowCancelModal(false);
       setCancelReason('');
     },
   });
   const updateMutation = useMutation({
-    mutationFn: () => reservations.update(id!, { expiresAt: editExpiresAt ? new Date(editExpiresAt).toISOString() : undefined, notes: editNotes }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['reservation', id] }); void queryClient.invalidateQueries({ queryKey: ['reservations'] }); setShowEdit(false); },
+    mutationFn: () => pos.updateReservation(id!, { expiresAt: editExpiresAt ? new Date(editExpiresAt).toISOString() : undefined, notes: editNotes }),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['reservation', id] }); void queryClient.invalidateQueries({ queryKey: ['desktop-reservations'] }); setShowEdit(false); },
   });
   const extendMutation = useMutation({
-    mutationFn: () => reservations.extend(id!, new Date(editExpiresAt).toISOString()),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['reservation', id] }); void queryClient.invalidateQueries({ queryKey: ['reservations'] }); setShowEdit(false); },
+    mutationFn: () => pos.updateReservation(id!, { expiresAt: new Date(editExpiresAt).toISOString() }),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['reservation', id] }); void queryClient.invalidateQueries({ queryKey: ['desktop-reservations'] }); setShowEdit(false); },
   });
   const sendWhatsApp = useMutation({
-    mutationFn: () => reservations.sendWhatsApp(id!),
+    mutationFn: async (): Promise<{ phone: string; message: string }> => {
+      if (!reservation) throw new Error('Reservation not loaded');
+      return {
+        phone: reservation.customer.phone,
+        message: `Reservation ${reservation.reservationNumber} for ${reservation.motorcycle.model}`,
+      };
+    },
     onSuccess: ({ phone, message }) => window.open(buildWhatsAppUrl(phone, message), '_blank'),
   });
 
@@ -576,7 +582,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
               </div>
             </div>
             <button
-              onClick={() => navigate(`/orders/${reservation.convertedOrder!.id}`)}
+              onClick={() => navigate(`/installment-orders/${reservation.convertedOrder!.id}`)}
               className="btn btn-primary"
               style={{ fontSize: '0.875rem' }}
             >

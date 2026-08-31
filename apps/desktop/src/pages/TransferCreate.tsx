@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRightLeft, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { branches, motorcycles, transfers, type CreateTransferInput, type MotorcycleSearchResult } from '../api';
+import { branches, motorcycles, transfers, type BranchSummary, type CreateTransferInput, type MotorcycleSearchResult } from '../api';
 type Lang = 'en' | 'ar';
 export default function TransferCreate({ lang }: { lang: Lang }) {
   const isRtl = lang === 'ar'; const navigate = useNavigate(); const qc = useQueryClient(); const user = JSON.parse(localStorage.getItem('pos_user') || '{}') as { branchId?: string | null };
-  const branchQuery = useQuery({ queryKey: ['transfer-branches'], queryFn: branches.list }); const [fromBranchId, setFromBranchId] = useState(user.branchId ?? ''); const [toBranchId, setToBranchId] = useState(''); const [selectedIds, setSelectedIds] = useState<string[]>([]); const [search, setSearch] = useState(''); const [notes, setNotes] = useState(''); const [error, setError] = useState('');
+  const branchQuery = useQuery<{ items: BranchSummary[]; total: number }>({ queryKey: ['transfer-branches'], queryFn: () => branches.list(true) }); const [fromBranchId, setFromBranchId] = useState(user.branchId ?? ''); const [toBranchId, setToBranchId] = useState(''); const [selectedIds, setSelectedIds] = useState<string[]>([]); const [search, setSearch] = useState(''); const [notes, setNotes] = useState(''); const [error, setError] = useState('');
   const motorcycleQuery = useQuery({ queryKey: ['transfer-motorcycles', fromBranchId, search], queryFn: () => motorcycles.search({ branchId: fromBranchId, status: 'available', search: search || undefined, limit: 100 }), enabled: !!fromBranchId });
   const create = useMutation({ mutationFn: (input: CreateTransferInput) => transfers.create(input), onSuccess: () => { qc.invalidateQueries({ queryKey: ['desktop-transfers'] }); qc.invalidateQueries({ queryKey: ['desktop-inventory'] }); navigate('/transfers'); }, onError: (reason: Error) => setError(reason.message) });
   const available = (motorcycleQuery.data?.items ?? []).filter(item => item.status === 'available' && item.branch.id === fromBranchId); const branchName = (branch: { nameAr: string; nameEn: string }) => isRtl ? branch.nameAr : branch.nameEn; const toggle = (id: string) => setSelectedIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);

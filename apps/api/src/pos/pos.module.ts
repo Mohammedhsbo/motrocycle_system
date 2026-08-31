@@ -8,6 +8,7 @@ import { MotorcyclesModule } from '../motorcycles/motorcycles.module.js';
 import { OrdersModule } from '../orders/orders.module.js';
 import { ReservationsModule } from '../reservations/reservations.module.js';
 import { AuditModule } from '../audit/audit.module.js';
+import { UploadModule } from '../upload/upload.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuditModule } from '../audit/audit.module.js';
     OrdersModule,
     ReservationsModule,
     AuditModule,
+    UploadModule,
   ],
   controllers: [POSController],
   providers: [POSService, OfflineService],

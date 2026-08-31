@@ -49,7 +49,7 @@ export default function LoginScreen({ onLogin, lang }: Props) {
     <div className="login-screen" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       <div className="login-card">
         <div className="login-logo">
-          <span className="login-logo-icon">🏍️</span>
+          <img src="/logo.png" alt="Moto System logo" style={{ width: '64px', height: '64px', objectFit: 'contain', display: 'block', margin: '0 auto 0.75rem' }} />
           <div className="login-title">{t.title}</div>
           <div className="login-sub">{t.subtitle}</div>
         </div>

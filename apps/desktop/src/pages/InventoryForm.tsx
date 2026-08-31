@@ -29,9 +29,9 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
   const [form, setForm] = useState<MotorcycleInput>(() => emptyForm(branchId));
   const [error, setError] = useState<string | null>(null);
 
-  const brandQuery = useQuery({ queryKey: ['desktop-brands'], queryFn: () => brands.list({ isActive: true, limit: 200 }) });
-  const categoryQuery = useQuery({ queryKey: ['desktop-categories'], queryFn: () => categories.list({ isActive: true, flat: true, limit: 500 }) });
-  const branchQuery = useQuery({ queryKey: ['desktop-branches'], queryFn: () => branches.list() });
+  const brandQuery = useQuery({ queryKey: ['desktop-brands'], queryFn: () => brands.list({ isActive: true }) });
+  const categoryQuery = useQuery({ queryKey: ['desktop-categories'], queryFn: () => categories.list({ isActive: true, flat: true }) });
+  const branchQuery = useQuery<{ items: { id: string; nameAr: string; nameEn: string }[]; total: number }>({ queryKey: ['desktop-branches'], queryFn: () => branches.list(true) });
   const detail = useQuery({ queryKey: ['desktop-motorcycle', id], queryFn: () => motorcycles.get(id!), enabled: editing });
 
   useEffect(() => {

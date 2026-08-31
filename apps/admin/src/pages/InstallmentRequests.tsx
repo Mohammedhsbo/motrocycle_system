@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, XCircle, Search, RefreshCw, FileText, Eye } from 'lucide-react';
 import { customerFinancing, type InstallmentRequest } from '../api';
@@ -20,7 +21,6 @@ const t = {
     viewDetails: 'View Details', buyerInfo: 'Buyer Information', guarantorInfo: 'Guarantor Information',
     documents: 'Documents', financeInfo: 'Financing Details', buyerName: 'Name', buyerPhone: 'Phone',
     buyerEmail: 'Email', buyerAddress: 'Address', buyerOccupation: 'Occupation',
-    docBuyerId: 'Buyer National ID', docSalary: 'Salary Slip', docApartment: 'Apartment Contract',
     docBuyerId: 'Buyer National ID', docSalary: 'Salary Slip', docApartment: 'Apartment Contract',
     docGuarantorId: 'Guarantor National ID', retry: 'Retry', company: 'Company', monthsUnit: 'Months',
     confirmApprove: 'Are you sure you want to approve this installment request?',
@@ -48,6 +48,7 @@ const t = {
 export default function InstallmentRequests({ lang }: Props) {
   const i18n = t[lang];
   const isRtl = lang === 'ar';
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [search, setSearch] = useState('');
@@ -151,7 +152,7 @@ export default function InstallmentRequests({ lang }: Props) {
           </thead>
           <tbody>
             {rows.map(req => (
-              <tr key={req.id}>
+              <tr key={req.id} onClick={() => navigate(`/installment-requests/${req.id}`)} style={{ cursor: 'pointer' }}>
                 <td>{new Date(req.createdAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US')}</td>
                 <td>{req.customer ? `${req.customer.firstName} ${req.customer.lastName}` : '-'}</td>
                 <td>{req.motorcycle ? req.motorcycle.model : '-'}</td>
@@ -160,22 +161,22 @@ export default function InstallmentRequests({ lang }: Props) {
                 <td>{req.durationMonths ?? '-'}</td>
                 <td>
                   <Badge 
-                    status={req.status === 'pending' ? 'inactive' : req.status === 'approved' ? 'active' : 'error'} 
+                    status={req.status === 'pending' ? 'inactive' : req.status === 'approved' ? 'active' : 'failed'} 
                     label={req.status === 'pending' ? i18n.pending : req.status === 'approved' ? i18n.approved : i18n.rejected} 
                     lang={lang} 
                   />
                 </td>
                 <td>
                   <div className="flex gap-2">
-                    <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem' }} onClick={() => openView(req)} title={i18n.viewDetails}>
+                    <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem' }} onClick={(event) => { event.stopPropagation(); openView(req); }} title={i18n.viewDetails}>
                       <Eye size={14} />
                     </button>
                     {req.status === 'pending' && (
                       <>
-                        <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem', borderColor: 'var(--success)', color: 'var(--success)' }} onClick={() => openReview(req, 'approve')} title={i18n.approve}>
+                        <button className="btn btn-outline" style={{ padding: '0.375rem 0.625rem', borderColor: 'var(--success)', color: 'var(--success)' }} onClick={(event) => { event.stopPropagation(); openReview(req, 'approve'); }} title={i18n.approve}>
                           <CheckCircle size={14} />
                         </button>
-                        <button className="btn" style={{ padding: '0.375rem 0.625rem', background: 'var(--error-bg)', color: 'var(--error)' }} onClick={() => openReview(req, 'reject')} title={i18n.reject}>
+                        <button className="btn" style={{ padding: '0.375rem 0.625rem', background: 'var(--error-bg)', color: 'var(--error)' }} onClick={(event) => { event.stopPropagation(); openReview(req, 'reject'); }} title={i18n.reject}>
                           <XCircle size={14} />
                         </button>
                       </>
@@ -258,6 +259,14 @@ export default function InstallmentRequests({ lang }: Props) {
                     </a>
                   </div>
                 )}
+                {selected.buyerNationalIdBackImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">Buyer ID Back</span>
+                    <a href={selected.buyerNationalIdBackImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.buyerNationalIdBackImage} alt="Buyer ID Back" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
                 {selected.salarySlipImage && (
                   <div>
                     <span className="text-xs text-muted block mb-2">{i18n.docSalary}</span>
@@ -279,6 +288,22 @@ export default function InstallmentRequests({ lang }: Props) {
                     <span className="text-xs text-muted block mb-2">{i18n.docGuarantorId}</span>
                     <a href={selected.guarantorNationalIdImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
                       <img src={selected.guarantorNationalIdImage} alt="Guarantor ID" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
+                {selected.guarantorNationalIdBackImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">Guarantor ID Back</span>
+                    <a href={selected.guarantorNationalIdBackImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.guarantorNationalIdBackImage} alt="Guarantor ID Back" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
+                    </a>
+                  </div>
+                )}
+                {selected.guarantorSignatureImage && (
+                  <div>
+                    <span className="text-xs text-muted block mb-2">Guarantor Signature</span>
+                    <a href={selected.guarantorSignatureImage} target="_blank" rel="noreferrer" className="block transition-transform hover:scale-105">
+                      <img src={selected.guarantorSignatureImage} alt="Guarantor Signature" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
                     </a>
                   </div>
                 )}

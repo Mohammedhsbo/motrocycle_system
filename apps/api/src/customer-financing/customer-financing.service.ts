@@ -7,6 +7,7 @@ import type {
   InstallmentDurationUpdate,
   InstallmentRequestCreate,
   InstallmentRequestReview,
+  InstallmentRequestUpdate,
   InstallmentCalculation,
   SettingsUpdate,
 } from "./customer-financing.schemas.js";
@@ -133,6 +134,41 @@ export class CustomerFinancingService {
       orderBy: { createdAt: "desc" },
       include: { customer: true, financingCompany: true, duration: true, motorcycle: { include: { brand: true } } },
     });
+  }
+
+  async getRequest(id: string) {
+    const request = await this.prisma.installmentRequest.findUnique({
+      where: { id },
+      include: { customer: true, financingCompany: true, duration: true, motorcycle: { include: { brand: true } }, inquiry: true },
+    });
+    if (!request) throw new NotFoundException("Installment request not found");
+    return request;
+  }
+
+  async updateRequest(id: string, input: InstallmentRequestUpdate) {
+    const current = await this.getRequest(id);
+    const data: Record<string, unknown> = { ...input };
+    if (input.downPayment !== undefined) {
+      const price = Number(current.motorcycle.price);
+      if (input.downPayment >= price) throw new BadRequestException("Down payment must be less than the motorcycle price");
+      data.monthlyInstallment = Number(((price - input.downPayment) / current.duration.months).toFixed(2));
+    }
+    return this.prisma.installmentRequest.update({
+      where: { id }, data,
+      include: { customer: true, financingCompany: true, duration: true, motorcycle: { include: { brand: true } }, inquiry: true },
+    });
+  }
+
+  async deleteRequest(id: string) {
+    await this.getRequest(id);
+    return this.prisma.installmentRequest.delete({ where: { id } });
+  }
+
+  async whatsappRequest(id: string) {
+    const request = await this.getRequest(id);
+    const motorcycleName = `${request.motorcycle.brand.nameAr} ${request.motorcycle.model}`;
+    const body = `*استعلام جديد*\n\nالعميل: ${request.buyerName}\nالهاتف: ${request.buyerPhone}\nالدراجة: ${motorcycleName}\n${request.downPayment ? `الدفعة المقدمة: ${request.downPayment}\n` : ""}شركة التمويل: ${request.financingCompany.name}\n`;
+    return { phone: request.financingCompany.whatsappNumber, message: body };
   }
 
   reviewRequest(id: string, input: InstallmentRequestReview) {

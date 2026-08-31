@@ -18,7 +18,6 @@
   "nav": {
     "motorcycles": "Motorcycles",
     "brands": "Brands",
-    "articles": "Articles",
     "account": "My Account",
     "login": "Login",
     "register": "Register",
@@ -381,17 +380,11 @@
   },
   "contact": {
     "title": "Contact Us",
-    "sendUsMessage": "Send Us a Message",
-    "name": "Name",
-    "email": "Email",
-    "message": "Message",
-    "submit": "Send Message",
-    "successMessage": "Thank you! Your message has been sent.",
     "contactInfo": "Contact Information",
     "addressLabel": "Address",
-    "addressValue": "123 Motorcycle Street, Cairo, Egypt",
-    "phoneLabel": "Phone",
-    "phoneValue": "+20 2 0000 0000",
+    "addressValue": "123 Motorcycle Street, Cairo, Egypt\n18 Nasr City, Cairo, Egypt",
+    "phoneLabel": "Phone Numbers",
+    "phoneValue": "+966 55 123 4567\n+966 11 234 5678",
     "emailLabel": "Email",
     "emailValue": "info@motorcycle.com"
   },

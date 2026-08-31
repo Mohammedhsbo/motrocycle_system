@@ -1,4 +1,4 @@
-function normalizeApiBase(url: string) {
+﻿function normalizeApiBase(url: string) {
   const normalized = url.replace(/\/+$/, '');
   return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
 }
@@ -461,6 +461,7 @@ export const transfers = {
 
 // ─── Orders API (POS) ────────────────────────────────────
 export type OrderStatus = 'draft' | 'confirmed' | 'processing' | 'awaiting_delivery' | 'completed' | 'cancelled' | 'refunded';
+export type DesktopOrderPaymentType = 'CASH' | 'INSTALLMENT';
 
 export interface OrderItem {
   id: string;
@@ -484,6 +485,7 @@ export interface Order {
   customerId: string;
   branchId: string;
   status: OrderStatus;
+  paymentType: DesktopOrderPaymentType;
   totalAmount: number;
   discount: number;
   netAmount: number;
@@ -498,6 +500,7 @@ export interface OrderListItem {
   customer: { id: string; name: string; phone: string };
   branch: { id: string; nameEn: string; nameAr: string };
   status: OrderStatus;
+  paymentType: DesktopOrderPaymentType;
   itemCount: number;
   totalAmount: number;
   discount: number;
@@ -825,6 +828,40 @@ export const pos = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  createCashSale: (input: SaleInput) => {
+    const form = new FormData();
+    form.set('motorcycleId', input.motorcycleId);
+    form.set('customerName', input.customerName);
+    form.set('customerPhone', input.customerPhone);
+    form.set('salePrice', String(input.salePrice));
+    form.set('paymentMethod', input.paymentMethod);
+    if (input.customerIdImage) form.set('customerIdImage', input.customerIdImage);
+    return apiFetch<SaleRecord>('/pos/cash-sales', { method: 'POST', body: form });
+  },
+  listOrders: (params?: { search?: string; status?: OrderStatus; paymentType?: DesktopOrderPaymentType; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.status) query.set('status', params.status);
+    if (params?.paymentType) query.set('paymentType', params.paymentType);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiFetch<{ items: OrderListItem[]; total: number; page: number; limit: number; totalPages: number }>(`/pos/orders?${query}`);
+  },
+  createOrder: (data: CreateOrderInput) => apiFetch<OrderDetail>('/pos/orders', { method: 'POST', body: JSON.stringify(data) }),
+  createReservation: (input: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number }) => apiFetch<CreatePOSTransactionResponse>('/pos/reservations/direct', { method: 'POST', body: JSON.stringify(input) }),
+  getOrder: (id: string) => apiFetch<OrderDetail>(`/pos/orders/${id}`),
+  updateOrderStatus: (id: string, status: OrderStatus) => apiFetch<OrderDetail>(`/pos/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  cancelOrder: (id: string) => apiFetch<OrderDetail>(`/pos/orders/${id}/cancel`, { method: 'POST' }),
+  listReservations: (params?: { status?: ReservationStatus; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    return apiFetch<{ items: ReservationListItem[]; total: number; page: number; limit: number; totalPages: number }>(`/pos/reservations?${query}`);
+  },
+  getReservation: (id: string) => apiFetch<ReservationDetail>(`/pos/reservations/${id}`),
+  cancelReservation: (id: string) => apiFetch<ReservationDetail>(`/pos/reservations/${id}/cancel`, { method: 'POST' }),
+  updateReservation: (id: string, data: { expiresAt?: string; notes?: string }) => apiFetch<ReservationDetail>(`/pos/reservations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   
   getActiveReservations: (branchId?: string, customerId?: string) => {
     const params = new URLSearchParams();
@@ -840,7 +877,7 @@ export const pos = {
     return apiFetch<POSReservation[]>(`/pos/reservations/active?${query}`);
   },
   convertReservation: (id: string, notes?: string, idempotencyKey?: string) =>
-    apiFetch<{ reservation: ReservationDetail; order: { id: string; orderNumber: string } }>(`/pos/reservations/${id}/convert`, {
+    apiFetch<CreatePOSTransactionResponse>(`/pos/reservations/${id}/convert`, {
       method: 'POST',
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
       body: JSON.stringify({ notes }),
@@ -937,34 +974,6 @@ export const reports = {
   suppliers: (filters?: ReportFilters) => apiFetch<any>(`/reports/suppliers/performance?${reportQuery(filters)}`),
 };
 
-// ─── Notifications ───────────────────────────────────────
-export interface NotificationRecord {
-  id: string;
-  type: string;
-  title: string;
-  titleAr?: string;
-  message: string;
-  messageAr?: string;
-  status: string;
-  priority: string;
-  createdAt: string;
-  data?: Record<string, unknown>;
-}
-
-export const notifications = {
-  list: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) => {
-    const q = new URLSearchParams();
-    if (params?.page) q.set('page', String(params.page));
-    if (params?.limit) q.set('limit', String(params.limit));
-    if (params?.unreadOnly) q.set('unreadOnly', 'true');
-    return apiFetch<{ items: NotificationRecord[]; page: number; limit: number; total: number; totalPages: number }>(`/notifications?${q}`);
-  },
-  unreadCount: () => apiFetch<{ count: number }>('/notifications/unread-count'),
-  markRead: (id: string) => apiFetch<NotificationRecord>(`/notifications/${id}/read`, { method: 'PATCH' }),
-  markAllRead: () => apiFetch<unknown>('/notifications/mark-all-read', { method: 'POST' }),
-  remove: (id: string) => apiFetch<void>(`/notifications/${id}`, { method: 'DELETE' }),
-};
-
 // ─── Suppliers ───────────────────────────────────────────
 export interface SupplierRecord {
   id: string;
@@ -1022,6 +1031,9 @@ export const configuration = {
 export interface FinancingCompanyRecord {
   id: string;
   name: string;
+  nameAr?: string;
+  nameEn?: string;
+  whatsappNumber: string;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -1030,6 +1042,7 @@ export interface FinancingCompanyRecord {
 
 export interface FinancingCompanyInput {
   name: string;
+  whatsappNumber: string;
   isActive?: boolean;
   sortOrder?: number;
 }
@@ -1053,7 +1066,7 @@ export const financingCompanies = {
 };
 
 // ─── New Inquiries (POS) ──────────────────────────────────
-export type InquiryDocumentType = 'PENSION' | 'COMMERCIAL_REGISTRY' | 'NEITHER';
+export type InquiryDocumentType = 'EMPLOYEE' | 'PENSION' | 'COMMERCIAL_REGISTRY' | 'NEITHER';
 
 export interface InquiryRecord {
   id: string;
@@ -1085,7 +1098,26 @@ export interface InquiryInput {
   guarantorIdFrontImage?: File;
   guarantorIdBackImage?: File;
   guarantorSignatureImage?: File;
+  financingCompanyId?: string;
+  installmentDurationId?: string;
 }
+
+export interface InstallmentDurationRecord {
+  id: string;
+  months: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const installmentDurations = {
+  list: () => apiFetch<InstallmentDurationRecord[]>('/installment-durations'),
+  listAll: () => apiFetch<InstallmentDurationRecord[]>('/admin/installment-durations'),
+  create: (data: { months: number; isActive?: boolean; sortOrder?: number }) => apiFetch<InstallmentDurationRecord>('/admin/installment-durations', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<InstallmentDurationRecord>) => apiFetch<InstallmentDurationRecord>(`/admin/installment-durations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  remove: (id: string) => apiFetch<InstallmentDurationRecord>(`/admin/installment-durations/${id}`, { method: 'DELETE' }),
+};
 
 export const inquiries = {
   list: () => apiFetch<InquiryRecord[]>('/inquiries'),
@@ -1096,6 +1128,8 @@ export const inquiries = {
     form.set('documentType', input.documentType);
     if (input.downPayment !== undefined) form.set('downPayment', String(input.downPayment));
     if (input.motorcycleId) form.set('motorcycleId', input.motorcycleId);
+    if (input.financingCompanyId) form.set('financingCompanyId', input.financingCompanyId);
+    if (input.installmentDurationId) form.set('installmentDurationId', input.installmentDurationId);
     
     if (input.documentImage) form.set('documentImage', input.documentImage);
     if (input.idCardFrontImage) form.set('idCardFrontImage', input.idCardFrontImage);
@@ -1106,6 +1140,8 @@ export const inquiries = {
     
     return apiFetch<InquiryRecord>('/inquiries', { method: 'POST', body: form });
   },
+  sendWhatsApp: (id: string) => apiFetch<{ phone: string; message: string }>(`/inquiries/${id}/send-whatsapp`, { method: 'POST' }),
+  sendForReview: (id: string) => apiFetch<unknown>(`/inquiries/${id}/send-for-review`, { method: 'POST' }),
 };
 
 
@@ -1325,3 +1361,53 @@ export const attendance = {
   },
 };
 
+
+export interface InstallmentRequest {
+  id: string;
+  customerId: string;
+  motorcycleId: string;
+  financingCompanyId: string;
+  installmentDurationId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  buyerName: string;
+  buyerPhone: string;
+  buyerEmail?: string | null;
+  buyerAddress?: string | null;
+  buyerOccupation?: string | null;
+  buyerNationalIdImage: string;
+  buyerNationalIdBackImage?: string | null;
+  salarySlipImage?: string | null;
+  apartmentContractImage?: string | null;
+  guarantorName: string;
+  guarantorPhone: string;
+  guarantorAddress?: string | null;
+  guarantorNationalIdImage?: string | null;
+  guarantorNationalIdBackImage?: string | null;
+  guarantorSignatureImage?: string | null;
+  motorcyclePrice: number;
+  downPayment: number;
+  monthlyInstallment: number;
+  durationMonths?: number;
+  installmentAmount?: number;
+  rejectionReason?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  customer?: any;
+  motorcycle?: any;
+  financingCompany?: any;
+  duration?: any;
+}
+
+export const customerFinancing = {
+  listRequests: (status?: string) => {
+    const q = new URLSearchParams();
+    if (status) q.set('status', status);
+    return apiFetch<InstallmentRequest[]>(`/admin/installment-requests?${q}`);
+  },
+  reviewRequest: (id: string, data: { status: 'approved' | 'rejected'; rejectionReason?: string }) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getRequest: (id: string) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`),
+  updateRequest: (id: string, data: { buyerName?: string; buyerPhone?: string; financingCompanyId?: string; downPayment?: number }) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}/details`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteRequest: (id: string) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`, { method: 'DELETE' }),
+  getWhatsAppMessage: (id: string) => apiFetch<{ phone: string; message: string }>(`/admin/installment-requests/${id}/whatsapp`),
+};

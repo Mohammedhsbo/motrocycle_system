@@ -3,8 +3,11 @@ import { z } from "zod";
 const uuid = z.string().uuid();
 const money = z.coerce.number().finite().min(0);
 
+const whatsappNumberSchema = z.string().trim().min(8).max(20).regex(/^\+?[0-9\s-]{8,20}$/);
+
 export const financingCompanyCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
+  whatsappNumber: whatsappNumberSchema,
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
@@ -57,6 +60,13 @@ export const installmentRequestReviewSchema = z.object({
   rejectionReason: z.string().trim().max(5000).optional(),
 });
 
+export const installmentRequestUpdateSchema = z.object({
+  buyerName: z.string().trim().min(1).max(200).optional(),
+  buyerPhone: z.string().trim().min(5).max(20).optional(),
+  financingCompanyId: uuid.optional(),
+  downPayment: money.optional(),
+});
+
 export type FinancingCompanyCreate = z.infer<typeof financingCompanyCreateSchema>;
 export type FinancingCompanyUpdate = z.infer<typeof financingCompanyUpdateSchema>;
 export type InstallmentDurationCreate = z.infer<typeof installmentDurationCreateSchema>;
@@ -65,3 +75,4 @@ export type SettingsUpdate = z.infer<typeof settingsUpdateSchema>;
 export type InstallmentRequestCreate = z.infer<typeof installmentRequestCreateSchema>;
 export type InstallmentCalculation = z.infer<typeof installmentCalculationSchema>;
 export type InstallmentRequestReview = z.infer<typeof installmentRequestReviewSchema>;
+export type InstallmentRequestUpdate = z.infer<typeof installmentRequestUpdateSchema>;

@@ -1,7 +1,8 @@
 import { useState, useRef, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Bike, CheckCircle2, FileImage, Printer, Search } from 'lucide-react';
-import { pos, sales, salesRequests, posReservations, financingCompanies, getUser, type MotorcycleSearchResult, type SalePaymentMethod, type SaleRecord } from '../api';
+import { pos, salesRequests, financingCompanies, getUser, type MotorcycleSearchResult, type SalePaymentMethod, type SaleRecord } from '../api';
 import { DataTableState } from '../components/DataTable';
 import { useViewingBranch } from '../contexts/ViewingBranchContext';
 import { buildWhatsAppUrl } from '../../../../packages/shared-types/src/whatsapp';
@@ -12,6 +13,7 @@ type Step = 'list' | 'method' | 'cash-details' | 'installment-details' | 'reserv
 export default function Sales({ lang }: { lang: Lang }) {
   const isRtl = lang === 'ar';
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { viewingBranchId } = useViewingBranch();
   const user = getUser();
 
@@ -51,7 +53,7 @@ export default function Sales({ lang }: { lang: Lang }) {
   });
 
   const createSale = useMutation({
-    mutationFn: () => sales.create({
+    mutationFn: () => pos.createCashSale({
       motorcycleId: selectedMc!.id,
       customerName,
       customerPhone,
@@ -63,6 +65,8 @@ export default function Sales({ lang }: { lang: Lang }) {
       setDoneSale(data);
       setStep('done');
       void qc.invalidateQueries({ queryKey: ['desktop-inventory'] });
+      void qc.invalidateQueries({ queryKey: ['desktop-transactions'] });
+      void qc.invalidateQueries({ queryKey: ['pos-dashboard'] });
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -88,7 +92,7 @@ export default function Sales({ lang }: { lang: Lang }) {
   });
 
   const createReservation = useMutation({
-    mutationFn: () => posReservations.create({
+    mutationFn: () => pos.createReservation({
       motorcycleId: selectedMc!.id,
       customerName,
       customerPhone,
@@ -97,6 +101,7 @@ export default function Sales({ lang }: { lang: Lang }) {
     onSuccess: () => {
       setStep('done-reserve');
       void qc.invalidateQueries({ queryKey: ['desktop-inventory'] });
+      void qc.invalidateQueries({ queryKey: ['desktop-reservations'] });
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -354,7 +359,9 @@ export default function Sales({ lang }: { lang: Lang }) {
             <button
               className="inventory-card clickable sale-method-option sale-method-installment"
               style={{ textAlign: 'center', borderColor: 'var(--accent-primary)', padding: '2rem' }}
-              onClick={() => setStep('installment-details')}
+              onClick={() => {
+                navigate('/inquiries', { state: { selectedMotorcycle: selectedMc } });
+              }}
             >
               <h3>{isRtl ? 'تقسيط' : 'Installment'}</h3>
               <p style={{ margin: 0, fontSize: '0.875rem' }}>{isRtl ? 'طلب تقسيط عبر شركة تمويل' : 'Request via financing company'}</p>
@@ -419,7 +426,7 @@ export default function Sales({ lang }: { lang: Lang }) {
             <select required value={financingCompanyId} onChange={e => setFinancingCompanyId(e.target.value)}>
               <option value="">{isRtl ? '-- اختر --' : '-- Select --'}</option>
               {companiesQuery.data?.map(c => (
-                <option key={c.id} value={c.id}>{isRtl ? c.nameAr : c.nameEn}</option>
+                <option key={c.id} value={c.id}>{isRtl ? (c.nameAr ?? c.name) : (c.nameEn ?? c.name)}</option>
               ))}
             </select>
           </label>

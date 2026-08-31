@@ -1411,6 +1411,10 @@ export const customerFinancing = {
     return apiFetch<InstallmentRequest[]>(`/admin/installment-requests?${q}`);
   },
   reviewRequest: (id: string, data: { status: 'approved' | 'rejected'; rejectionReason?: string }) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getRequest: (id: string) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`),
+  updateRequest: (id: string, data: { buyerName?: string; buyerPhone?: string; financingCompanyId?: string; downPayment?: number }) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}/details`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteRequest: (id: string) => apiFetch<InstallmentRequest>(`/admin/installment-requests/${id}`, { method: 'DELETE' }),
+  getWhatsAppMessage: (id: string) => apiFetch<{ phone: string; message: string }>(`/admin/installment-requests/${id}/whatsapp`),
   listDurations: () => apiFetch<InstallmentDuration[]>('/admin/installment-durations'),
   createDuration: (data: Partial<InstallmentDuration>) => apiFetch<InstallmentDuration>('/admin/installment-durations', { method: 'POST', body: JSON.stringify(data) }),
   updateDuration: (id: string, data: Partial<InstallmentDuration>) => apiFetch<InstallmentDuration>(`/admin/installment-durations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -2100,6 +2104,7 @@ export const configuration = {
 export interface FinancingCompany {
   id: string;
   name: string;
+  whatsappNumber: string;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -2128,12 +2133,15 @@ export interface InstallmentRequest {
   buyerAddress?: string | null;
   buyerOccupation?: string | null;
   buyerNationalIdImage: string;
-  salarySlipImage: string;
-  apartmentContractImage: string;
+  buyerNationalIdBackImage?: string | null;
+  salarySlipImage?: string | null;
+  apartmentContractImage?: string | null;
   guarantorName: string;
   guarantorPhone: string;
   guarantorAddress?: string | null;
-  guarantorNationalIdImage: string;
+  guarantorNationalIdImage?: string | null;
+  guarantorNationalIdBackImage?: string | null;
+  guarantorSignatureImage?: string | null;
   motorcyclePrice: number;
   downPayment: number;
   monthlyInstallment: number;

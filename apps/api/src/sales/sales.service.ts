@@ -50,22 +50,58 @@ export class SalesService {
       customerIdImage = result.url;
     }
 
-    return this.prisma.sale.create({
-      data: {
-        motorcycleId: input.motorcycleId,
-        customerName: input.customerName,
-        customerPhone: input.customerPhone,
-        salePrice: input.salePrice,
-        paymentMethod: input.paymentMethod,
-        customerIdImage,
-        branchId: user.branchId,
-        createdBy: user.id,
-      },
-      include: {
-        motorcycle: { include: { brand: true } },
-        user: true,
-        branch: true,
-      },
+    const motorcycle = await this.prisma.motorcycle.findUnique({
+      where: { id: input.motorcycleId },
+      include: { brand: true },
     });
+    if (!motorcycle) throw new Error('Motorcycle not found');
+    if (!user.branchId || motorcycle.branchId !== user.branchId) throw new Error('Motorcycle not in your branch');
+
+    const customer = await this.prisma.customer.upsert({
+      where: { phone: input.customerPhone },
+      create: { name: input.customerName, phone: input.customerPhone },
+      update: { name: input.customerName },
+    });
+    const branch = await this.prisma.branch.findUnique({ where: { id: user.branchId } });
+    if (!branch) throw new Error('Branch not found');
+
+    const order = await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ status: string }>>`
+        SELECT status FROM "Motorcycle" WHERE id = ${input.motorcycleId}::uuid FOR UPDATE
+      `;
+      if (locked[0]?.status !== 'available') throw new Error('Motorcycle is not available');
+      const created = await tx.desktopOrder.create({
+        data: {
+          orderNumber: `DORD-${branch.nameEn.substring(0, 3).toUpperCase()}-${Date.now()}`,
+          customerId: customer.id,
+          branchId: branch.id,
+          userId: user.id,
+          status: 'completed',
+          paymentType: 'CASH',
+          totalAmount: input.salePrice,
+          discount: 0,
+          netAmount: input.salePrice,
+          idempotencyKey: `pos-cash-${user.id}-${input.motorcycleId}-${Date.now()}`,
+          items: { create: { motorcycleId: input.motorcycleId, unitPrice: input.salePrice, discount: 0 } },
+        },
+        include: { customer: true, branch: true, user: true },
+      });
+      await tx.motorcycle.update({ where: { id: input.motorcycleId }, data: { status: 'sold' } });
+      return created;
+    });
+
+    return {
+      id: order.id,
+      motorcycleId: input.motorcycleId,
+      motorcycle: { ...motorcycle, price: Number(motorcycle.price), costPrice: Number(motorcycle.costPrice) },
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      customerIdImage,
+      salePrice: input.salePrice,
+      paymentMethod: input.paymentMethod,
+      branchId: order.branchId,
+      createdBy: order.userId,
+      createdAt: order.createdAt.toISOString(),
+    };
   }
 }

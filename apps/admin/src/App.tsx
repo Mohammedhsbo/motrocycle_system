@@ -7,6 +7,7 @@ import FinancingContracts from './pages/FinancingContracts';
 import FinancingContractDetail from './pages/FinancingContractDetail';
 import FinancingContractCreate from './pages/FinancingContractCreate';
 import InstallmentRequests from './pages/InstallmentRequests';
+import InstallmentRequestDetail from './pages/InstallmentRequestDetail';
 import FinancingCompanies from './pages/FinancingCompanies';
 import InstallmentDurations from './pages/InstallmentDurations';
 import Brands from './pages/Brands';
@@ -156,6 +157,8 @@ export default function App() {
               <Route path="/financing/new" element={<FinancingContractCreate lang={lang} />} />
               <Route path="/financing/:id" element={<FinancingContractDetail lang={lang} />} />
               <Route path="/installment-requests" element={<InstallmentRequests lang={lang} />} />
+              <Route path="/installment-requests/:id" element={<InstallmentRequestDetail lang={lang} />} />
+              <Route path="/installment-requests/:id" element={<InstallmentRequestDetail lang={lang} />} />
               <Route path="/financing-companies" element={<FinancingCompanies lang={lang} />} />
               <Route path="/installment-durations" element={<InstallmentDurations lang={lang} />} />
               <Route path="/reports" element={<Reports lang={lang} />} />

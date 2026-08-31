@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Save } from 'lucide-react';
-import { brands, categories, motorcycles, suppliers, branches, getUser } from '../api';
+import { brands, categories, motorcycles, suppliers, branches, getUser, type BranchSummary } from '../api';
 
 type Lang = 'en' | 'ar';
 
@@ -23,7 +23,11 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
   const [error, setError] = useState<string | null>(null);
   
   const isSuperAdmin = getUser()?.role.name === 'super_admin';
-  const branchQuery = useQuery({ queryKey: ['desktop-branches'], queryFn: branches.list, enabled: isSuperAdmin });
+  const branchQuery = useQuery<{ items: BranchSummary[]; total: number }>({
+    queryKey: ['desktop-branches'],
+    queryFn: () => branches.list(true),
+    enabled: isSuperAdmin,
+  });
   
   const brandQuery = useQuery({ queryKey: ['desktop-brands'], queryFn: () => brands.list({ isActive: true }) });
   const categoryQuery = useQuery({ queryKey: ['desktop-categories'], queryFn: () => categories.list({ isActive: true, flat: true }) });
@@ -70,7 +74,6 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
             year,
             price,
             costPrice,
-            color: color.trim() || undefined,
             brandId: brandIdState,
             categoryId,
             branchId: selectedBranchId,

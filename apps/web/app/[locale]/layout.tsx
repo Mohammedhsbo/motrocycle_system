@@ -20,7 +20,6 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
 
-  // Ensure valid locale
   if (!routing.locales.includes(locale as any)) {
     notFound();
   }
@@ -29,18 +28,14 @@ export default async function LocaleLayout({
   const direction = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={direction}>
-      <body className="flex flex-col min-h-screen">
-        <NextIntlClientProvider messages={messages}>
-          <AuthProvider>
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </AuthProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <div dir={direction} className="flex min-h-screen flex-col">
+      <NextIntlClientProvider messages={messages}>
+        <AuthProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </AuthProvider>
+      </NextIntlClientProvider>
+    </div>
   );
 }
