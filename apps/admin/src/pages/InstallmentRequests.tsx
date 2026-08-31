@@ -104,7 +104,7 @@ export default function InstallmentRequests({ lang }: Props) {
     .filter(req => {
       if (!search) return true;
       const term = search.toLowerCase();
-      const cName = req.customer ? `${req.customer.firstName} ${req.customer.lastName}`.toLowerCase() : '';
+      const cName = (req.customer?.name || req.buyerName || '').toLowerCase();
       const mName = req.motorcycle ? req.motorcycle.model.toLowerCase() : '';
       return cName.includes(term) || mName.includes(term);
     });
@@ -154,7 +154,7 @@ export default function InstallmentRequests({ lang }: Props) {
             {rows.map(req => (
               <tr key={req.id} onClick={() => navigate(`/installment-requests/${req.id}`)} style={{ cursor: 'pointer' }}>
                 <td>{new Date(req.createdAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US')}</td>
-                <td>{req.customer ? `${req.customer.firstName} ${req.customer.lastName}` : '-'}</td>
+                <td>{req.customer?.name || req.buyerName || '-'}</td>
                 <td>{req.motorcycle ? req.motorcycle.model : '-'}</td>
                 <td>{req.downPayment != null ? req.downPayment.toLocaleString() : '-'}</td>
                 <td>{req.installmentAmount != null ? req.installmentAmount.toLocaleString() : '-'}</td>

@@ -134,7 +134,7 @@ export class AuthService {
     const payloadBase64 = tokenData.id_token.split('.')[1];
     const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
     const googleUser = JSON.parse(payloadJson);
-    
+
     if (!googleUser.email || !googleUser.sub) {
       throw new AppError("OAUTH_ERROR", 400, "Google profile missing required fields");
     }
@@ -156,17 +156,17 @@ export class AuthService {
 
     if (customer) {
       if (customer.googleId && customer.googleId !== googleUser.sub) {
-         throw new AppError("GOOGLE_ACCOUNT_CONFLICT", 409, "This email is linked to a different Google account");
+        throw new AppError("GOOGLE_ACCOUNT_CONFLICT", 409, "This email is linked to a different Google account");
       }
       if (!customer.isActive) {
         throw new AppError("ACCOUNT_INACTIVE", 403, "User account is inactive");
       }
-      
+
       await this.prisma.customer.update({
         where: { id: customer.id },
-        data: { 
+        data: {
           googleId: googleUser.sub,
-          authProvider: "google" 
+          authProvider: "google"
         }
       });
       return this.issueCustomerTokens(customer.id);
@@ -212,7 +212,7 @@ export class AuthService {
     const access = generateAccessToken(customerId, "customer");
     const refresh = generateRefreshToken(customerId, "customer");
     await this.tokenStore.saveRefreshToken(customerId, refresh.tokenId, refresh.token, refresh.expiresInSeconds);
-    
+
     return {
       status: "authenticated" as const,
       accessToken: access.token,

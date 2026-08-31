@@ -100,7 +100,7 @@ export async function seedDatabase() {
     },
     create: {
       id: "00000000-0000-0000-0000-000000000002",
-      nameAr: "فرع الشمال", 
+      nameAr: "فرع الشمال",
       nameEn: "North Branch",
       address: "North district",
       phone: "+966111111111",
@@ -255,7 +255,7 @@ export async function seedDatabase() {
       sortOrder: 1,
     },
     {
-      id: "10000000-0000-0000-0000-000000000002", 
+      id: "10000000-0000-0000-0000-000000000002",
       nameAr: "ياماها",
       nameEn: "Yamaha",
       logo: "https://example.com/logos/yamaha.png",
@@ -264,7 +264,7 @@ export async function seedDatabase() {
     {
       id: "10000000-0000-0000-0000-000000000003",
       nameAr: "كاواساكي",
-      nameEn: "Kawasaki", 
+      nameEn: "Kawasaki",
       logo: "https://example.com/logos/kawasaki.png",
       sortOrder: 3,
     },
@@ -314,7 +314,7 @@ export async function seedDatabase() {
     {
       id: "20000000-0000-0000-0000-000000000004",
       nameAr: "دراجات الطرق الوعرة",
-      nameEn: "Off-Road Bikes", 
+      nameEn: "Off-Road Bikes",
       parentId: null,
       sortOrder: 2,
     },
@@ -573,7 +573,7 @@ export async function seedDatabase() {
       color: "Black",
       engineSize: "471cc",
       descriptionAr: "دراجة نارية كروزر",
-      descriptionEn: "Cruiser motorcycle", 
+      descriptionEn: "Cruiser motorcycle",
       price: 29000.00,
       costPrice: 24500.00,
       status: "available" as const,
@@ -776,7 +776,7 @@ async function createCustomers() {
         {
           label: "العمل",
           addressLine: "طريق الملك عبدالعزيز، حي العليا",
-          city: "الرياض", 
+          city: "الرياض",
           region: "منطقة الرياض",
           postalCode: "11564",
           isDefault: false,
@@ -802,7 +802,7 @@ async function createCustomers() {
     },
     {
       name: "Mohammed Hassan Al-Rashid",
-      phone: "+966503456789", 
+      phone: "+966503456789",
       email: "mohammed@example.com",
       passwordHash: await bcrypt.hash("customer123", 10),
       nationalId: "3456789012",
@@ -837,7 +837,7 @@ async function createCustomers() {
     {
       name: "خالد عبدالله النصر",
       phone: "+966505678901",
-      email: "khaled@example.com", 
+      email: "khaled@example.com",
       passwordHash: await bcrypt.hash("customer123", 10),
       nationalId: "5678901234",
       addresses: [
@@ -881,7 +881,7 @@ async function createCustomers() {
           label: "Home",
           addressLine: "Al-Hamra District, Tabuk",
           city: "Tabuk",
-          region: "Tabuk Province", 
+          region: "Tabuk Province",
           postalCode: "47311",
           isDefault: true,
         }
@@ -905,7 +905,7 @@ async function createCustomers() {
         {
           label: "Villa",
           addressLine: "King Faisal Street, Abha",
-          city: "Abha", 
+          city: "Abha",
           region: "Asir Province",
           postalCode: "61961",
           isDefault: true,
@@ -1286,7 +1286,7 @@ async function createCustomers() {
         {
           label: "Office",
           addressLine: "Commercial Center, Tabuk",
-          city: "Tabuk", 
+          city: "Tabuk",
           region: "Tabuk Province",
           postalCode: "47322",
           isDefault: true,
@@ -1329,7 +1329,7 @@ async function createCustomers() {
           label: "Home",
           addressLine: "Al-Aziziyah District, Jeddah",
           city: "Jeddah",
-          region: "Makkah Province", 
+          region: "Makkah Province",
           postalCode: "23334",
           isDefault: true,
         }
@@ -1363,7 +1363,7 @@ async function createCustomers() {
     },
     {
       name: "عثمان صالح الدوسري",
-      phone: "+966542345678", 
+      phone: "+966542345678",
       email: null,
       passwordHash: null,
       nationalId: "3344556679",
@@ -1414,7 +1414,7 @@ async function createCustomers() {
           label: "Apartment",
           addressLine: "Al-Malqa District, Riyadh",
           city: "Riyadh",
-          region: "Riyadh Province", 
+          region: "Riyadh Province",
           postalCode: "13521",
           isDefault: true,
         }
@@ -1493,7 +1493,7 @@ async function createCustomers() {
 
   for (const customerData of customersData) {
     const { addresses, ...customerInfo } = customerData;
-    
+
     const customer = await prisma.customer.upsert({
       where: { phone: customerInfo.phone },
       update: customerInfo,
@@ -1504,7 +1504,7 @@ async function createCustomers() {
     const existingAddresses = await prisma.address.findMany({
       where: { customerId: customer.id }
     });
-    
+
     if (existingAddresses.length === 0) {
       for (const addressData of addresses) {
         await prisma.address.create({
