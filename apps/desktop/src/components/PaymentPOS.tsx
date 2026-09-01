@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { CreditCard, DollarSign, Banknote, Wallet } from 'lucide-react';
 import { payments, invoices, type PaymentMethod, type Invoice } from '../api';
+import { useToast } from './Toast';
 
 type Lang = 'en' | 'ar';
 
@@ -76,6 +77,7 @@ export default function PaymentPOS({ orderId, orderAmount, lang, onSuccess, onCa
   const [cashReceived, setCashReceived] = useState('');
   const [reference, setReference] = useState('');
   const [error, setError] = useState('');
+  const { showToast } = useToast();
 
   const paymentAttemptKey = `pos_payment_${orderId}`;
   const [idempotencyKey] = useState(() =>
@@ -102,8 +104,9 @@ export default function PaymentPOS({ orderId, orderAmount, lang, onSuccess, onCa
         }
       })
       .catch((err) => {
-        console.error('Failed to load invoice:', err);
+        const message = err instanceof Error && err.message ? err.message : t.invoiceNotFound;
         setError(t.invoiceNotFound);
+        showToast(message, 'error');
       })
       .finally(() => setLoadingInvoice(false));
   }, [orderId]);

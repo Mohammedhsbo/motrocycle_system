@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { auth, setToken, setUser, type DesktopUser } from './api';
 import { Loader2 } from 'lucide-react';
+import { useToast } from './components/Toast';
+import { getApiErrorMessage } from './api';
 
 type LangType = 'en' | 'ar';
 
@@ -28,6 +30,7 @@ export default function LoginScreen({ onLogin, lang }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -38,8 +41,10 @@ export default function LoginScreen({ onLogin, lang }: Props) {
       setToken(accessToken);
       setUser(user);
       onLogin(user);
-    } catch {
-      setError(t.error);
+    } catch (reason) {
+      const message = getApiErrorMessage(reason, t.error);
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }

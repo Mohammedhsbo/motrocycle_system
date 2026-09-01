@@ -37,6 +37,8 @@ interface Invoice {
   issueDate?: string;
   dueDate?: string;
   notes?: string;
+  chassisNumber?: string | null;
+  engineNumber?: string | null;
   createdAt: string;
 }
 
@@ -70,6 +72,7 @@ const t = {
     notes: 'Notes',
     branch: 'Branch',
     vin: 'VIN',
+    engineNumber: 'Engine Number',
     model: 'Model',
     thankyou: 'Thank you for your business!',
   },
@@ -97,6 +100,7 @@ const t = {
     notes: 'ملاحظات',
     branch: 'الفرع',
     vin: 'رقم الهيكل',
+    engineNumber: 'رقم المحرك',
     model: 'الموديل',
     thankyou: 'شكراً على تعاملكم معنا!',
   },
@@ -165,6 +169,30 @@ export default function PrintableInvoice({ invoice, lang }: Props) {
             </div>
           </div>
         </div>
+
+        {(invoice.chassisNumber || invoice.engineNumber) && (
+          <table className="invoice-table">
+            <thead>
+              <tr>
+                <th colSpan={2}>{isRtl ? 'معلومات المركبة' : 'Vehicle Details'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.chassisNumber && (
+                <tr>
+                  <td>{i18n.vin}</td>
+                  <td>{invoice.chassisNumber}</td>
+                </tr>
+              )}
+              {invoice.engineNumber && (
+                <tr>
+                  <td>{i18n.engineNumber}</td>
+                  <td>{invoice.engineNumber}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
 
         {/* Items Table */}
         <table className="invoice-table">

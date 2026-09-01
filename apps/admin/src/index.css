@@ -608,3 +608,7 @@ tr:hover td {
   gap: 0.6rem;
 }
 .premium-stat-card h3 svg { color: var(--blue-light); }
+
+table:has(> thead > tr > th:nth-child(7)) > tbody > tr > td:last-child > div > select.input-field {
+  display: none;
+}

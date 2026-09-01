@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Save } from 'lucide-react';
 import { brands, categories, motorcycles, suppliers, branches, getUser, type BranchSummary } from '../api';
+import ImageUpload from '../components/ImageUpload';
 
 type Lang = 'en' | 'ar';
 
@@ -11,6 +12,7 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
 
   const [quantity, setQuantity] = useState(1);
   const [motorNumbers, setMotorNumbers] = useState<string[]>(['']);
+  const [engineNumbers, setEngineNumbers] = useState<string[]>(['']);
   const [price, setPrice] = useState(0);
   const [costPrice, setCostPrice] = useState(0);
   const [model, setModel] = useState('');
@@ -20,6 +22,7 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
   const [categoryId, setCategoryId] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState(branchId || '');
+  const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const isSuperAdmin = getUser()?.role.name === 'super_admin';
@@ -50,10 +53,23 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
       while (next.length < q) next.push('');
       return next.slice(0, q);
     });
+    setEngineNumbers(current => {
+      const next = [...current];
+      while (next.length < q) next.push('');
+      return next.slice(0, q);
+    });
   };
 
   const updateMotorNumber = (index: number, val: string) => {
     setMotorNumbers(current => {
+      const next = [...current];
+      next[index] = val.toUpperCase();
+      return next;
+    });
+  };
+
+  const updateEngineNumber = (index: number, val: string) => {
+    setEngineNumbers(current => {
       const next = [...current];
       next[index] = val.toUpperCase();
       return next;
@@ -70,6 +86,7 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
         try {
           await motorcycles.create({
             vin,
+            engineNumber: (engineNumbers[i] ?? '').trim() || undefined,
             model: model.trim(),
             year,
             price,
@@ -77,6 +94,7 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
             brandId: brandIdState,
             categoryId,
             branchId: selectedBranchId,
+            images,
             // Supplier is currently not part of the MotorcycleInput on backend, we could add it to notes if it existed, or just keep it simple for now
           });
         } catch (err: any) {
@@ -177,6 +195,12 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
                 {supplierOptions.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
+            <ImageUpload
+              lang={lang}
+              value={images[0]}
+              onUploaded={url => setImages([url])}
+              onClear={() => setImages([])}
+            />
           </div>
 
           <div className="inventory-batch-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pos-border)' }}>
@@ -193,16 +217,27 @@ export default function InventoryAddModal({ lang, branchId, onClose }: { lang: L
 
             <div className="inventory-motor-numbers" style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem' }}>
               {motorNumbers.map((num, i) => (
-                <label key={i} className="inventory-motor-number-field" style={{ display: 'grid', gap: '0.4rem', color: 'var(--text-2)', fontSize: '0.72rem', fontWeight: 600 }}>
-                  <span>{isRtl ? `رقم الماتور #${i + 1} *` : `Motor Number #${i + 1} *`}</span>
-                  <input 
-                    value={num} 
-                    onChange={e => updateMotorNumber(i, e.target.value)} 
-                    placeholder={isRtl ? 'أدخل رقم الماتور الفريد...' : 'Enter unique motor number...'}
-                    required 
-                    style={{ minHeight: '40px', padding: '0 0.7rem', border: '1px solid var(--pos-border)', borderRadius: '8px', background: 'var(--pos-card)', color: 'var(--text-1)' }}
-                  />
-                </label>
+                <div key={i} style={{ display: 'grid', gap: '0.75rem' }}>
+                  <label className="inventory-motor-number-field" style={{ display: 'grid', gap: '0.4rem', color: 'var(--text-2)', fontSize: '0.72rem', fontWeight: 600 }}>
+                    <span>{isRtl ? `رقم الماتور #${i + 1} *` : `Motor Number #${i + 1} *`}</span>
+                    <input 
+                      value={num} 
+                      onChange={e => updateMotorNumber(i, e.target.value)} 
+                      placeholder={isRtl ? 'أدخل رقم الماتور الفريد...' : 'Enter unique motor number...'}
+                      required 
+                      style={{ minHeight: '40px', padding: '0 0.7rem', border: '1px solid var(--pos-border)', borderRadius: '8px', background: 'var(--pos-card)', color: 'var(--text-1)' }}
+                    />
+                  </label>
+                  <label className="inventory-motor-number-field" style={{ display: 'grid', gap: '0.4rem', color: 'var(--text-2)', fontSize: '0.72rem', fontWeight: 600 }}>
+                    <span>{isRtl ? `رقم المحرك #${i + 1}` : `Engine Number #${i + 1}`}</span>
+                    <input 
+                      value={engineNumbers[i] ?? ''} 
+                      onChange={e => updateEngineNumber(i, e.target.value)} 
+                      placeholder={isRtl ? 'أدخل رقم المحرك...' : 'Enter engine number...'}
+                      style={{ minHeight: '40px', padding: '0 0.7rem', border: '1px solid var(--pos-border)', borderRadius: '8px', background: 'var(--pos-card)', color: 'var(--text-1)' }}
+                    />
+                  </label>
+                </div>
               ))}
             </div>
           </div>

@@ -39,7 +39,7 @@ export default function CompleteProfilePage() {
       await apiClient.post("/auth/google/complete-profile", data);
 
       await refreshUser();
-      router.push("/account/profile");
+      router.push("/");
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.message.toLowerCase().includes("missing or expired")) {

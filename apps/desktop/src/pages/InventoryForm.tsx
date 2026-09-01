@@ -3,11 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { brands, branches, categories, motorcycles, type BrandSummary, type CategorySummary, type MotorcycleInput } from '../api';
+import ImageUpload from '../components/ImageUpload';
 
 type Lang = 'en' | 'ar';
 
 const emptyForm = (branchId?: string): MotorcycleInput => ({
   vin: '',
+  engineNumber: '',
   model: '',
   year: new Date().getFullYear(),
   color: '',
@@ -38,6 +40,7 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
     if (!detail.data) return;
     setForm({
       vin: detail.data.vin,
+      engineNumber: detail.data.engineNumber ?? '',
       model: detail.data.model,
       year: detail.data.year,
       color: detail.data.color ?? '',
@@ -59,6 +62,7 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
   const createMut = useMutation({
     mutationFn: (data: MotorcycleInput) => motorcycles.create({
       vin: String(data.vin ?? '').trim(),
+      engineNumber: String(data.engineNumber ?? '').trim() || undefined,
       model: String(data.model ?? '').trim(),
       year: Number(data.year || new Date().getFullYear()),
       price: Number(data.price ?? 0),
@@ -66,6 +70,7 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
       brandId: String(data.brandId ?? '').trim(),
       categoryId: String(data.categoryId ?? '').trim(),
       branchId: String(data.branchId ?? '').trim(),
+      images: data.images ?? [],
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['desktop-inventory'] });
@@ -106,7 +111,9 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
     const payload: MotorcycleInput = { ...form, vin, model, price, costPrice, brandId: form.brandId, categoryId: form.categoryId, branchId: form.branchId, images: form.images ?? [] };
 
     if (editing) {
-      updateMut.mutate(payload);
+      const { branchId: _branchId, ...updatePayload } = payload;
+      void _branchId;
+      updateMut.mutate(updatePayload);
     } else {
       createMut.mutate(payload);
     }
@@ -142,7 +149,12 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
         <div className="inventory-fields">
           <label className="field-label">
             <span>VIN *</span>
-            <input className="text-input" value={form.vin ?? ''} onChange={event => setForm(current => ({ ...current, vin: event.target.value.toUpperCase() }))} readOnly={editing} required />
+            <input className="text-input" value={form.vin ?? ''} onChange={event => setForm(current => ({ ...current, vin: event.target.value.toUpperCase() }))} required />
+          </label>
+
+          <label className="field-label">
+            <span>{isRtl ? 'رقم المحرك' : 'Engine number'}</span>
+            <input className="text-input" value={form.engineNumber ?? ''} onChange={event => setForm(current => ({ ...current, engineNumber: event.target.value.toUpperCase() }))} />
           </label>
 
           <label className="field-label">
@@ -199,6 +211,13 @@ export default function InventoryForm({ lang, branchId }: { lang: Lang; branchId
             <span>{isRtl ? 'سعر التكلفة' : 'Cost price'}</span>
             <input className="text-input" type="number" min="0" step="0.01" value={form.costPrice ?? 0} onChange={event => setForm(current => ({ ...current, costPrice: Number(event.target.value || 0) }))} />
           </label>
+
+          <ImageUpload
+            lang={lang}
+            value={form.images?.[0]}
+            onUploaded={url => setForm(current => ({ ...current, images: [url] }))}
+            onClear={() => setForm(current => ({ ...current, images: [] }))}
+          />
         </div>
 
         <div className="inventory-form-actions">

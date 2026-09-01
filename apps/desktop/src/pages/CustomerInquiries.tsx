@@ -22,6 +22,8 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
   const [form, setForm] = useState<{
     customerName: string;
     customerPhone: string;
+    address: string;
+    occupation: string;
     documentType: InquiryDocumentType;
     downPayment: string;
     motorcycleId: string;
@@ -30,6 +32,8 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
   }>({
     customerName: '',
     customerPhone: '',
+    address: '',
+    occupation: '',
     documentType: 'EMPLOYEE',
     downPayment: '',
     motorcycleId: '',
@@ -79,7 +83,7 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
 
   function resetForm() {
     setSavedInquiryId(null);
-    setForm({ customerName: '', customerPhone: '', documentType: 'EMPLOYEE', downPayment: '', motorcycleId: '', financingCompanyId: '', installmentDurationId: '' });
+    setForm({ customerName: '', customerPhone: '', address: '', occupation: '', documentType: 'EMPLOYEE', downPayment: '', motorcycleId: '', financingCompanyId: '', installmentDurationId: '' });
     setDocumentImage(null);
     setIdCardFrontImage(null);
     setIdCardBackImage(null);
@@ -110,6 +114,11 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
 
     if (!form.installmentDurationId) {
       setError(isRtl ? 'يجب اختيار مدة التقسيط.' : 'Please select an installment duration.');
+      return;
+    }
+
+    if ((form.documentType === 'EMPLOYEE' || form.documentType === 'PENSION') && (!form.address.trim() || !form.occupation.trim())) {
+      setError(isRtl ? 'العنوان والمهنة مطلوبان للموظف أو صاحب المعاش.' : 'Address and occupation are required for employees and pensioners.');
       return;
     }
 
@@ -203,6 +212,16 @@ export default function CustomerInquiries({ lang }: { lang: Lang }) {
               <span>{isRtl ? 'رقم الهاتف' : 'Phone Number'} *</span>
               <input required value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} />
             </label>
+            {(form.documentType === 'EMPLOYEE' || form.documentType === 'PENSION') && <>
+              <label>
+                <span>{isRtl ? 'العنوان' : 'Address'} *</span>
+                <input required value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+              </label>
+              <label>
+                <span>{isRtl ? 'المهنة' : 'Occupation'} *</span>
+                <input required value={form.occupation} onChange={e => setForm({ ...form, occupation: e.target.value })} />
+              </label>
+            </>}
             
             <label>
               <span>{isRtl ? 'الدفعة المقدمة (اختياري)' : 'Down Payment (Optional)'}</span>

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Building2, Pencil, Trash2, X, AlertTriangle } from 'lucide-react';
 import { branches, type BranchSummary } from '../api';
+import { useToast } from '../components/Toast';
 
 type Lang = 'en' | 'ar';
 
 export default function Branches({ lang }: { lang: Lang }) {
   const isRtl = lang === 'ar';
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<BranchSummary | null>(null);
   
@@ -69,6 +71,7 @@ export default function Branches({ lang }: { lang: Lang }) {
       void queryClient.invalidateQueries({ queryKey: ['active-branches'] });
       setIsModalOpen(false);
       resetForm();
+      showToast(isRtl ? 'تم حفظ الفرع.' : 'Branch saved.', 'success');
     },
     onError: (err: any) => {
       setErrorMsg(err.message || (isRtl ? 'حدث خطأ أثناء الحفظ' : 'Error saving branch'));
@@ -82,8 +85,7 @@ export default function Branches({ lang }: { lang: Lang }) {
       void queryClient.invalidateQueries({ queryKey: ['active-branches'] });
     },
     onError: (err: any) => {
-      // Backend likely returns 409 or similar if relations exist
-      alert(err.message || (isRtl ? 'لا يمكن حذف الفرع لوجود سجلات مرتبطة به' : 'Cannot delete branch because it has related records.'));
+      showToast(err.message || (isRtl ? 'لا يمكن حذف الفرع لوجود سجلات مرتبطة به' : 'Cannot delete branch because it has related records.'), 'error');
     },
   });
 

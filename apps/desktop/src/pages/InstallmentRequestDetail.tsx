@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle, Edit3, ExternalLink, MessageCircle, Save, Trash2, User, Bike, FileImage } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Edit3, ExternalLink, MessageCircle, Save, Trash2, User, Bike, FileImage, Printer } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { customerFinancing, type InstallmentRequest } from '../api';
+import { formatInstallmentRequestHTML } from '../utils/receiptFormatter';
 
 function buildWhatsAppUrl(phone: string, message: string) {
   const cleanPhone = phone.replace(/\D/g, '');
@@ -61,7 +62,29 @@ export default function InstallmentRequestDetail({ lang }: { lang: 'en' | 'ar' }
     [isRtl ? 'توقيع الضامن' : 'Guarantor signature', request.guarantorSignatureImage],
   ];
   const startEdit = () => { setForm({ buyerName: request.buyerName, buyerPhone: request.buyerPhone, financingCompanyId: request.financingCompanyId, downPayment: String(request.downPayment) }); setEditing(true); };
+  const buyerAddress = request.buyerAddress || request.inquiry?.address || '-';
+  const buyerOccupation = request.buyerOccupation || request.inquiry?.occupation || '-';
   const sStyle = statusStyles[request.status] ?? statusStyles.pending;
+  const printRequest = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const motorcycle = request.motorcycle;
+    const html = formatInstallmentRequestHTML({
+      id: request.id,
+      createdAt: request.createdAt,
+      status: request.status,
+      buyer: { name: request.buyerName, phone: request.buyerPhone, email: request.buyerEmail, address: request.buyerAddress || request.inquiry?.address, occupation: request.buyerOccupation || request.inquiry?.occupation },
+      guarantor: { name: request.guarantorName, phone: request.guarantorPhone, address: request.guarantorAddress },
+      motorcycle: { brand: motorcycle?.brand?.nameAr ?? motorcycle?.brand?.nameEn ?? '-', model: motorcycle?.model ?? '-', vin: motorcycle?.vin, year: motorcycle?.year, color: motorcycle?.color, price: request.motorcyclePrice },
+      financing: { company: request.financingCompany?.name ?? '-', downPayment: request.downPayment, installmentAmount: request.installmentAmount, monthlyInstallment: request.monthlyInstallment, durationMonths: request.durationMonths ?? request.duration?.months },
+      documentType: request.inquiry?.documentType,
+      documents: imageItems.flatMap(([label, url]) => url ? [{ label, url }] : []),
+    }, lang);
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
 
   return (
     <section className="desktop-page" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -88,6 +111,9 @@ export default function InstallmentRequestDetail({ lang }: { lang: 'en' | 'ar' }
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
         <button className="premium-action-btn solid" onClick={() => whatsapp.mutate()} disabled={whatsapp.isPending}>
           <MessageCircle size={17} /> {isRtl ? ' إرسال عبر واتساب الى شركه التمويل ' : 'Send via WhatsApp to financing company'}
+        </button>
+        <button className="premium-action-btn outline" onClick={printRequest}>
+          <Printer size={17} /> {isRtl ? 'طباعة الطلب' : 'Print request'}
         </button>
         {request.status !== 'approved' && (
           <button className="premium-action-btn success-outline" onClick={() => approve.mutate()} disabled={approve.isPending}>
@@ -147,8 +173,8 @@ export default function InstallmentRequestDetail({ lang }: { lang: 'en' | 'ar' }
               [isRtl ? 'الاسم' : 'Name', request.buyerName],
               [isRtl ? 'الهاتف' : 'Phone', request.buyerPhone],
               [isRtl ? 'البريد' : 'Email', request.buyerEmail || '-'],
-              [isRtl ? 'العنوان' : 'Address', request.buyerAddress || '-'],
-              [isRtl ? 'المهنة' : 'Occupation', request.buyerOccupation || '-'],
+              [isRtl ? 'العنوان' : 'Address', buyerAddress],
+              [isRtl ? 'المهنة' : 'Occupation', buyerOccupation],
             ].map(([label, val]) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.875rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{label}</span>

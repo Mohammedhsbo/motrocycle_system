@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { BrowserRouter, NavLink, Routes, Route, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useQuery } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider, QueryCache, useQuery } from '@tanstack/react-query';
 import { ArrowRightLeft, BarChart3, Bike, Building2, CircleDollarSign, ClipboardList, Clock, FileImage, LogOut, Menu, Package, Plus, Printer, RefreshCw, Shield, ShoppingCart, Users, WalletCards, X } from 'lucide-react';
-import { auth, branches, desktopPermissions, getToken, getUser, setUser, clearToken, clearUser, pos, type BranchSummary, type DesktopUser } from './api';
+import { auth, branches, desktopPermissions, getApiErrorMessage, getToken, getUser, setUser, clearToken, clearUser, pos, type BranchSummary, type DesktopUser } from './api';
+import { emitToast } from './components/Toast';
 import { useViewingBranch, ViewingBranchProvider } from './contexts/ViewingBranchContext';
 import LoginScreen from './LoginScreen';
 import ReceivePurchase from './pages/ReceivePurchase';
@@ -14,6 +14,7 @@ import ReservationDetailPOS from './pages/ReservationDetailPOS';
 import './index.css';
 import Inventory from './pages/Inventory';
 import InventoryDetail from './pages/InventoryDetail';
+import InventoryForm from './pages/InventoryForm';
 import Customers from './pages/Customers';
 import Installments from './pages/Installments';
 import InstallmentRequests from './pages/InstallmentRequests';
@@ -39,6 +40,8 @@ import Branches from './pages/Branches';
 
 
 const qc = new QueryClient({
+  queryCache: new QueryCache({ onError: (error) => emitToast(getApiErrorMessage(error)) }),
+  mutationCache: new MutationCache({ onError: (error) => emitToast(getApiErrorMessage(error)) }),
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
 });
 
@@ -131,7 +134,7 @@ function Dashboard({ lang }: { lang: Lang }) {
         <div className="dashboard-lower">
           <div className="surface-panel">
             <div className="panel-heading"><div><span className="eyebrow">{isRtl ? 'آخر العمليات' : 'Activity'}</span><h2>{isRtl ? 'آخر العمليات' : 'Recent transactions'}</h2></div><NavLink to="/history">{isRtl ? 'عرض الكل' : 'View all'}</NavLink></div>
-            {data.recentTransactions.length === 0 ? <div className="empty-state">{isRtl ? 'لا توجد عمليات حتى الآن.' : 'No transactions yet.'}</div> : <div className="activity-list">{data.recentTransactions.map(item => <div className="activity-row" key={item.id}><div className="activity-mark"><Bike size={16} /></div><div><strong>{item.customerName}</strong><span>{item.motorcycleModel} · {item.number}</span></div><b>{money(item.amount)} {isRtl ? 'ج.م' : 'EGP'}</b></div>)}</div>}
+            {data.recentTransactions.length === 0 ? <div className="empty-state">{isRtl ? 'لا توجد عمليات حتى الآن.' : 'No transactions yet.'}</div> : <div className="activity-list">{data.recentTransactions.map(item => <div className="activity-row" key={item.id}><div className="activity-mark"><Bike size={16} /></div><div><strong>{item.customerName || (isRtl ? 'عميل' : 'Customer')}</strong><span>{item.motorcycleModel} · {item.number}</span></div><b>{money(item.amount)} {isRtl ? 'ج.م' : 'EGP'}</b></div>)}</div>}
           </div>
           <div className="surface-panel branch-panel"><span className="eyebrow">{isRtl ? 'الفرع والموظف' : 'Branch & employee'}</span><h2>{data.currentUser.branch ? (isRtl ? data.currentUser.branch.nameAr : data.currentUser.branch.nameEn) : (isRtl ? 'كل الفروع' : 'All branches')}</h2><p>{data.currentUser.name}</p><span className="role-pill">{data.currentUser.role}</span><div className="branch-rule" /><small>{isRtl ? 'الصلاحيات تطبق من الخادم على كل عملية.' : 'Permissions are enforced by the server for every action.'}</small></div>
         </div>
@@ -197,6 +200,8 @@ function DesktopShell({ lang, setLang, user, onLogout }: { lang: Lang; setLang: 
         <Route path="/offline-sync" element={<OfflineSync lang={lang} />} />
         <Route path="/history" element={<TransactionHistory lang={lang} />} />
         <Route path="/inventory" element={<Inventory lang={lang} branchId={selectedBranchId} />} />
+        <Route path="/inventory/new" element={<InventoryForm lang={lang} branchId={selectedBranchId ?? undefined} />} />
+        <Route path="/inventory/:id/edit" element={<InventoryForm lang={lang} branchId={selectedBranchId ?? undefined} />} />
         <Route path="/inventory/:id" element={<InventoryDetail lang={lang} />} />
         <Route path="/transfers" element={restrictedPages.transfers} />
         <Route path="/transfers/new" element={<TransferCreate lang={lang} />} />
@@ -235,7 +240,7 @@ export default function App() {
 
   useEffect(() => {
     if (!getToken()) return;
-    auth.me().then((currentUser) => { setUser(currentUser); setUserState(currentUser); setAuthed(true); }).catch(() => { clearToken(); clearUser(); setUserState(null); setAuthed(false); });
+    auth.me().then((currentUser) => { setUser(currentUser); setUserState(currentUser); setAuthed(true); }).catch((error) => { emitToast(getApiErrorMessage(error, lang === 'ar' ? 'تعذر استعادة الجلسة.' : 'Could not restore your session.')); clearToken(); clearUser(); setUserState(null); setAuthed(false); });
   }, []);
 
   if (!authed) {

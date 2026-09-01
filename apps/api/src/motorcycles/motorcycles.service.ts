@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { Prisma } from '@prisma/client';
 import { SocketGateway } from '../socket/index.js';
 import { 
   CreateMotorcycleRequest, 
@@ -56,29 +57,44 @@ export class MotorcyclesService {
     // Verify relations exist
     await this.verifyRelations(data.brandId, data.categoryId, data.branchId);
 
-    const motorcycle = await this.prisma.motorcycle.create({
-      data: {
-        vin: data.vin,
-        model: data.model,
-        year: data.year,
-        color: data.color,
-        engineSize: data.engineSize,
-        descriptionAr: data.descriptionAr,
-        descriptionEn: data.descriptionEn,
-        price: data.price,
-        costPrice: data.costPrice,
-        brandId: data.brandId,
-        categoryId: data.categoryId,
-        branchId: data.branchId,
-        images: data.images ?? [],
-        status: data.status ?? 'available',
-      },
-      include: {
-        brand: true,
-        category: true,
-        branch: true
+    let motorcycle;
+    try {
+      motorcycle = await this.prisma.motorcycle.create({
+        data: {
+          vin: data.vin,
+          engineNumber: data.engineNumber,
+          model: data.model,
+          year: data.year,
+          color: data.color,
+          engineSize: data.engineSize,
+          descriptionAr: data.descriptionAr,
+          descriptionEn: data.descriptionEn,
+          price: data.price,
+          costPrice: data.costPrice,
+          brandId: data.brandId,
+          categoryId: data.categoryId,
+          branchId: data.branchId,
+          images: data.images ?? [],
+          status: data.status ?? 'available',
+        },
+        include: {
+          brand: true,
+          category: true,
+          branch: true
+        }
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const target = String(error.meta?.target ?? '').toLowerCase();
+        if (target.includes('vin')) {
+          throw new ConflictException({ code: 'VIN_EXISTS', message: 'VIN already exists' });
+        }
+        if (target.includes('enginenumber')) {
+          throw new ConflictException({ code: 'ENGINE_NUMBER_EXISTS', message: 'Engine number already exists' });
+        }
       }
-    });
+      throw error;
+    }
 
     await this.audit.log({
       userId,
@@ -214,27 +230,43 @@ export class MotorcyclesService {
       await this.verifyRelations(data.brandId || existing.brandId, data.categoryId || existing.categoryId, existing.branchId);
     }
 
-    const updated = await this.prisma.motorcycle.update({
-      where: { id },
-      data: {
-        model: data.model,
-        year: data.year,
-        color: data.color,
-        engineSize: data.engineSize,
-        descriptionAr: data.descriptionAr,
-        descriptionEn: data.descriptionEn,
-        price: data.price,
-        costPrice: data.costPrice,
-        brandId: data.brandId,
-        categoryId: data.categoryId,
-        images: data.images,
-      },
-      include: {
-        brand: true,
-        category: true,
-        branch: true
+    let updated;
+    try {
+      updated = await this.prisma.motorcycle.update({
+        where: { id },
+        data: {
+          vin: data.vin,
+          model: data.model,
+          year: data.year,
+          color: data.color,
+          engineNumber: data.engineNumber,
+          engineSize: data.engineSize,
+          descriptionAr: data.descriptionAr,
+          descriptionEn: data.descriptionEn,
+          price: data.price,
+          costPrice: data.costPrice,
+          brandId: data.brandId,
+          categoryId: data.categoryId,
+          images: data.images,
+        },
+        include: {
+          brand: true,
+          category: true,
+          branch: true
+        }
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const target = String(error.meta?.target ?? '').toLowerCase();
+        if (target.includes('vin')) {
+          throw new ConflictException({ code: 'VIN_EXISTS', message: 'VIN already exists' });
+        }
+        if (target.includes('enginenumber')) {
+          throw new ConflictException({ code: 'ENGINE_NUMBER_EXISTS', message: 'Engine number already exists' });
+        }
       }
-    });
+      throw error;
+    }
 
     await this.audit.log({
       userId,

@@ -32,11 +32,13 @@ export default function Sales({ lang }: { lang: Lang }) {
   const [financingCompanyId, setFinancingCompanyId] = useState('');
   const [requestedAmount, setRequestedAmount] = useState('');
   const [holdAmount, setHoldAmount] = useState('');
+  const [reservationIdFile, setReservationIdFile] = useState<File | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
   // finished sale
   const [doneSale, setDoneSale] = useState<SaleRecord | null>(null);
+  const [doneReservation, setDoneReservation] = useState<{ id: string; number: string; createdAt: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,8 +99,10 @@ export default function Sales({ lang }: { lang: Lang }) {
       customerName,
       customerPhone,
       holdAmount: Number(holdAmount),
+      customerIdImage: reservationIdFile ?? undefined,
     }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setDoneReservation({ id: data.id, number: data.number, createdAt: data.createdAt });
       setStep('done-reserve');
       void qc.invalidateQueries({ queryKey: ['desktop-inventory'] });
       void qc.invalidateQueries({ queryKey: ['desktop-reservations'] });
@@ -116,12 +120,26 @@ export default function Sales({ lang }: { lang: Lang }) {
     setCustomerName('');
     setCustomerPhone('');
     setCustomerIdFile(null);
+    setReservationIdFile(null);
     setPaymentMethod('CASH');
     setFinancingCompanyId('');
     setRequestedAmount('');
     setHoldAmount('');
     setError(null);
     setDoneSale(null);
+    setDoneReservation(null);
+  }
+
+  function printReservationInvoice() {
+    if (!doneReservation || !selectedMc) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const brand = isRtl ? selectedMc.brand.nameAr : selectedMc.brand.nameEn;
+    const date = new Date(doneReservation.createdAt).toLocaleString(isRtl ? 'ar-EG' : 'en-GB');
+    printWindow.document.write(`<!doctype html><html lang="${isRtl ? 'ar' : 'en'}" dir="${isRtl ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title>${isRtl ? 'فاتورة حجز' : 'Reservation Invoice'}</title><style>body{font-family:Arial,sans-serif;color:#17243a;padding:32px}h1{color:#1e40af;border-bottom:3px solid #1e40af;padding-bottom:12px}table{width:100%;border-collapse:collapse;margin-top:24px}td{padding:12px;border-bottom:1px solid #dbe3ef}td:first-child{font-weight:bold;width:38%}</style></head><body><h1>${isRtl ? 'فاتورة حجز' : 'Reservation Invoice'}</h1><p>${isRtl ? 'رقم الحجز' : 'Reservation No.'}: ${doneReservation.number}</p><p>${isRtl ? 'التاريخ' : 'Date'}: ${date}</p><table><tr><td>${isRtl ? 'اسم العميل' : 'Customer'}</td><td>${customerName}</td></tr><tr><td>${isRtl ? 'الهاتف' : 'Phone'}</td><td>${customerPhone}</td></tr><tr><td>${isRtl ? 'الدراجة' : 'Motorcycle'}</td><td>${brand} ${selectedMc.model}</td></tr><tr><td>VIN</td><td>${selectedMc.vin}</td></tr><tr><td>${isRtl ? 'العربون' : 'Deposit'}</td><td>${money(Number(holdAmount))}</td></tr><tr><td>${isRtl ? 'السعر الإجمالي' : 'Total price'}</td><td>${money(selectedMc.price)}</td></tr></table></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   }
 
   function printInvoice() {
@@ -182,6 +200,8 @@ export default function Sales({ lang }: { lang: Lang }) {
   <tbody>
     <tr><td>${isRtl ? 'الماركة' : 'Brand'}</td><td>${brandName ?? '-'}</td></tr>
     <tr><td>${isRtl ? 'الموديل' : 'Model'}</td><td>${mc?.model ?? '-'}</td></tr>
+    <tr><td>${isRtl ? 'رقم الهيكل (VIN)' : 'Chassis Number (VIN)'}</td><td>${mc?.vin ?? '-'}</td></tr>
+    <tr><td>${isRtl ? 'رقم المحرك' : 'Engine Number'}</td><td>${mc?.engineNumber ?? '-'}</td></tr>
     <tr><td>${isRtl ? 'الحالة' : 'Status'}</td><td>${mc?.status ?? '-'}</td></tr>
     <tr class="total-row"><td>${isRtl ? 'السعر الإجمالي' : 'Total Price'}</td><td>${money(Number(doneSale.salePrice))}</td></tr>
   </tbody>
@@ -476,6 +496,12 @@ export default function Sales({ lang }: { lang: Lang }) {
             <input required type="number" min="0" value={holdAmount} onChange={e => setHoldAmount(e.target.value)} />
           </label>
 
+          <label>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><FileImage size={16} /> {isRtl ? 'صورة بطاقة المشتري *' : 'Buyer ID Photo *'}</span>
+            <input required type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setReservationIdFile(e.target.files?.[0] ?? null)} />
+          </label>
+          {reservationIdFile && <p style={{ color: 'var(--green)', fontSize: '0.875rem', margin: 0 }}>✔ {reservationIdFile.name}</p>}
+
           <button className="primary-action" type="submit" style={{ padding: '0.9rem' }} disabled={createReservation.isPending}>
             {createReservation.isPending ? (isRtl ? 'جاري الحفظ...' : 'Saving...') : (isRtl ? 'تأكيد الحجز' : 'Confirm Reservation')}
           </button>
@@ -563,6 +589,19 @@ export default function Sales({ lang }: { lang: Lang }) {
           <button className="primary-action" onClick={reset}>
             {isRtl ? 'بيع جديد' : 'New Sale'}
           </button>
+        </div>
+      )}
+
+      {step === 'done-reserve' && doneReservation && selectedMc && (
+        <div className="surface-panel sales-step-panel sales-success-panel" style={{ maxWidth: 540, margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'center' }}>
+          <CheckCircle2 size={56} style={{ color: 'var(--green)', margin: '0 auto' }} />
+          <h2 style={{ margin: 0, color: 'var(--green)' }}>{isRtl ? 'تم إنشاء الحجز بنجاح' : 'Reservation created successfully'}</h2>
+          <p style={{ margin: 0, color: 'var(--text-2)' }}>{isRtl ? 'رقم الحجز' : 'Reservation No.'}: <strong>{doneReservation.number}</strong></p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="primary-action" onClick={printReservationInvoice}><Printer size={18} /> {isRtl ? 'طباعة الفاتورة' : 'Print Invoice'}</button>
+            <button className="secondary-action" onClick={() => navigate(`/reservations/${doneReservation.id}`)}>{isRtl ? 'عرض الحجز' : 'View Reservation'}</button>
+            <button className="secondary-action" onClick={reset}>{isRtl ? 'حجز جديد' : 'New Reservation'}</button>
+          </div>
         </div>
       )}
 

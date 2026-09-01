@@ -5,6 +5,7 @@ import { ArrowLeft, User, Bike, Receipt, AlertCircle, Clock, XCircle, CheckCircl
 import { pos, financing, type ReservationStatus } from '../api';
 import ConvertToOrder from '../components/ConvertToOrder';
 import { buildWhatsAppUrl } from '../../../../packages/shared-types/src/whatsapp';
+import { useToast } from '../components/Toast';
 
 type Lang = 'en' | 'ar';
 
@@ -154,6 +155,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
   const queryClient = useQueryClient();
   const t = T[lang];
   const isRtl = lang === 'ar';
+  const { showToast } = useToast();
 
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -197,12 +199,13 @@ export default function ReservationDetailPOS({ lang }: Props) {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => pos.cancelReservation(id!),
+    mutationFn: () => pos.cancelReservation(id!, cancelReason.trim()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservation', id] });
       queryClient.invalidateQueries({ queryKey: ['desktop-reservations'] });
       setShowCancelModal(false);
       setCancelReason('');
+      showToast(isRtl ? 'تم إلغاء الحجز.' : 'Reservation cancelled.', 'success');
     },
   });
   const updateMutation = useMutation({
@@ -461,6 +464,16 @@ export default function ReservationDetailPOS({ lang }: Props) {
               </div>
             </div>
           )}
+          {reservation.customerIdImage && (
+            <div style={{ marginTop: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem', textTransform: 'uppercase', fontWeight: 700 }}>
+                {isRtl ? 'صورة بطاقة العميل' : 'Customer ID image'}
+              </div>
+              <a href={reservation.customerIdImage} target="_blank" rel="noreferrer">
+                <img src={reservation.customerIdImage} alt={isRtl ? 'صورة بطاقة العميل' : 'Customer ID image'} style={{ width: '100%', maxWidth: 220, height: 150, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border)', display: 'block' }} />
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
@@ -707,7 +720,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
             </p>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                {t.enterReason} *
+                {t.enterReason}
               </label>
               <textarea
                 value={cancelReason}
@@ -739,7 +752,7 @@ export default function ReservationDetailPOS({ lang }: Props) {
               </button>
               <button
                 onClick={() => cancelMutation.mutate()}
-                disabled={!cancelReason.trim() || cancelMutation.isPending}
+                disabled={cancelMutation.isPending}
                 className="btn"
                 style={{
                   fontSize: '0.875rem',

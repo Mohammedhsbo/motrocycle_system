@@ -7,6 +7,7 @@ import type { BranchSummary } from "./user.js";
 const vinSchema = z.string().trim().min(1).max(50).regex(/^[A-HJ-NPR-Z0-9-]+$/, {
   message: "VIN must contain only uppercase letters (excluding I, O and Q), digits and hyphens",
 });
+const engineNumberSchema = z.string().trim().max(100).optional();
 const modelSchema = z.string().trim().min(1).max(200);
 const yearSchema = z.number().int().min(1900).max(2100);
 const colorSchema = z.string().trim().max(50);
@@ -20,6 +21,7 @@ const imagesSchema = z.array(z.string().url()).max(10);
 export const createMotorcycleRequestSchema = z
   .object({
     vin: vinSchema,
+    engineNumber: engineNumberSchema,
     model: modelSchema,
     year: yearSchema,
     color: colorSchema.optional(),
@@ -38,9 +40,11 @@ export const createMotorcycleRequestSchema = z
 
 export const updateMotorcycleRequestSchema = z
   .object({
+    vin: vinSchema.optional(),
     model: modelSchema.optional(),
     year: yearSchema.optional(),
     color: colorSchema.optional(),
+    engineNumber: engineNumberSchema,
     engineSize: engineSizeSchema.optional(),
     descriptionAr: descriptionSchema.optional(),
     descriptionEn: descriptionSchema.optional(),
@@ -108,6 +112,7 @@ export const listMotorcyclesQuerySchema = z
 export interface Motorcycle {
   id: string;
   vin: string;
+  engineNumber?: string | null;
   model: string;
   year: number;
   color?: string | null;
@@ -128,6 +133,7 @@ export interface Motorcycle {
 export interface MotorcycleListItem {
   id: string;
   vin: string;
+  engineNumber?: string | null;
   model: string;
   year: number;
   color?: string | null;
@@ -179,6 +185,7 @@ export type ListMotorcyclesQuery = z.infer<typeof listMotorcyclesQuerySchema>;
 export interface CreateMotorcycleResponse {
   id: string;
   vin: string;
+  engineNumber?: string | null;
   model: string;
   year: number;
   color?: string | null;

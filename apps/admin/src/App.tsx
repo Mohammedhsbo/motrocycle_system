@@ -113,7 +113,10 @@ function Dashboard({ lang }: { lang: 'en' | 'ar' }) {
 }
 
 export default function App() {
-  const [lang, setLang] = useState<'en' | 'ar'>('en');
+  const [lang, setLang] = useState<'en' | 'ar'>(() => {
+    const savedLanguage = localStorage.getItem('admin_lang');
+    return savedLanguage === 'en' || savedLanguage === 'ar' ? savedLanguage : 'ar';
+  });
   const [authenticated, setAuthenticated] = useState(() => Boolean(getToken()));
 
   if (!authenticated) {
@@ -136,7 +139,11 @@ export default function App() {
           <BranchProvider>
             <BranchGate lang={lang}>
               <div className="app-container">
-              <Sidebar lang={lang} onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')} onLogout={handleLogout} />
+              <Sidebar lang={lang} onToggleLang={() => setLang(current => {
+                const nextLanguage = current === 'en' ? 'ar' : 'en';
+                localStorage.setItem('admin_lang', nextLanguage);
+                return nextLanguage;
+              })} onLogout={handleLogout} />
               <div className="main-content">
             <Routes>
               <Route path="/" element={<Dashboard lang={lang} />} />

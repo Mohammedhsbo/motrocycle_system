@@ -47,7 +47,7 @@ export class AuthController {
   @Throttle({ default: { ttl: Number(process.env.LOGIN_RATE_LIMIT_TTL_MS ?? 60_000), limit: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 5) } })
   @UsePipes(new ZodValidationPipe(loginRequestSchema))
   async adminLogin(@Body() body: LoginRequest, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
-    if (body.email.toLowerCase() !== "admin@example.com") {
+    if (body.email.toLowerCase() !== "admin@manage.com") {
       throw new AppError("INVALID_CREDENTIALS", 401, "Invalid credentials");
     }
 

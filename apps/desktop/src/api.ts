@@ -17,6 +17,14 @@ import type {
 
 const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1');
 
+export function getApiErrorMessage(reason: unknown, fallback = 'Request failed') {
+  if (reason instanceof Error && reason.message) {
+    if (reason.name === 'TypeError' && /fetch|network|failed/i.test(reason.message)) return 'Network unavailable. Check the connection and try again.';
+    return reason.message;
+  }
+  return fallback;
+}
+
 let authToken: string | null = localStorage.getItem('pos_token');
 
 export interface DesktopUser {
@@ -126,8 +134,14 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, canRefresh =
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(options.headers as Record<string, string> ?? {}),
   };
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
-  const json = await res.json() as Record<string, any>;
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
+  } catch (reason) {
+    throw new Error(getApiErrorMessage(reason, 'Network unavailable. Check the connection and try again.'));
+  }
+  let json: Record<string, any> = {};
+  try { json = await res.json() as Record<string, any>; } catch { /* Empty responses are valid for some requests. */ }
   if (res.status === 401 && canRefresh && path !== '/auth/login' && path !== '/auth/refresh') {
     try {
       await refreshAccessToken();
@@ -370,6 +384,7 @@ export const customerInquiries = {
 export interface MotorcycleSearchResult {
   id: string;
   vin: string;
+  engineNumber?: string | null;
   model: string;
   year: number;
   color?: string;
@@ -418,6 +433,7 @@ export const categories = {
 
 export interface MotorcycleInput {
   vin?: string;
+  engineNumber?: string;
   model: string;
   year: number;
   color?: string;
@@ -429,6 +445,8 @@ export interface MotorcycleInput {
   images?: string[];
 }
 
+type MotorcycleCreatePayload = Required<Pick<MotorcycleInput, 'vin' | 'model' | 'year' | 'price' | 'costPrice' | 'brandId' | 'categoryId' | 'branchId'>> & Pick<MotorcycleInput, 'engineNumber' | 'images'>;
+
 export const motorcycles = {
   search: (params: { search?: string; branchId?: string; status?: string; limit?: number }) => {
     const q = new URLSearchParams();
@@ -439,10 +457,21 @@ export const motorcycles = {
     return apiFetch<{ items: MotorcycleSearchResult[]; total: number }>(`/motorcycles?${q}`);
   },
   get: (id: string) => apiFetch<MotorcycleSearchResult>(`/motorcycles/${id}`),
-  create: (data: Required<Pick<MotorcycleInput, 'vin' | 'model' | 'year' | 'price' | 'costPrice' | 'brandId' | 'categoryId' | 'branchId'>>) => apiFetch<MotorcycleSearchResult>('/motorcycles', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: MotorcycleCreatePayload) => apiFetch<MotorcycleSearchResult>('/motorcycles', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: MotorcycleInput) => apiFetch<MotorcycleSearchResult>(`/motorcycles/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   updateStatus: (id: string, status: string, reason?: string) => apiFetch<MotorcycleSearchResult>(`/motorcycles/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }),
   remove: (id: string) => apiFetch<void>(`/motorcycles/${id}`, { method: 'DELETE' }),
+};
+
+export const upload = {
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiFetch<{ url: string; filename: string; size: number; mimeType: string }>('/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };
 
 // ─── Transfers API ──────────────────────────────────────
@@ -509,6 +538,7 @@ export interface OrderListItem {
 }
 
 export interface OrderDetail extends Order {
+  customerIdImage?: string | null;
   customer: {
     id: string;
     name: string;
@@ -587,6 +617,7 @@ export interface ReservationListItem {
 }
 
 export interface ReservationDetail extends Omit<ReservationListItem, 'customer'> {
+  customerIdImage?: string | null;
   customer: {
     id: string;
     name: string;
@@ -848,7 +879,18 @@ export const pos = {
     return apiFetch<{ items: OrderListItem[]; total: number; page: number; limit: number; totalPages: number }>(`/pos/orders?${query}`);
   },
   createOrder: (data: CreateOrderInput) => apiFetch<OrderDetail>('/pos/orders', { method: 'POST', body: JSON.stringify(data) }),
-  createReservation: (input: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number }) => apiFetch<CreatePOSTransactionResponse>('/pos/reservations/direct', { method: 'POST', body: JSON.stringify(input) }),
+  createReservation: (input: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number; customerIdImage?: File | string }) => {
+    if (input.customerIdImage instanceof File) {
+      const form = new FormData();
+      form.set('customerName', input.customerName);
+      form.set('customerPhone', input.customerPhone);
+      form.set('motorcycleId', input.motorcycleId);
+      form.set('holdAmount', String(input.holdAmount));
+      form.set('customerIdImage', input.customerIdImage);
+      return apiFetch<CreatePOSTransactionResponse>('/pos/reservations/direct', { method: 'POST', body: form });
+    }
+    return apiFetch<CreatePOSTransactionResponse>('/pos/reservations/direct', { method: 'POST', body: JSON.stringify(input) });
+  },
   getOrder: (id: string) => apiFetch<OrderDetail>(`/pos/orders/${id}`),
   updateOrderStatus: (id: string, status: OrderStatus) => apiFetch<OrderDetail>(`/pos/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   cancelOrder: (id: string) => apiFetch<OrderDetail>(`/pos/orders/${id}/cancel`, { method: 'POST' }),
@@ -860,7 +902,7 @@ export const pos = {
     return apiFetch<{ items: ReservationListItem[]; total: number; page: number; limit: number; totalPages: number }>(`/pos/reservations?${query}`);
   },
   getReservation: (id: string) => apiFetch<ReservationDetail>(`/pos/reservations/${id}`),
-  cancelReservation: (id: string) => apiFetch<ReservationDetail>(`/pos/reservations/${id}/cancel`, { method: 'POST' }),
+  cancelReservation: (id: string, reason?: string) => apiFetch<ReservationDetail>(`/pos/reservations/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
   updateReservation: (id: string, data: { expiresAt?: string; notes?: string }) => apiFetch<ReservationDetail>(`/pos/reservations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   
   getActiveReservations: (branchId?: string, customerId?: string) => {
@@ -1073,6 +1115,8 @@ export interface InquiryRecord {
   customerName: string;
   customerPhone: string;
   documentType: InquiryDocumentType;
+  address?: string | null;
+  occupation?: string | null;
   documentImage?: string;
   idCardFrontImage?: string;
   idCardBackImage?: string;
@@ -1090,6 +1134,8 @@ export interface InquiryInput {
   customerName: string;
   customerPhone: string;
   documentType: InquiryDocumentType;
+  address?: string;
+  occupation?: string;
   downPayment?: number;
   motorcycleId?: string;
   documentImage?: File;
@@ -1126,6 +1172,8 @@ export const inquiries = {
     form.set('customerName', input.customerName);
     form.set('customerPhone', input.customerPhone);
     form.set('documentType', input.documentType);
+    if (input.address) form.set('address', input.address);
+    if (input.occupation) form.set('occupation', input.occupation);
     if (input.downPayment !== undefined) form.set('downPayment', String(input.downPayment));
     if (input.motorcycleId) form.set('motorcycleId', input.motorcycleId);
     if (input.financingCompanyId) form.set('financingCompanyId', input.financingCompanyId);
@@ -1397,6 +1445,7 @@ export interface InstallmentRequest {
   motorcycle?: any;
   financingCompany?: any;
   duration?: any;
+  inquiry?: { documentType?: InquiryDocumentType | null; address?: string | null; occupation?: string | null };
 }
 
 export const customerFinancing = {

@@ -3,7 +3,7 @@ import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 export default function OfflineSync({ lang }: { lang: 'en' | 'ar' }) {
   const isRtl = lang === 'ar';
-  const sync = useOfflineSync();
+  const sync = useOfflineSync(lang);
   const formatDate = (value?: string) => value ? new Date(value).toLocaleString(isRtl ? 'ar-EG' : 'en-EG') : (isRtl ? 'لا يوجد' : 'None');
 
   return <section className="desktop-page" dir={isRtl ? 'rtl' : 'ltr'}>

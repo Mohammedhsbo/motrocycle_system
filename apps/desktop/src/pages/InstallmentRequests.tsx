@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, Search, RefreshCw, FileText, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Search, RefreshCw, FileText, Eye, CalendarDays, CircleDollarSign } from 'lucide-react';
 import { customerFinancing, type InstallmentRequest } from '../api';
 import Modal from '../components/Modal';
 import Badge from '../components/Badge';
@@ -110,6 +110,7 @@ export default function InstallmentRequests({ lang }: Props) {
     });
     
   const isBusy = reviewMut.isPending;
+  const formatAmount = (amount?: number | null) => amount == null ? '-' : `${amount.toLocaleString()} EGP`;
 
   return (
   <section className="desktop-page" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -134,7 +135,7 @@ export default function InstallmentRequests({ lang }: Props) {
       </div>
     </div>
     
-    <div className="table-container" style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', boxShadow: '0 4px 20px rgba(15,23,42,0.03)' }}>
+    <div className="table-container installment-requests-table" style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', boxShadow: '0 4px 20px rgba(15,23,42,0.03)' }}>
       {query.isLoading ? <div className="center-content"><div className="spinner" /><span>{i18n.loading}</span></div> 
       : query.isError ? <div className="center-content" style={{ color: 'var(--error)' }}><span>{i18n.error}</span><button className="premium-action-btn outline mt-4" onClick={() => query.refetch()}>{i18n.retry}</button></div> 
       : rows.length === 0 ? <div className="center-content"><FileText size={40} style={{ opacity: 0.3, marginBottom: '0.75rem', color: 'var(--blue)' }} /><span>{i18n.noData}</span></div> 
@@ -145,8 +146,8 @@ export default function InstallmentRequests({ lang }: Props) {
               <th>{i18n.customer}</th>
               <th>{i18n.motorcycle}</th>
               <th>{i18n.downPayment}</th>
-              <th>{i18n.amount}</th>
-              <th>{i18n.duration}</th>
+              <th><span className="table-heading-with-icon"><CircleDollarSign size={14} /> {i18n.amount}</span></th>
+              <th><span className="table-heading-with-icon"><CalendarDays size={14} /> {i18n.duration}</span></th>
               <th>{i18n.status}</th>
               <th>{i18n.actions}</th>
             </tr>
@@ -157,9 +158,9 @@ export default function InstallmentRequests({ lang }: Props) {
                 <td>{new Date(req.createdAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US')}</td>
                 <td>{req.customer?.name || req.buyerName || '-'}</td>
                 <td>{req.motorcycle ? req.motorcycle.model : '-'}</td>
-                <td>{req.downPayment != null ? req.downPayment.toLocaleString() : '-'}</td>
-                <td>{req.installmentAmount != null ? req.installmentAmount.toLocaleString() : '-'}</td>
-                <td>{req.durationMonths ?? '-'}</td>
+                <td><span className="money-cell">{formatAmount(req.downPayment)}</span></td>
+                <td><span className="money-cell money-cell-primary">{formatAmount(req.installmentAmount ?? req.monthlyInstallment)}</span></td>
+                <td><span className="duration-cell"><strong>{req.durationMonths ?? req.duration?.months ?? '-'}</strong> <small>{i18n.monthsUnit}</small></span></td>
                 <td>
                   <Badge 
                     status={req.status === 'pending' ? 'inactive' : req.status === 'approved' ? 'active' : 'failed'} 
@@ -169,7 +170,7 @@ export default function InstallmentRequests({ lang }: Props) {
                 </td>
                 <td>
                   <div className="flex gap-2">
-                    <button className="premium-action-btn outline" style={{ padding: '0.4rem' }} onClick={(event) => { event.stopPropagation(); openView(req); }} title={i18n.viewDetails}>
+                    <button className="premium-action-btn outline" style={{ padding: '0.4rem' }} onClick={(event) => { event.stopPropagation(); navigate(`/installment-requests/${req.id}`); }} title={i18n.viewDetails}>
                       <Eye size={16} />
                     </button>
                     {req.status === 'pending' && (

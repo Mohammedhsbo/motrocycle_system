@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Bike, Plus, RefreshCw, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, pos } from '../api';
-import InventoryAddModal from './InventoryAddModal';
 
 type Lang = 'en' | 'ar';
 
@@ -12,7 +11,6 @@ export default function Inventory({ lang, branchId }: { lang: Lang; branchId?: s
   const navigate = useNavigate();
   const canManage = getUser()?.role.name === 'super_admin';
   const [query, setQuery] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   const list = useQuery({ 
     queryKey: ['desktop-inventory', query, branchId], 
@@ -36,7 +34,7 @@ export default function Inventory({ lang, branchId }: { lang: Lang; branchId?: s
             <RefreshCw size={16} /> {isRtl ? 'تحديث' : 'Refresh'}
           </button>
           {canManage && (
-            <button className="primary-action" onClick={() => setIsAddModalOpen(true)}>
+            <button className="primary-action" onClick={() => navigate('/inventory/new')}>
               <Plus size={16} /> {isRtl ? 'إضافة وحدات' : 'Add units'}
             </button>
           )}
@@ -92,13 +90,6 @@ export default function Inventory({ lang, branchId }: { lang: Lang; branchId?: s
         </div>
       )}
 
-      {isAddModalOpen && (
-        <InventoryAddModal 
-          lang={lang} 
-          branchId={branchId}
-          onClose={() => setIsAddModalOpen(false)} 
-        />
-      )}
     </section>
   );
 }

@@ -177,9 +177,14 @@ export class POSController {
   }
 
   @Post('reservations/direct')
+  @UseInterceptors(FileInterceptor('customerIdImage'))
   @RequirePermission(Resource.RESERVATION, Action.CREATE)
-  async createDirectReservation(@Body() body: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number }, @Req() req: AuthenticatedRequest) {
-    return { success: true, data: await this.posService.createDirectReservation(body, req.user) };
+  async createDirectReservation(
+    @Body() body: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number },
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return { success: true, data: await this.posService.createDirectReservation(body, req.user, file) };
   }
 
   @Get('reservations/:id')

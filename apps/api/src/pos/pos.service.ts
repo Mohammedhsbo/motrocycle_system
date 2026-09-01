@@ -154,6 +154,16 @@ export class POSService {
             name: true,
           },
         },
+        items: {
+          select: {
+            motorcycle: {
+              select: {
+                model: true,
+              },
+            },
+          },
+          take: 1,
+        },
       },
     });
 
@@ -186,8 +196,8 @@ export class POSService {
         id: order.id,
         type: 'order' as const,
         number: order.orderNumber,
-        customerName: 'N/A',
-        motorcycleModel: 'N/A',
+        customerName: order.customer?.name || 'Unknown',
+        motorcycleModel: order.items[0]?.motorcycle?.model || 'Unknown',
         amount: Number(order.netAmount),
         createdAt: order.createdAt.toISOString(),
       })),
@@ -717,19 +727,32 @@ export class POSService {
     return result;
   }
 
-  async createDirectReservation(data: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number }, user: AuthenticatedUser) {
+  async createDirectReservation(data: { customerName: string; customerPhone: string; motorcycleId: string; holdAmount: number }, user: AuthenticatedUser, file?: Express.Multer.File) {
     const customer = await this.prisma.customer.upsert({
       where: { phone: data.customerPhone },
       create: { name: data.customerName, phone: data.customerPhone },
       update: { name: data.customerName },
     });
-    return this.createTransaction({
+    const customerIdImage = file ? (await this.storageService.uploadFile(file, 'sales/id-images')).url : undefined;
+    const result = await this.createTransaction({
       type: POSTransactionType.RESERVATION,
       customerId: customer.id,
       motorcycleId: data.motorcycleId,
       reservationData: { depositAmount: data.holdAmount, expirationDays: 7 },
       idempotencyKey: `pos-reservation-${user.id}-${data.motorcycleId}-${Date.now()}`,
     }, user);
+
+    if (result.id && customerIdImage) {
+      const reservation = await this.prisma.desktopReservation.findUnique({ where: { id: result.id } });
+      if (reservation) {
+        await this.prisma.desktopReservation.update({
+          where: { id: reservation.id },
+          data: { customerIdImage },
+        });
+      }
+    }
+
+    return { ...result, customerIdImage };
   }
 
   async createCashSale(
@@ -777,6 +800,7 @@ export class POSService {
           orderNumber: `DORD-${branchId.substring(0, 8)}-${Date.now()}`,
           customerId: customer.id, branchId, userId: user.id,
           status: 'completed', paymentType: 'CASH', totalAmount: data.salePrice, discount: 0, netAmount: data.salePrice,
+          customerIdImage: customerIdImage ?? null,
           idempotencyKey: `pos-cash-${user.id}-${data.motorcycleId}-${Date.now()}`,
           items: { create: { motorcycleId: data.motorcycleId, unitPrice: data.salePrice, discount: 0 } },
         },
@@ -972,6 +996,7 @@ export class POSService {
     if (!order) throw new NotFoundException('Desktop order not found');
     return {
       ...order,
+      customerIdImage: order.customerIdImage ?? null,
       totalAmount: Number(order.totalAmount), discount: Number(order.discount), netAmount: Number(order.netAmount),
       createdAt: order.createdAt.toISOString(), updatedAt: order.updatedAt.toISOString(),
       items: order.items.map((item: any) => ({
@@ -1038,7 +1063,7 @@ export class POSService {
     }) as any;
     if (!reservation) throw new NotFoundException('Desktop reservation not found');
     return {
-      ...reservation, source: 'pos', totalPrice: Number(reservation.totalPrice), depositAmount: Number(reservation.paidAmount), remainingAmount: Number(reservation.remainingAmount),
+      ...reservation, source: 'pos', customerIdImage: reservation.customerIdImage ?? null, totalPrice: Number(reservation.totalPrice), depositAmount: Number(reservation.paidAmount), remainingAmount: Number(reservation.remainingAmount),
       createdAt: reservation.createdAt.toISOString(), updatedAt: reservation.updatedAt.toISOString(), expiresAt: reservation.expiresAt?.toISOString(),
       motorcycle: { ...reservation.motorcycle, price: Number(reservation.motorcycle.price), costPrice: Number(reservation.motorcycle.costPrice), brand: { nameEn: reservation.motorcycle.brand.nameEn, nameAr: reservation.motorcycle.brand.nameAr } },
       convertedOrder: reservation.convertedOrder ? { id: reservation.convertedOrder.id, orderNumber: reservation.convertedOrder.orderNumber, status: reservation.convertedOrder.status } : null,

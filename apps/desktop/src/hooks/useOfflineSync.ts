@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pos } from '../api';
 import { useConnectionStatus } from './useConnectionStatus';
 import { OfflineOperationType } from '../../../../packages/shared-types/src/pos';
+import { useToast } from '../components/Toast';
 
 export interface OfflineOperation {
   id: string;
@@ -11,9 +12,10 @@ export interface OfflineOperation {
   timestamp: number;
 }
 
-export function useOfflineSync() {
+export function useOfflineSync(lang: 'en' | 'ar' = 'en') {
   const { isOnline } = useConnectionStatus();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [queue, setQueue] = useState<OfflineOperation[]>([]);
   const serverStatus = useQuery({ queryKey: ['pos-sync-status'], queryFn: pos.getSyncStatus, refetchInterval: 30_000 });
   const serverQueue = useQuery({ queryKey: ['pos-queued-operations'], queryFn: pos.getQueuedOperations, refetchInterval: 30_000 });
@@ -24,11 +26,11 @@ export function useOfflineSync() {
     if (stored) {
       try {
         setQueue(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed to load offline queue', e);
+      } catch {
+        showToast(lang === 'ar' ? 'تعذر تحميل قائمة العمليات المحلية.' : 'Could not load the offline queue.', 'error');
       }
     }
-  }, []);
+  }, [isOnline, lang, showToast]);
 
   // Save queue to localStorage whenever it changes
   useEffect(() => {
@@ -50,6 +52,7 @@ export function useOfflineSync() {
           });
           completed.push(operation.id);
         } catch {
+          showToast('Sync paused. The pending operation will be retried.', 'warning');
           break;
         }
       }

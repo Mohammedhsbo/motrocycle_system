@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bike } from 'lucide-react';
-import { motorcycles } from '../api';
+import { ArrowLeft, Bike, Pencil, Trash2 } from 'lucide-react';
+import { getUser, motorcycles } from '../api';
 
 type Lang = 'en' | 'ar';
 
@@ -9,10 +9,28 @@ export default function InventoryDetail({ lang }: { lang: Lang }) {
   const { id } = useParams();
   const isRtl = lang === 'ar';
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const canManage = getUser()?.role.name === 'super_admin';
 
   const detail = useQuery({ 
     queryKey: ['desktop-motorcycle', id], 
     queryFn: () => motorcycles.get(id!) 
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      try {
+        await motorcycles.remove(id!);
+      } catch (reason) {
+        const error = reason as Error & { code?: string };
+        if (error.code !== 'MOTORCYCLE_HAS_RESERVATIONS') throw reason;
+        await motorcycles.updateStatus(id!, 'maintenance', 'Removed from inventory; reservation history retained');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['desktop-inventory'] });
+      navigate('/inventory');
+    },
   });
 
   const data = detail.data;
@@ -30,6 +48,18 @@ export default function InventoryDetail({ lang }: { lang: Lang }) {
             <h1>{data ? data.model : (isRtl ? 'جاري التحميل...' : 'Loading...')}</h1>
           </div>
         </div>
+        {data && canManage && (
+          <div className="report-controls">
+            <button type="button" className="secondary-action" onClick={() => navigate(`/inventory/${data.id}/edit`)}>
+              <Pencil size={16} /> {isRtl ? 'تعديل' : 'Edit'}
+            </button>
+            <button type="button" className="secondary-action" onClick={() => {
+              if (window.confirm(isRtl ? 'هل أنت متأكد من حذف هذه الماكينة؟' : 'Are you sure you want to delete this motorcycle?')) deleteMut.mutate();
+            }} disabled={deleteMut.isPending}>
+              <Trash2 size={16} /> {deleteMut.isPending ? (isRtl ? 'جارٍ الحذف...' : 'Deleting...') : (isRtl ? 'حذف' : 'Delete')}
+            </button>
+          </div>
+        )}
       </div>
 
       {detail.isLoading && (

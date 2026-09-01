@@ -289,6 +289,16 @@ export default function OrderDetailPOS({ lang }: Props) {
               )}
             </div>
           )}
+          {order.customerIdImage && (
+            <div style={{ marginTop: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem', textTransform: 'uppercase', fontWeight: 700 }}>
+                {lang === 'ar' ? 'صورة بطاقة العميل' : 'Customer ID image'}
+              </div>
+              <a href={order.customerIdImage} target="_blank" rel="noreferrer">
+                <img src={order.customerIdImage} alt={lang === 'ar' ? 'صورة بطاقة العميل' : 'Customer ID image'} style={{ width: '100%', maxWidth: 220, height: 150, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border)', display: 'block' }} />
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="pos-card order-info-card" style={{ padding: '1rem' }}>

@@ -49,6 +49,7 @@ describe("Motorcycles API", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         vin: "VN-12345",
+        engineNumber: "ENG-12345",
         model: "YZF-R1",
         year: 2024,
         price: 15000,
@@ -62,6 +63,7 @@ describe("Motorcycles API", () => {
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.vin).toBe("VN-12345");
+    expect(res.body.data.engineNumber).toBe("ENG-12345");
     motorcycleId = res.body.data.id;
   });
 
@@ -110,11 +112,13 @@ describe("Motorcycles API", () => {
       .patch(`/api/v1/motorcycles/${motorcycleId}`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
+        engineNumber: "ENG-UPDATED-12345",
         price: 15500, // Updated price
       });
 
     expect(res.status).toBe(200);
     expect(res.body.data.price).toBe(15500);
+    expect(res.body.data.engineNumber).toBe("ENG-UPDATED-12345");
   });
 
   it("should enforce valid status transitions", async () => {

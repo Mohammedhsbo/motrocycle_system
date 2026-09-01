@@ -687,6 +687,7 @@ export type MotorcycleStatus = 'in_transit' | 'available' | 'reserved' | 'sold' 
 
 export interface MotorcycleInput {
   vin: string;
+  engineNumber?: string;
   model: string;
   year: number;
   color?: string;
@@ -706,6 +707,7 @@ export interface MotorcycleUpdate {
   model?: string;
   year?: number;
   color?: string;
+  engineNumber?: string;
   engineSize?: string;
   descriptionAr?: string;
   descriptionEn?: string;
@@ -736,6 +738,7 @@ export interface MotorcycleListQuery {
 export interface MotorcycleResponse {
   id: string;
   vin: string;
+  engineNumber: string | null;
   model: string;
   year: number;
   color: string | null;
